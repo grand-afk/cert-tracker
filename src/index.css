@@ -664,7 +664,7 @@ body {
   margin-top: 1px;
 }
 .nav-btn--active .nav-btn__key { color: var(--accent); border-color: var(--accent); }
-.nav-btn__label { font-size: 10px; }
+.nav-btn__label { font-size: 13px; font-weight: 500; }
 
 /* ── SM-2 Rate buttons ────────────────────────────────────── */
 .rate-buttons {
@@ -691,6 +691,17 @@ body {
 .rate-btn--hard  { background: rgba(224,154,63,0.15);  color: var(--in-progress); }
 .rate-btn--good  { background: rgba(76,170,110,0.15);  color: var(--complete); }
 .rate-btn--easy  { background: rgba(124,111,232,0.15); color: var(--accent); }
+
+/* Active (current) rating — stronger background + border to show last choice */
+.rate-btn--current {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+  opacity: 1 !important;
+}
+.rate-btn--again.rate-btn--current { background: rgba(224,92,92,0.35); }
+.rate-btn--hard.rate-btn--current  { background: rgba(224,154,63,0.35); }
+.rate-btn--good.rate-btn--current  { background: rgba(76,170,110,0.35); }
+.rate-btn--easy.rate-btn--current  { background: rgba(124,111,232,0.35); }
 
 /* ── Due badge (Study view) ───────────────────────────────── */
 .due-badge {

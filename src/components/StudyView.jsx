@@ -15,10 +15,11 @@ export default function StudyView({
   getLastUpdated,
   updateTopicResources,
 }) {
-  const [ratedIds, setRatedIds]   = useState({})   // id → quality just rated (for flash)
+  const [ratedIds, setRatedIds]     = useState({})   // id → quality just rated
   const [editTarget, setEditTarget] = useState(null)
-  const [page, setPage] = useState(1)
-  const [showAll, setShowAll] = useState(false)
+  const [page, setPage]             = useState(1)
+  const [showDueOnly, setShowDueOnly] = useState(true)
+  const [sort, setSort]             = useState({ key: 'due', dir: 'asc' })
 
   // Filter by course
   const filtered = useMemo(() => {
@@ -26,17 +27,27 @@ export default function StudyView({
     return topics.filter((t) => selectedCourses.includes(t.courseId))
   }, [topics, selectedCourses])
 
-  // Sort: overdue / new first, then by days until due ascending
+  // Sort
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
+      let av, bv
+      if (sort.key === 'course') {
+        av = a.courseName; bv = b.courseName
+        return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      }
+      if (sort.key === 'topic') {
+        av = a.name; bv = b.name
+        return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      }
+      // Default: sort by due date (ascending = most overdue first)
       const da = daysUntilDue(getSm2Card(a.id))
       const db = daysUntilDue(getSm2Card(b.id))
-      return da - db
+      return sort.dir === 'asc' ? da - db : db - da
     })
-  }, [filtered, getSm2Card])
+  }, [filtered, sort, getSm2Card])
 
-  const dueItems   = sorted.filter((t) => daysUntilDue(getSm2Card(t.id)) <= 0)
-  const displayed  = showAll ? sorted : sorted.filter((t) => daysUntilDue(getSm2Card(t.id)) <= 0)
+  const dueItems  = sorted.filter((t) => daysUntilDue(getSm2Card(t.id)) <= 0)
+  const displayed = showDueOnly ? sorted.filter((t) => daysUntilDue(getSm2Card(t.id)) <= 0) : sorted
 
   const totalPages = Math.max(1, Math.ceil(displayed.length / PAGE_SIZE))
   const safePage   = Math.min(page, totalPages)
@@ -45,6 +56,30 @@ export default function StudyView({
   function handleRate(id, quality) {
     rateCard(id, quality)
     setRatedIds((p) => ({ ...p, [id]: quality }))
+  }
+
+  function toggleSort(key) {
+    setPage(1)
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: 'asc' }
+    )
+  }
+
+  function SortTh({ colKey, children, style }) {
+    const active = sort.key === colKey
+    return (
+      <th style={style} className={active ? 'sort-active' : ''}
+          onClick={() => toggleSort(colKey)}
+          title={`Sort by ${children}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && toggleSort(colKey)}>
+        {children}
+        <span className="sort-arrow">{active ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>
+      </th>
+    )
   }
 
   function dueBadgeClass(card) {
@@ -60,11 +95,12 @@ export default function StudyView({
         <h2 className="study-title">🎓 Study</h2>
         <div className="study-header-right">
           <span className="study-count">{dueItems.length} due</span>
+          {/* "Due only" is highlighted when the filter IS active — consistent with course chips */}
           <button
-            className={`btn btn-secondary btn-sm ${showAll ? 'btn-active' : ''}`}
-            onClick={() => { setShowAll((v) => !v); setPage(1) }}
+            className={`btn btn-secondary btn-sm ${showDueOnly ? 'btn-active' : ''}`}
+            onClick={() => { setShowDueOnly((v) => !v); setPage(1) }}
           >
-            {showAll ? 'Show due only' : `Show all (${sorted.length})`}
+            {showDueOnly ? `Due only` : `Show all (${sorted.length})`}
           </button>
         </div>
       </div>
@@ -74,7 +110,9 @@ export default function StudyView({
           <p className="empty-icon">🎉</p>
           <h2>All caught up!</h2>
           <p>No topics are due for review right now.</p>
-          <button className="btn btn-secondary" onClick={() => setShowAll(true)}>Show all topics</button>
+          <button className="btn btn-secondary" onClick={() => { setShowDueOnly(false); setPage(1) }}>
+            Show all topics
+          </button>
         </div>
       ) : (
         <>
@@ -82,17 +120,18 @@ export default function StudyView({
             <table className="study-table">
               <thead>
                 <tr>
-                  <th className="study-cell--course">Course</th>
-                  <th className="study-cell--topic">Topic</th>
-                  <th style={{ width: 110 }}>Due</th>
+                  <SortTh colKey="course" style={{ width: 130 }}>Course</SortTh>
+                  <SortTh colKey="topic">Topic</SortTh>
+                  <SortTh colKey="due" style={{ width: 110 }}>Due</SortTh>
                   <th style={{ width: 260 }}>Rate</th>
                   <th className="study-cell--resources">Resources</th>
                 </tr>
               </thead>
               <tbody>
                 {pageItems.map((topic) => {
-                  const card   = getSm2Card(topic.id)
-                  const rated  = ratedIds[topic.id] !== undefined
+                  const card        = getSm2Card(topic.id)
+                  const lastQuality = card?.lastQuality ?? null
+                  const rated       = ratedIds[topic.id] !== undefined
                   return (
                     <tr key={topic.id} className={`study-row ${rated ? 'study-row--rated' : ''}`}>
                       <td className="study-cell study-cell--course">
@@ -108,7 +147,11 @@ export default function StudyView({
                         </span>
                       </td>
                       <td className="study-cell">
-                        <RateButtons onRate={(q) => handleRate(topic.id, q)} />
+                        <RateButtons
+                          onRate={(q) => handleRate(topic.id, q)}
+                          card={card}
+                          lastQuality={ratedIds[topic.id] !== undefined ? ratedIds[topic.id] : lastQuality}
+                        />
                       </td>
                       <td className="study-cell study-cell--resources">
                         <ResourceTooltip

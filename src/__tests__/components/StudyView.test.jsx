@@ -118,12 +118,13 @@ describe('StudyView', () => {
 
   // ── Show all toggle ───────────────────────────────────────────────────────
   describe('show all toggle', () => {
-    it('renders "Show all" button', () => {
+    it('renders "Due only" filter button (active/highlighted by default)', () => {
       render(<StudyView {...defaultProps} />)
-      expect(screen.getByText(/Show all/i)).toBeInTheDocument()
+      // Default is showDueOnly=true — button label is "Due only"
+      expect(screen.getByText('Due only')).toBeInTheDocument()
     })
 
-    it('toggling "Show all" shows topics not yet due', () => {
+    it('toggling off "Due only" filter shows topics not yet due', () => {
       // Mix: one overdue (null), two not due (future)
       const future = makeCard(10)
       const getSm2Card = (id) => id === 'gke-autopilot' ? null : future
@@ -133,16 +134,19 @@ describe('StudyView', () => {
       expect(screen.getByText('GKE Autopilot')).toBeInTheDocument()
       expect(screen.queryByText('GKE Networking')).not.toBeInTheDocument()
 
-      fireEvent.click(screen.getByText(/Show all/i))
+      // "Due only" is the button when filter is active
+      fireEvent.click(screen.getByText('Due only'))
       // Now all are visible
       expect(screen.getByText('GKE Networking')).toBeInTheDocument()
       expect(screen.getByText('VPC Design')).toBeInTheDocument()
     })
 
-    it('changes button label to "Show due only" after toggling', () => {
+    it('changes button label to "Show all (N)" after disabling filter', () => {
       render(<StudyView {...defaultProps} />)
-      fireEvent.click(screen.getByText(/Show all/i))
-      expect(screen.getByText('Show due only')).toBeInTheDocument()
+      // All topics are due by default (new cards), so "Due only" is shown
+      fireEvent.click(screen.getByText('Due only'))
+      // After toggling off, button shows total count
+      expect(screen.getByText(`Show all (${TOPICS.length})`)).toBeInTheDocument()
     })
   })
 

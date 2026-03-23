@@ -17,6 +17,7 @@ export const RATINGS = [
 
 const EASE_MIN     = 1.3
 const EASE_DEFAULT = 2.5
+const MAX_INTERVAL = 365   // cap at 1 year — prevents runaway intervals
 
 /**
  * Apply SM-2 to a card state and return the updated state.
@@ -37,13 +38,22 @@ export function applySm2(card, quality) {
     // Passed — advance
     if (repetitions === 0)      interval = 1
     else if (repetitions === 1) interval = 6
-    else                        interval = Math.round(interval * easeFactor)
+    else if (quality === 3) {
+      // Hard: fixed 1.2x multiplier instead of easeFactor to prevent
+      // runaway growth from repeated Hard presses on large intervals
+      interval = Math.round(interval * 1.2)
+    } else {
+      interval = Math.round(interval * easeFactor)
+    }
 
     repetitions += 1
     easeFactor = Math.max(
       EASE_MIN,
       easeFactor + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02),
     )
+
+    // Hard cap — no card ever exceeds 1 year between reviews
+    interval = Math.min(interval, MAX_INTERVAL)
   }
 
   const nextReview = new Date()
@@ -60,7 +70,15 @@ export function applySm2(card, quality) {
 }
 
 /**
- * Days until a card is due. Negative = overdue. 0 = today. Infinity = never reviewed.
+ * Project what interval would result if a card were rated at the given quality.
+ * Used for tooltip previews without mutating state.
+ */
+export function projectedInterval(card, quality) {
+  return applySm2(card, quality).interval
+}
+
+/**
+ * Days until a card is due. Negative = overdue. 0 = today. -Infinity = never reviewed.
  */
 export function daysUntilDue(card) {
   if (!card?.nextReview) return -Infinity
