@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import ResourceTooltip from './ResourceTooltip'
 import EditResourceModal from './EditResourceModal'
 import AddTermModal from './AddTermModal'
@@ -22,11 +22,13 @@ export default function TerminologyView({
   updateTermResources,
   addTerm,
   deleteTerm,
+  clearRating,
 }) {
   const [page, setPage] = useState(1)
   const [sort, setSort] = useState({ key: 'term', dir: 'asc' })
   const [editTarget, setEditTarget] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Build a lookup for course colour by id
   const courseMap = useMemo(() => {
@@ -35,13 +37,22 @@ export default function TerminologyView({
     return m
   }, [courses])
 
-  // Filter by selected courses
+  // Filter by selected courses and search
   const filtered = useMemo(() => {
-    if (!selectedCourses.length) return terminology
-    return terminology.filter((t) =>
-      t.courses.some((cid) => selectedCourses.includes(cid))
-    )
-  }, [terminology, selectedCourses])
+    let result = terminology
+    if (selectedCourses.length) {
+      result = result.filter((t) =>
+        t.courses.some((cid) => selectedCourses.includes(cid))
+      )
+    }
+    if (searchQuery) {
+      result = result.filter((t) =>
+        t.term.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (t.definition && t.definition.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    }
+    return result
+  }, [terminology, selectedCourses, searchQuery])
 
   // Sort
   const sorted = useMemo(() => {
@@ -68,6 +79,28 @@ export default function TerminologyView({
     )
   }
 
+  // N shortcut
+  useEffect(() => {
+    function onAdd() { setShowAdd(true) }
+    window.addEventListener('add-shortcut', onAdd)
+    return () => window.removeEventListener('add-shortcut', onAdd)
+  }, [])
+
+  // / key → focus search
+  useEffect(() => {
+    function onKey(e) {
+      const tag = e.target.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === '/') {
+        e.preventDefault()
+        document.getElementById('search-input-terms')?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   function SortTh({ colKey, children, className = '' }) {
     const active = sort.key === colKey
     return (
@@ -92,6 +125,21 @@ export default function TerminologyView({
           <span className="study-count">{completeCount}/{filtered.length} complete</span>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>＋ Add Term</button>
         </div>
+      </div>
+
+      <div className="search-bar-wrap">
+        <span className="search-bar-icon">🔍</span>
+        <input
+          id="search-input-terms"
+          className="search-bar-input"
+          placeholder="Filter... [/]"
+          value={searchQuery}
+          onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setSearchQuery(''); e.target.blur() } }}
+        />
+        {searchQuery && (
+          <button className="search-bar-clear" onClick={() => setSearchQuery('')}>×</button>
+        )}
       </div>
 
       {sorted.length === 0 ? (

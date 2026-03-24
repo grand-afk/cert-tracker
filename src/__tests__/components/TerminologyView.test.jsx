@@ -39,6 +39,7 @@ const defaultProps = {
   updateTermResources: noop,
   addTerm: noop,
   deleteTerm: noop,
+  clearRating: noop,
 }
 
 describe('TerminologyView', () => {

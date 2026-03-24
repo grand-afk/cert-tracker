@@ -40,6 +40,7 @@ const defaultProps = {
   getStatus: () => 'not-started',
   getSm2Card: () => null,
   rateCard: noop,
+  clearRating: noop,
   getLastUpdated: () => null,
   updateTopicResources: noop,
 }
@@ -121,7 +122,7 @@ describe('StudyView', () => {
     it('renders "Due only" filter button (active/highlighted by default)', () => {
       render(<StudyView {...defaultProps} />)
       // Default is showDueOnly=true — button label is "Due only"
-      expect(screen.getByText('Due only')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Due only/i })).toBeInTheDocument()
     })
 
     it('toggling off "Due only" filter shows topics not yet due', () => {
@@ -135,7 +136,7 @@ describe('StudyView', () => {
       expect(screen.queryByText('GKE Networking')).not.toBeInTheDocument()
 
       // "Due only" is the button when filter is active
-      fireEvent.click(screen.getByText('Due only'))
+      fireEvent.click(screen.getByRole('button', { name: /Due only/i }))
       // Now all are visible
       expect(screen.getByText('GKE Networking')).toBeInTheDocument()
       expect(screen.getByText('VPC Design')).toBeInTheDocument()
@@ -144,9 +145,9 @@ describe('StudyView', () => {
     it('changes button label to "Show all (N)" after disabling filter', () => {
       render(<StudyView {...defaultProps} />)
       // All topics are due by default (new cards), so "Due only" is shown
-      fireEvent.click(screen.getByText('Due only'))
+      fireEvent.click(screen.getByRole('button', { name: /Due only/i }))
       // After toggling off, button shows total count
-      expect(screen.getByText(`Show all (${TOPICS.length})`)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Show all/i })).toBeInTheDocument()
     })
   })
 

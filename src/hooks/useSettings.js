@@ -8,6 +8,7 @@ const DEFAULTS = {
   workStart: '09:00',
   workEnd: '17:00',
   defaultTopicMins: 30,
+  maxSessionsPerDay: 5,
 }
 
 function load() {
@@ -33,7 +34,7 @@ export function useSettings() {
     })
   }, [])
 
-  const { darkMode, selectedCourses, workStart, workEnd, defaultTopicMins } = settings
+  const { darkMode, selectedCourses, workStart, workEnd, defaultTopicMins, maxSessionsPerDay } = settings
 
   useEffect(() => {
     document.documentElement.classList.toggle('light', !darkMode)
@@ -69,6 +70,8 @@ export function useSettings() {
     setSettings((s) => ({ ...s, defaultTopicMins: value }))
   }, [setSettings])
 
+  const setMaxSessionsPerDay = useCallback((n) => setSettings((s) => ({ ...s, maxSessionsPerDay: n })), [setSettings])
+
   return {
     darkMode,
     toggleDarkMode,
@@ -78,8 +81,10 @@ export function useSettings() {
     workStart,
     workEnd,
     defaultTopicMins,
+    maxSessionsPerDay,
     setWorkStart,
     setWorkEnd,
     setDefaultTopicMins,
+    setMaxSessionsPerDay,
   }
 }

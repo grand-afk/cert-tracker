@@ -106,12 +106,20 @@ export function useProgress() {
 
   const clearAll = useCallback(() => { setProgress({}) }, [setProgress])
 
+  const clearRating = useCallback((id) => {
+    setProgress((prev) => {
+      const entry = { ...(prev[id] || {}) }
+      delete entry.sm2
+      return { ...prev, [id]: entry }
+    })
+  }, [setProgress])
+
   return {
     progress,
     getStatus, cycleStatus, setStatus,
     getLastUpdated,
     computePercent,
-    getSm2Card, rateCard,
+    getSm2Card, rateCard, clearRating,
     getTestScore, setTestScore,
     getTopicMins, setTopicMins,
     exportProgress, importProgress, clearAll,

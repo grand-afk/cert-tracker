@@ -106,8 +106,9 @@ export default function SettingsView({
   updateTopicResources, setTestScore,
   courses, updateCourse,
   addCourse, addTopic,
-  workStart, workEnd, defaultTopicMins,
-  setWorkStart, setWorkEnd, setDefaultTopicMins,
+  workStart, workEnd, defaultTopicMins, maxSessionsPerDay,
+  setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay,
+  allTopics, calendar, exportCalendarCSV, importCalendarCSV,
 }) {
   const [importText, setImportText]       = useState('')
   const [importError, setImportError]     = useState('')
@@ -221,6 +222,26 @@ export default function SettingsView({
           : `CSV imported — ${rows.length} rows updated.`
         flash(setImportSuccess, msg)
       } catch (err) { flash(setImportError, `CSV error: ${err.message}`) }
+    }
+    reader.readAsText(file); e.target.value = ''
+  }
+
+  function handleExportCalendarCSV() {
+    const csv = exportCalendarCSV(allTopics, certData)
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = Object.assign(document.createElement('a'), { href: url, download: `calendar-${Date.now()}.csv` })
+    a.click(); URL.revokeObjectURL(url)
+  }
+
+  function handleImportCalendarCSV(e) {
+    const file = e.target.files[0]; if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        importCalendarCSV(ev.target.result, allTopics)
+        flash(setImportSuccess, 'Calendar imported!')
+      } catch (err) { flash(setImportError, `Calendar CSV error: ${err.message}`) }
     }
     reader.readAsText(file); e.target.value = ''
   }
@@ -358,6 +379,15 @@ export default function SettingsView({
           <input className="settings-input" type="number" min={5} max={180} value={defaultTopicMins}
                  onChange={(e) => setDefaultTopicMins(parseInt(e.target.value))} style={{ width: 80 }} />
         </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Max Sessions Per Day</div>
+            <div className="settings-hint">Maximum number of topics auto-scheduled per day</div>
+          </div>
+          <input className="settings-input" type="number" min={1} max={20}
+                 value={maxSessionsPerDay}
+                 onChange={(e) => setMaxSessionsPerDay(parseInt(e.target.value))} style={{ width: 80 }} />
+        </div>
       </div>
 
       {/* CSV */}
@@ -378,6 +408,28 @@ export default function SettingsView({
           <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
             📂 Import CSV
             <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} />
+          </label>
+        </div>
+      </div>
+
+      {/* Calendar */}
+      <div className="settings-section">
+        <div className="settings-section-title">Calendar</div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Export Calendar CSV</div>
+            <div className="settings-hint">Download scheduled sessions as a spreadsheet</div>
+          </div>
+          <button className="btn btn-secondary btn-sm" onClick={handleExportCalendarCSV}>⬇ Export CSV</button>
+        </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Import Calendar CSV</div>
+            <div className="settings-hint">Re-import a previously exported calendar CSV</div>
+          </div>
+          <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
+            📂 Import CSV
+            <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportCalendarCSV} />
           </label>
         </div>
       </div>

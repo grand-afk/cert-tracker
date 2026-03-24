@@ -87,13 +87,67 @@ export function useCalendar() {
     })
   }, [setCalendar])
 
-  const autoFill = useCallback((date, topics, defaultMins, getTopicMins, getSm2Card) => {
-    const key = date instanceof Date ? date.toISOString().split('T')[0] : date
+  const clearDay = useCallback((dateKey) => {
+    setCalendar((prev) => ({
+      ...prev,
+      [dateKey]: { ...(prev[dateKey] || {}), slots: [] },
+    }))
+  }, [setCalendar])
+
+  const updateSlotTime = useCallback((dateKey, slotId, newStartTime) => {
+    setCalendar((prev) => ({
+      ...prev,
+      [dateKey]: {
+        ...(prev[dateKey] || { studyHours: null }),
+        slots: (prev[dateKey]?.slots || []).map((s) =>
+          s.id === slotId ? { ...s, startTime: newStartTime } : s
+        ),
+      },
+    }))
+  }, [setCalendar])
+
+  const updateSlotDuration = useCallback((dateKey, slotId, durationMins) => {
+    setCalendar((prev) => ({
+      ...prev,
+      [dateKey]: {
+        ...(prev[dateKey] || { studyHours: null }),
+        slots: (prev[dateKey]?.slots || []).map((s) =>
+          s.id === slotId ? { ...s, durationMins: Math.max(15, durationMins) } : s
+        ),
+      },
+    }))
+  }, [setCalendar])
+
+  const importCSV = useCallback((csvText, allTopics) => {
+    const lines = csvText.trim().split('\n')
+    if (lines.length < 2) return
+    const newData = {}
+    lines.slice(1).forEach((line) => {
+      const parts = line.split(',')
+      if (parts.length < 4) return
+      const [dateKey, startTime, durationMins, topicId] = parts
+      if (!dateKey || !topicId) return
+      if (!newData[dateKey]) newData[dateKey] = { studyHours: null, slots: [] }
+      newData[dateKey].slots.push({
+        id: `slot-${Date.now()}-${Math.random()}`,
+        topicId: topicId.trim(),
+        startTime: startTime.trim(),
+        durationMins: parseInt(durationMins) || 30,
+      })
+    })
+    setCalendar((prev) => ({ ...prev, ...newData }))
+  }, [setCalendar])
+
+  const autoFill = useCallback((dateKey, topics, defaultMins, getTopicMins, getSm2Card, workStart, maxSessions) => {
+    const key = typeof dateKey === 'string' ? dateKey : dateKey.toISOString().split('T')[0]
+    const [wh, wm] = workStart.split(':').map(Number)
+    const workStartMins = wh * 60 + wm
+
     const day = calendar[key] || { studyHours: null, slots: [] }
     const studyHours = day.studyHours ?? 2
     const totalMins = studyHours * 60
+    const max = maxSessions ?? 10
 
-    // Sort topics by daysUntilDue (most overdue first)
     const sorted = [...topics].sort((a, b) => {
       const da = daysUntilDue(getSm2Card(a.id))
       const db = daysUntilDue(getSm2Card(b.id))
@@ -101,28 +155,30 @@ export function useCalendar() {
     })
 
     const newSlots = []
-    let currentMins = 0
+    let elapsed = 0
 
     for (const topic of sorted) {
-      if (currentMins >= totalMins) break
+      if (elapsed >= totalMins) break
+      if (newSlots.length >= max) break
       const topicMins = getTopicMins(topic.id) ?? defaultMins
-      if (currentMins + topicMins <= totalMins) {
-        const hours = Math.floor(currentMins / 60)
-        const mins = currentMins % 60
-        const startTime = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+      if (elapsed + topicMins <= totalMins) {
+        const absMins = workStartMins + elapsed
+        const h = Math.floor(absMins / 60)
+        const m = absMins % 60
+        const startTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
         newSlots.push({
           id: `slot-${Date.now()}-${Math.random()}`,
           topicId: topic.id,
           startTime,
           durationMins: topicMins,
         })
-        currentMins += topicMins
+        elapsed += topicMins
       }
     }
 
     setCalendar((prev) => ({
       ...prev,
-      [key]: { studyHours, slots: newSlots },
+      [key]: { ...prev[key], studyHours, slots: newSlots },
     }))
   }, [calendar, setCalendar])
 
@@ -162,6 +218,10 @@ export function useCalendar() {
     addSlot,
     removeSlot,
     moveSlot,
+    clearDay,
+    updateSlotTime,
+    updateSlotDuration,
+    importCSV,
     autoFill,
     exportCSV,
   }

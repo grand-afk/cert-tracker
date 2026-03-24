@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import ResourceTooltip from './ResourceTooltip'
 import EditResourceModal from './EditResourceModal'
 import AddTopicModal from './AddTopicModal'
@@ -63,16 +63,27 @@ export default function TopicsView({
   getLastUpdated, updateTopicResources,
   getTestScore, setTestScore,
   addTopic, deleteTopic,
+  clearRating,
 }) {
   const [page, setPage]         = useState(1)
   const [sort, setSort]         = useState({ key: null, dir: 'asc' })
   const [editTarget, setEditTarget] = useState(null)
   const [showAdd, setShowAdd]   = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const filtered = useMemo(() => {
-    if (!selectedCourses.length) return topics
-    return topics.filter((t) => selectedCourses.includes(t.courseId))
-  }, [topics, selectedCourses])
+    let result = topics
+    if (selectedCourses.length) {
+      result = result.filter((t) => selectedCourses.includes(t.courseId))
+    }
+    if (searchQuery) {
+      result = result.filter((t) =>
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.courseName.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+    return result
+  }, [topics, selectedCourses, searchQuery])
 
   const sorted = useMemo(() => {
     if (!sort.key) return filtered
@@ -101,6 +112,28 @@ export default function TopicsView({
     setSort((prev) => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' })
   }
 
+  // N shortcut
+  useEffect(() => {
+    function onAdd() { setShowAdd(true) }
+    window.addEventListener('add-shortcut', onAdd)
+    return () => window.removeEventListener('add-shortcut', onAdd)
+  }, [])
+
+  // / key → focus search
+  useEffect(() => {
+    function onKey(e) {
+      const tag = e.target.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === '/') {
+        e.preventDefault()
+        document.getElementById('search-input-topics')?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   function SortTh({ colKey, children, className = '' }) {
     const active = sort.key === colKey
     return (
@@ -124,6 +157,21 @@ export default function TopicsView({
           </span>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>＋ Add Topic</button>
         </div>
+      </div>
+
+      <div className="search-bar-wrap">
+        <span className="search-bar-icon">🔍</span>
+        <input
+          id="search-input-topics"
+          className="search-bar-input"
+          placeholder="Filter... [/]"
+          value={searchQuery}
+          onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setSearchQuery(''); e.target.blur() } }}
+        />
+        {searchQuery && (
+          <button className="search-bar-clear" onClick={() => setSearchQuery('')}>×</button>
+        )}
       </div>
 
       {sorted.length === 0 ? (

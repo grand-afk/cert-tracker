@@ -42,6 +42,7 @@ const defaultProps = {
   setTestScore: noop,
   addTopic: noop,
   deleteTopic: noop,
+  clearRating: noop,
 }
 
 describe('TopicsView', () => {

@@ -12,6 +12,7 @@ export default function StudyView({
   getStatus,
   getSm2Card,
   rateCard,
+  clearRating,
   getLastUpdated,
   updateTopicResources,
 }) {
@@ -20,12 +21,22 @@ export default function StudyView({
   const [page, setPage]             = useState(1)
   const [showDueOnly, setShowDueOnly] = useState(true)
   const [sort, setSort]             = useState({ key: 'due', dir: 'asc' })
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Filter by course
   const filtered = useMemo(() => {
-    if (!selectedCourses.length) return topics
-    return topics.filter((t) => selectedCourses.includes(t.courseId))
-  }, [topics, selectedCourses])
+    let result = topics
+    if (selectedCourses.length) {
+      result = result.filter((t) => selectedCourses.includes(t.courseId))
+    }
+    if (searchQuery) {
+      result = result.filter((t) =>
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.courseName.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+    return result
+  }, [topics, selectedCourses, searchQuery])
 
   // Sort
   const sorted = useMemo(() => {
@@ -72,7 +83,7 @@ export default function StudyView({
     )
   }
 
-  // ── Keyboard shortcut: F toggles due-only filter ────────────────────────────
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
     function onKey(e) {
       const tag = e.target.tagName
@@ -82,6 +93,10 @@ export default function StudyView({
         e.preventDefault()
         setShowDueOnly((v) => !v)
         setPage(1)
+      }
+      if (e.key === '/') {
+        e.preventDefault()
+        document.getElementById('search-input-study')?.focus()
       }
     }
     window.addEventListener('keydown', onKey)
@@ -128,6 +143,21 @@ export default function StudyView({
         </div>
       </div>
 
+      <div className="search-bar-wrap">
+        <span className="search-bar-icon">🔍</span>
+        <input
+          id="search-input-study"
+          className="search-bar-input"
+          placeholder="Filter... [/]"
+          value={searchQuery}
+          onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setSearchQuery(''); e.target.blur() } }}
+        />
+        {searchQuery && (
+          <button className="search-bar-clear" onClick={() => setSearchQuery('')}>×</button>
+        )}
+      </div>
+
       {displayed.length === 0 ? (
         <div className="empty-state">
           <p className="empty-icon">🎉</p>
@@ -170,11 +200,16 @@ export default function StudyView({
                         </span>
                       </td>
                       <td className="study-cell">
-                        <RateButtons
-                          onRate={(q) => handleRate(topic.id, q)}
-                          card={card}
-                          lastQuality={ratedIds[topic.id] !== undefined ? ratedIds[topic.id] : lastQuality}
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <RateButtons
+                            onRate={(q) => handleRate(topic.id, q)}
+                            card={card}
+                            lastQuality={ratedIds[topic.id] !== undefined ? ratedIds[topic.id] : lastQuality}
+                          />
+                          {card && (
+                            <button className="clear-rating-btn" onClick={() => clearRating(topic.id)} title="Clear rating">✕ rating</button>
+                          )}
+                        </div>
                       </td>
                       <td className="study-cell study-cell--resources">
                         <ResourceTooltip

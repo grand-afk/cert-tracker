@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useCertData }  from './hooks/useCertData'
 import { useProgress }  from './hooks/useProgress'
 import { useSettings }  from './hooks/useSettings'
+import { useCalendar }  from './hooks/useCalendar'
 import TopBar           from './components/TopBar'
 import BottomNav        from './components/BottomNav'
 import ProgressBanner   from './components/ProgressBanner'
@@ -51,7 +52,7 @@ export default function App() {
     progress,
     getStatus, cycleStatus, setStatus,
     getLastUpdated, computePercent,
-    getSm2Card, rateCard,
+    getSm2Card, rateCard, clearRating,
     getTestScore, setTestScore,
     getTopicMins, setTopicMins,
     exportProgress, importProgress, clearAll,
@@ -59,9 +60,11 @@ export default function App() {
 
   const {
     darkMode, toggleDarkMode, selectedCourses, toggleCourse, clearSelectedCourses,
-    workStart, workEnd, defaultTopicMins,
-    setWorkStart, setWorkEnd, setDefaultTopicMins,
+    workStart, workEnd, defaultTopicMins, maxSessionsPerDay,
+    setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay,
   } = useSettings()
+
+  const { calendar, exportCSV: exportCalendarCSV, importCSV: importCalendarCSV } = useCalendar()
 
   const allTopics  = useMemo(() => getAllTopics(), [getAllTopics])
   const allTopicIds = useMemo(() => allTopics.map((t) => t.id), [allTopics])
@@ -76,6 +79,12 @@ export default function App() {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key === 'Escape') { clearSelectedCourses(); return }
+
+      // N key → open Add modal on current page
+      if (e.key === 'n' || e.key === 'N') {
+        window.dispatchEvent(new CustomEvent('add-shortcut'))
+        return
+      }
 
       // Calendar view: D/W/M dispatch custom event
       if (view === 'calendar' && /^[dDwWmM]$/.test(e.key)) {
@@ -129,6 +138,7 @@ export default function App() {
             setTestScore={setTestScore}
             addTopic={addTopic}
             deleteTopic={deleteTopic}
+            clearRating={clearRating}
           />
         )}
 
@@ -143,6 +153,7 @@ export default function App() {
             updateTermResources={updateTermResources}
             addTerm={addTerm}
             deleteTerm={deleteTerm}
+            clearRating={clearRating}
           />
         )}
 
@@ -153,6 +164,7 @@ export default function App() {
             getStatus={getStatus}
             getSm2Card={getSm2Card}
             rateCard={rateCard}
+            clearRating={clearRating}
             getLastUpdated={getLastUpdated}
             updateTopicResources={updateTopicResources}
           />
@@ -167,6 +179,9 @@ export default function App() {
             workStart={workStart}
             workEnd={workEnd}
             defaultTopicMins={defaultTopicMins}
+            rateCard={rateCard}
+            clearRating={clearRating}
+            maxSessionsPerDay={maxSessionsPerDay}
           />
         )}
 
@@ -194,9 +209,15 @@ export default function App() {
             workStart={workStart}
             workEnd={workEnd}
             defaultTopicMins={defaultTopicMins}
+            maxSessionsPerDay={maxSessionsPerDay}
             setWorkStart={setWorkStart}
             setWorkEnd={setWorkEnd}
             setDefaultTopicMins={setDefaultTopicMins}
+            setMaxSessionsPerDay={setMaxSessionsPerDay}
+            allTopics={allTopics}
+            calendar={calendar}
+            exportCalendarCSV={exportCalendarCSV}
+            importCalendarCSV={importCalendarCSV}
           />
         )}
       </main>
