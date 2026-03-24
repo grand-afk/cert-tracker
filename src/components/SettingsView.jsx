@@ -376,8 +376,8 @@ export default function SettingsView({
             <div className="settings-label">Default Topic Duration</div>
             <div className="settings-hint">Minutes per topic when auto-filling calendar (per-topic overrides in Calendar view)</div>
           </div>
-          <input className="settings-input" type="number" min={5} max={180} value={defaultTopicMins}
-                 onChange={(e) => setDefaultTopicMins(parseInt(e.target.value))} style={{ width: 80 }} />
+          <input className="settings-input" type="number" min={15} max={180} step={15} value={defaultTopicMins}
+                 onChange={(e) => setDefaultTopicMins(Math.max(15, Math.round(parseInt(e.target.value) / 15) * 15))} style={{ width: 80 }} />
         </div>
         <div className="settings-row">
           <div>

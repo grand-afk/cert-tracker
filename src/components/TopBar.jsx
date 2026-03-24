@@ -1,3 +1,5 @@
+import { useState, useEffect, useRef } from 'react'
+
 export default function TopBar({
   certName,
   courses,
@@ -7,7 +9,32 @@ export default function TopBar({
   darkMode,
   toggleDarkMode,
   onEditCertName,
+  searchQuery,
+  setSearchQuery,
 }) {
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef(null)
+
+  // Focus search when global event fires (/ key)
+  useEffect(() => {
+    function onFocusSearch() {
+      setSearchOpen(true)
+      requestAnimationFrame(() => searchRef.current?.focus())
+    }
+    window.addEventListener('focus-search', onFocusSearch)
+    return () => window.removeEventListener('focus-search', onFocusSearch)
+  }, [])
+
+  function toggleSearch() {
+    if (searchOpen) {
+      setSearchOpen(false)
+      setSearchQuery('')
+    } else {
+      setSearchOpen(true)
+      requestAnimationFrame(() => searchRef.current?.focus())
+    }
+  }
+
   return (
     <header className="topbar">
       <div className="topbar-row1">
@@ -15,13 +42,42 @@ export default function TopBar({
           🎓 {certName}
           <span className="edit-hint">✎</span>
         </button>
-        <button
-          className="topbar-icon-btn"
-          onClick={toggleDarkMode}
-          title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {darkMode ? '☀️' : '🌙'}
-        </button>
+
+        {searchOpen && (
+          <div className="topbar-search-wrap">
+            <input
+              ref={searchRef}
+              className="topbar-search-input"
+              placeholder="Search topics, courses…  [/]"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); e.target.blur() }
+              }}
+            />
+            {searchQuery && (
+              <button className="topbar-search-clear" onClick={() => setSearchQuery('')}>×</button>
+            )}
+          </div>
+        )}
+
+        <div className="topbar-icons">
+          <button
+            className={`topbar-icon-btn ${searchOpen ? 'topbar-icon-btn--active' : ''}`}
+            onClick={toggleSearch}
+            title="Search  [/]"
+            aria-label="Toggle search"
+          >
+            🔍
+          </button>
+          <button
+            className="topbar-icon-btn"
+            onClick={toggleDarkMode}
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {darkMode ? '☀️' : '🌙'}
+          </button>
+        </div>
       </div>
 
       <div className="topbar-row2">

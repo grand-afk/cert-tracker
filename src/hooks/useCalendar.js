@@ -148,32 +148,50 @@ export function useCalendar() {
     const totalMins = studyHours * 60
     const max = maxSessions ?? 10
 
-    const sorted = [...topics].sort((a, b) => {
-      const da = daysUntilDue(getSm2Card(a.id))
-      const db = daysUntilDue(getSm2Card(b.id))
-      return da - db
+    // Group topics by courseId, each group sorted most-overdue first
+    const byCourse = {}
+    topics.forEach((t) => {
+      if (!byCourse[t.courseId]) byCourse[t.courseId] = []
+      byCourse[t.courseId].push(t)
     })
+    Object.values(byCourse).forEach((group) =>
+      group.sort((a, b) => daysUntilDue(getSm2Card(a.id)) - daysUntilDue(getSm2Card(b.id)))
+    )
+    // Pointers per course
+    const courseIds = Object.keys(byCourse)
+    const pointers = {}
+    courseIds.forEach((cid) => { pointers[cid] = 0 })
 
     const newSlots = []
     let elapsed = 0
+    let rounds = 0
+    const maxRounds = Math.ceil(max / Math.max(1, courseIds.length)) + 1
 
-    for (const topic of sorted) {
-      if (elapsed >= totalMins) break
-      if (newSlots.length >= max) break
-      const topicMins = getTopicMins(topic.id) ?? defaultMins
-      if (elapsed + topicMins <= totalMins) {
-        const absMins = workStartMins + elapsed
-        const h = Math.floor(absMins / 60)
-        const m = absMins % 60
-        const startTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-        newSlots.push({
-          id: `slot-${Date.now()}-${Math.random()}`,
-          topicId: topic.id,
-          startTime,
-          durationMins: topicMins,
-        })
-        elapsed += topicMins
+    outer: while (rounds < maxRounds) {
+      let addedThisRound = false
+      for (const cid of courseIds) {
+        if (elapsed >= totalMins) break outer
+        if (newSlots.length >= max) break outer
+        const group = byCourse[cid]
+        const ptr = pointers[cid]
+        if (ptr >= group.length) continue
+        const topic = group[ptr]
+        pointers[cid]++
+        const topicMins = getTopicMins(topic.id) ?? defaultMins
+        if (elapsed + topicMins <= totalMins) {
+          const absMins = workStartMins + elapsed
+          newSlots.push({
+            id: `slot-${Date.now()}-${Math.random()}`,
+            topicId: topic.id,
+            startTime: `${String(Math.floor(absMins / 60)).padStart(2, '0')}:${String(absMins % 60).padStart(2, '0')}`,
+            durationMins: topicMins,
+          })
+          elapsed += topicMins
+          addedThisRound = true
+        }
       }
+      if (!addedThisRound) break
+      rounds++
     }
 
     setCalendar((prev) => ({

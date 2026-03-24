@@ -6,6 +6,32 @@ import EditResourceModal from './EditResourceModal'
 
 const PAGE_SIZE = 20
 
+function NotesRow({ id, notes, onSave, colSpan }) {
+  const [val, setVal] = useState(notes ?? '')
+  const dirty = val !== (notes ?? '')
+  return (
+    <tr className="notes-expand-row">
+      <td colSpan={colSpan}>
+        <div className="notes-expand-wrap">
+          <textarea
+            className="notes-textarea"
+            placeholder="Add study notes…"
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            onBlur={() => { if (dirty) onSave(val) }}
+            rows={3}
+          />
+          {dirty && (
+            <button className="btn btn-primary btn-sm notes-save-btn" onClick={() => onSave(val)}>
+              Save
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
 export default function StudyView({
   topics,
   selectedCourses,
@@ -15,24 +41,28 @@ export default function StudyView({
   clearRating,
   getLastUpdated,
   updateTopicResources,
+  updateTopicNotes,
+  searchQuery,
 }) {
-  const [ratedIds, setRatedIds]     = useState({})   // id → quality just rated
+  const [ratedIds, setRatedIds]     = useState({})
   const [editTarget, setEditTarget] = useState(null)
   const [page, setPage]             = useState(1)
   const [showDueOnly, setShowDueOnly] = useState(true)
   const [sort, setSort]             = useState({ key: 'due', dir: 'asc' })
-  const [searchQuery, setSearchQuery] = useState('')
+  const [expandedId, setExpandedId] = useState(null)
 
-  // Filter by course
+  // Filter by course + global search
   const filtered = useMemo(() => {
     let result = topics
     if (selectedCourses.length) {
       result = result.filter((t) => selectedCourses.includes(t.courseId))
     }
     if (searchQuery) {
+      const q = searchQuery.toLowerCase()
       result = result.filter((t) =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.courseName.toLowerCase().includes(searchQuery.toLowerCase())
+        t.name.toLowerCase().includes(q) ||
+        t.courseName.toLowerCase().includes(q) ||
+        (t.notes && t.notes.toLowerCase().includes(q))
       )
     }
     return result
@@ -55,7 +85,6 @@ export default function StudyView({
         bv = getSm2Card(b.id)?.lastQuality ?? -1
         return sort.dir === 'asc' ? av - bv : bv - av
       }
-      // Default: sort by due date (ascending = most overdue first)
       const da = daysUntilDue(getSm2Card(a.id))
       const db = daysUntilDue(getSm2Card(b.id))
       return sort.dir === 'asc' ? da - db : db - da
@@ -94,10 +123,6 @@ export default function StudyView({
         setShowDueOnly((v) => !v)
         setPage(1)
       }
-      if (e.key === '/') {
-        e.preventDefault()
-        document.getElementById('search-input-study')?.focus()
-      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -131,7 +156,6 @@ export default function StudyView({
         <h2 className="study-title">🎓 Study</h2>
         <div className="study-header-right">
           <span className="study-count">{dueItems.length} due</span>
-          {/* "Due only" is highlighted when the filter IS active — consistent with course chips */}
           <button
             className={`btn btn-secondary btn-sm ${showDueOnly ? 'btn-active' : ''}`}
             onClick={() => { setShowDueOnly((v) => !v); setPage(1) }}
@@ -141,21 +165,6 @@ export default function StudyView({
             <span className="btn-key">[F]</span>
           </button>
         </div>
-      </div>
-
-      <div className="search-bar-wrap">
-        <span className="search-bar-icon">🔍</span>
-        <input
-          id="search-input-study"
-          className="search-bar-input"
-          placeholder="Filter... [/]"
-          value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
-          onKeyDown={(e) => { if (e.key === 'Escape') { setSearchQuery(''); e.target.blur() } }}
-        />
-        {searchQuery && (
-          <button className="search-bar-clear" onClick={() => setSearchQuery('')}>×</button>
-        )}
       </div>
 
       {displayed.length === 0 ? (
@@ -185,15 +194,28 @@ export default function StudyView({
                   const card        = getSm2Card(topic.id)
                   const lastQuality = card?.lastQuality ?? null
                   const rated       = ratedIds[topic.id] !== undefined
-                  return (
-                    <tr key={topic.id} className={`study-row ${rated ? 'study-row--rated' : ''}`}>
+                  const isExpanded  = expandedId === topic.id
+                  return [
+                    <tr
+                      key={topic.id}
+                      className={`study-row study-row--expandable ${rated ? 'study-row--rated' : ''} ${isExpanded ? 'study-row--expanded' : ''}`}
+                      onClick={(e) => {
+                        if (e.target.closest('button,input,select,a,textarea')) return
+                        setExpandedId(isExpanded ? null : topic.id)
+                      }}
+                    >
                       <td className="study-cell study-cell--course">
                         <span className="course-badge">
                           <span className="course-badge__dot" style={{ background: topic.courseColor }} />
                           {topic.courseName}
                         </span>
                       </td>
-                      <td className="study-cell study-cell--topic">{topic.name}</td>
+                      <td className="study-cell study-cell--topic">
+                        <span className="topic-name-wrap">
+                          {topic.name}
+                          {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
+                        </span>
+                      </td>
                       <td className="study-cell">
                         <span className={`due-badge ${dueBadgeClass(card)}`}>
                           {dueLabel(card)}
@@ -207,7 +229,7 @@ export default function StudyView({
                             lastQuality={ratedIds[topic.id] !== undefined ? ratedIds[topic.id] : lastQuality}
                           />
                           {card && (
-                            <button className="clear-rating-btn" onClick={() => clearRating(topic.id)} title="Clear rating">✕ rating</button>
+                            <button className="clear-rating-btn" onClick={(e) => { e.stopPropagation(); clearRating(topic.id) }} title="Clear rating">✕ rating</button>
                           )}
                         </div>
                       </td>
@@ -215,11 +237,20 @@ export default function StudyView({
                         <ResourceTooltip
                           resources={topic.resources}
                           topicName={topic.name}
-                          onEdit={() => setEditTarget(topic)}
+                          onEdit={(e) => { e?.stopPropagation?.(); setEditTarget(topic) }}
                         />
                       </td>
-                    </tr>
-                  )
+                    </tr>,
+                    isExpanded && (
+                      <NotesRow
+                        key={`${topic.id}-notes`}
+                        id={topic.id}
+                        notes={topic.notes}
+                        onSave={(n) => updateTopicNotes(topic.id, n)}
+                        colSpan={5}
+                      />
+                    ),
+                  ]
                 })}
               </tbody>
             </table>

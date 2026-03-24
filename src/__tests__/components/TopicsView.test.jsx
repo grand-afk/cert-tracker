@@ -43,6 +43,8 @@ const defaultProps = {
   addTopic: noop,
   deleteTopic: noop,
   clearRating: noop,
+  updateTopicNotes: noop,
+  searchQuery: '',
 }
 
 describe('TopicsView', () => {

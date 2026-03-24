@@ -57,19 +57,47 @@ function TestScoreCell({ id, getTestScore, setTestScore }) {
   )
 }
 
+function NotesRow({ id, notes, onSave, colSpan }) {
+  const [val, setVal] = useState(notes ?? '')
+  const dirty = val !== (notes ?? '')
+  return (
+    <tr className="notes-expand-row">
+      <td colSpan={colSpan}>
+        <div className="notes-expand-wrap">
+          <textarea
+            className="notes-textarea"
+            placeholder="Add study notes…"
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            onBlur={() => { if (dirty) onSave(val) }}
+            rows={3}
+          />
+          {dirty && (
+            <button className="btn btn-primary btn-sm notes-save-btn" onClick={() => onSave(val)}>
+              Save
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
 export default function TopicsView({
   topics, courses,
   selectedCourses, getStatus, cycleStatus,
   getLastUpdated, updateTopicResources,
+  updateTopicNotes,
   getTestScore, setTestScore,
   addTopic, deleteTopic,
   clearRating,
+  searchQuery,
 }) {
   const [page, setPage]         = useState(1)
   const [sort, setSort]         = useState({ key: null, dir: 'asc' })
   const [editTarget, setEditTarget] = useState(null)
   const [showAdd, setShowAdd]   = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [expandedId, setExpandedId] = useState(null)
 
   const filtered = useMemo(() => {
     let result = topics
@@ -77,9 +105,11 @@ export default function TopicsView({
       result = result.filter((t) => selectedCourses.includes(t.courseId))
     }
     if (searchQuery) {
+      const q = searchQuery.toLowerCase()
       result = result.filter((t) =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.courseName.toLowerCase().includes(searchQuery.toLowerCase())
+        t.name.toLowerCase().includes(q) ||
+        t.courseName.toLowerCase().includes(q) ||
+        (t.notes && t.notes.toLowerCase().includes(q))
       )
     }
     return result
@@ -119,25 +149,11 @@ export default function TopicsView({
     return () => window.removeEventListener('add-shortcut', onAdd)
   }, [])
 
-  // / key → focus search
-  useEffect(() => {
-    function onKey(e) {
-      const tag = e.target.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
-      if (e.metaKey || e.ctrlKey || e.altKey) return
-      if (e.key === '/') {
-        e.preventDefault()
-        document.getElementById('search-input-topics')?.focus()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-
-  function SortTh({ colKey, children, className = '' }) {
+  function SortTh({ colKey, children, className = '', style }) {
     const active = sort.key === colKey
     return (
-      <th className={`${className} ${active ? 'sort-active' : ''}`} onClick={() => toggleSort(colKey)} title={`Sort by ${children}`}>
+      <th className={`${className} ${active ? 'sort-active' : ''}`} style={style}
+          onClick={() => toggleSort(colKey)} title={`Sort by ${children}`}>
         {children}<span className="sort-arrow">{active ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>
       </th>
     )
@@ -157,21 +173,6 @@ export default function TopicsView({
           </span>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>＋ Add Topic</button>
         </div>
-      </div>
-
-      <div className="search-bar-wrap">
-        <span className="search-bar-icon">🔍</span>
-        <input
-          id="search-input-topics"
-          className="search-bar-input"
-          placeholder="Filter... [/]"
-          value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
-          onKeyDown={(e) => { if (e.key === 'Escape') { setSearchQuery(''); e.target.blur() } }}
-        />
-        {searchQuery && (
-          <button className="search-bar-clear" onClick={() => setSearchQuery('')}>×</button>
-        )}
       </div>
 
       {sorted.length === 0 ? (
@@ -200,18 +201,32 @@ export default function TopicsView({
                   const status  = getStatus(topic.id)
                   const cfg     = STATUS_CONFIG[status]
                   const lastUpd = getLastUpdated(topic.id)
-                  return (
-                    <tr key={topic.id} className="study-row">
+                  const isExpanded = expandedId === topic.id
+                  return [
+                    <tr
+                      key={topic.id}
+                      className={`study-row study-row--expandable ${isExpanded ? 'study-row--expanded' : ''}`}
+                      onClick={(e) => {
+                        // Don't expand if clicking an interactive element
+                        if (e.target.closest('button,input,select,a,textarea')) return
+                        setExpandedId(isExpanded ? null : topic.id)
+                      }}
+                    >
                       <td className="study-cell study-cell--course">
                         <span className="course-badge">
                           <span className="course-badge__dot" style={{ background: topic.courseColor }} />
                           {topic.courseName}
                         </span>
                       </td>
-                      <td className="study-cell study-cell--topic">{topic.name}</td>
+                      <td className="study-cell study-cell--topic">
+                        <span className="topic-name-wrap">
+                          {topic.name}
+                          {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
+                        </span>
+                      </td>
                       <td className="study-cell study-cell--status">
                         <button className={`status-badge status-badge--${status}`}
-                                onClick={() => cycleStatus(topic.id)} title="Click to cycle status">
+                                onClick={(e) => { e.stopPropagation(); cycleStatus(topic.id) }} title="Click to cycle status">
                           <span className={`status-dot ${cfg.dot}`} />
                           {cfg.label}
                         </button>
@@ -221,7 +236,7 @@ export default function TopicsView({
                       </td>
                       <td className="study-cell study-cell--resources">
                         <ResourceTooltip resources={topic.resources} topicName={topic.name}
-                                         onEdit={() => setEditTarget(topic)} />
+                                         onEdit={(e) => { e?.stopPropagation?.(); setEditTarget(topic) }} />
                       </td>
                       <td className="study-cell study-cell--updated">
                         {lastUpd ? <span title={new Date(lastUpd).toLocaleString()}>{relativeTime(lastUpd)}</span> : '—'}
@@ -229,7 +244,8 @@ export default function TopicsView({
                       <td className="study-cell" style={{ textAlign: 'right' }}>
                         <button className="icon-btn icon-btn--danger"
                                 title="Delete topic"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation()
                                   if (window.confirm(`Delete "${topic.name}"?`)) {
                                     deleteTopic(topic.courseId, topic.id)
                                   }
@@ -237,8 +253,17 @@ export default function TopicsView({
                           🗑
                         </button>
                       </td>
-                    </tr>
-                  )
+                    </tr>,
+                    isExpanded && (
+                      <NotesRow
+                        key={`${topic.id}-notes`}
+                        id={topic.id}
+                        notes={topic.notes}
+                        onSave={(n) => updateTopicNotes(topic.id, n)}
+                        colSpan={7}
+                      />
+                    ),
+                  ]
                 })}
               </tbody>
             </table>

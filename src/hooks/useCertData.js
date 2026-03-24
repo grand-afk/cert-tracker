@@ -48,6 +48,23 @@ export function useCertData() {
     }))
   }, [setCertData])
 
+  const updateTopicNotes = useCallback((topicId, notes) => {
+    setCertData((d) => ({
+      ...d,
+      courses: d.courses.map((c) => ({
+        ...c,
+        topics: c.topics.map((t) => t.id === topicId ? { ...t, notes } : t),
+      })),
+    }))
+  }, [setCertData])
+
+  const updateTermNotes = useCallback((termId, notes) => {
+    setCertData((d) => ({
+      ...d,
+      terminology: (d.terminology || []).map((t) => t.id === termId ? { ...t, notes } : t),
+    }))
+  }, [setCertData])
+
   // ── Add / delete topic ────────────────────────────────────────────────────
   const addTopic = useCallback((courseId, topicData) => {
     setCertData((d) => ({
@@ -147,5 +164,6 @@ export function useCertData() {
     addCourse, updateCourse, addTerm, deleteTerm,
     exportData, importData, resetToSample,
     getAllTopics, getCourseById,
+    updateTopicNotes, updateTermNotes,
   }
 }

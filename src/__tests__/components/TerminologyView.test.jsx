@@ -40,6 +40,8 @@ const defaultProps = {
   addTerm: noop,
   deleteTerm: noop,
   clearRating: noop,
+  updateTermNotes: noop,
+  searchQuery: '',
 }
 
 describe('TerminologyView', () => {

@@ -17,6 +17,8 @@ const defaultProps = {
   darkMode: true,
   toggleDarkMode: vi.fn(),
   onEditCertName: vi.fn(),
+  searchQuery: '',
+  setSearchQuery: vi.fn(),
 }
 
 describe('TopBar', () => {

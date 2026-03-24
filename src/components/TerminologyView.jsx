@@ -12,6 +12,32 @@ const STATUS_CONFIG = {
   'complete': { label: 'Complete', dot: 'status-dot--complete' },
 }
 
+function NotesRow({ id, notes, onSave, colSpan }) {
+  const [val, setVal] = useState(notes ?? '')
+  const dirty = val !== (notes ?? '')
+  return (
+    <tr className="notes-expand-row">
+      <td colSpan={colSpan}>
+        <div className="notes-expand-wrap">
+          <textarea
+            className="notes-textarea"
+            placeholder="Add notes…"
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            onBlur={() => { if (dirty) onSave(val) }}
+            rows={3}
+          />
+          {dirty && (
+            <button className="btn btn-primary btn-sm notes-save-btn" onClick={() => onSave(val)}>
+              Save
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
 export default function TerminologyView({
   terminology,
   courses,
@@ -20,24 +46,24 @@ export default function TerminologyView({
   cycleStatus,
   getLastUpdated,
   updateTermResources,
+  updateTermNotes,
   addTerm,
   deleteTerm,
   clearRating,
+  searchQuery,
 }) {
   const [page, setPage] = useState(1)
   const [sort, setSort] = useState({ key: 'term', dir: 'asc' })
   const [editTarget, setEditTarget] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [expandedId, setExpandedId] = useState(null)
 
-  // Build a lookup for course colour by id
   const courseMap = useMemo(() => {
     const m = {}
     courses.forEach((c) => { m[c.id] = c })
     return m
   }, [courses])
 
-  // Filter by selected courses and search
   const filtered = useMemo(() => {
     let result = terminology
     if (selectedCourses.length) {
@@ -46,15 +72,16 @@ export default function TerminologyView({
       )
     }
     if (searchQuery) {
+      const q = searchQuery.toLowerCase()
       result = result.filter((t) =>
-        t.term.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (t.definition && t.definition.toLowerCase().includes(searchQuery.toLowerCase()))
+        t.term.toLowerCase().includes(q) ||
+        (t.definition && t.definition.toLowerCase().includes(q)) ||
+        (t.notes && t.notes.toLowerCase().includes(q))
       )
     }
     return result
   }, [terminology, selectedCourses, searchQuery])
 
-  // Sort
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
       let av = '', bv = ''
@@ -86,21 +113,6 @@ export default function TerminologyView({
     return () => window.removeEventListener('add-shortcut', onAdd)
   }, [])
 
-  // / key → focus search
-  useEffect(() => {
-    function onKey(e) {
-      const tag = e.target.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
-      if (e.metaKey || e.ctrlKey || e.altKey) return
-      if (e.key === '/') {
-        e.preventDefault()
-        document.getElementById('search-input-terms')?.focus()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-
   function SortTh({ colKey, children, className = '' }) {
     const active = sort.key === colKey
     return (
@@ -125,21 +137,6 @@ export default function TerminologyView({
           <span className="study-count">{completeCount}/{filtered.length} complete</span>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>＋ Add Term</button>
         </div>
-      </div>
-
-      <div className="search-bar-wrap">
-        <span className="search-bar-icon">🔍</span>
-        <input
-          id="search-input-terms"
-          className="search-bar-input"
-          placeholder="Filter... [/]"
-          value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
-          onKeyDown={(e) => { if (e.key === 'Escape') { setSearchQuery(''); e.target.blur() } }}
-        />
-        {searchQuery && (
-          <button className="search-bar-clear" onClick={() => setSearchQuery('')}>×</button>
-        )}
       </div>
 
       {sorted.length === 0 ? (
@@ -168,10 +165,21 @@ export default function TerminologyView({
                   const status = getStatus(term.id)
                   const cfg = STATUS_CONFIG[status]
                   const lastUpdated = getLastUpdated(term.id)
-                  return (
-                    <tr key={term.id} className="study-row">
+                  const isExpanded = expandedId === term.id
+                  return [
+                    <tr
+                      key={term.id}
+                      className={`study-row study-row--expandable ${isExpanded ? 'study-row--expanded' : ''}`}
+                      onClick={(e) => {
+                        if (e.target.closest('button,input,select,a,textarea')) return
+                        setExpandedId(isExpanded ? null : term.id)
+                      }}
+                    >
                       <td className="study-cell study-cell--topic" style={{ fontWeight: 600 }}>
-                        {term.term}
+                        <span className="topic-name-wrap">
+                          {term.term}
+                          {term.notes && <span className="notes-indicator" title="Has notes">📝</span>}
+                        </span>
                       </td>
                       <td className="study-cell study-cell--definition">
                         {term.definition}
@@ -193,7 +201,7 @@ export default function TerminologyView({
                       <td className="study-cell study-cell--status">
                         <button
                           className={`status-badge status-badge--${status}`}
-                          onClick={() => cycleStatus(term.id)}
+                          onClick={(e) => { e.stopPropagation(); cycleStatus(term.id) }}
                           title="Click to cycle status"
                         >
                           <span className={`status-dot ${cfg.dot}`} />
@@ -204,7 +212,7 @@ export default function TerminologyView({
                         <ResourceTooltip
                           resources={term.resources}
                           topicName={term.term}
-                          onEdit={() => setEditTarget(term)}
+                          onEdit={(e) => { e?.stopPropagation?.(); setEditTarget(term) }}
                         />
                       </td>
                       <td className="study-cell study-cell--updated">
@@ -216,14 +224,23 @@ export default function TerminologyView({
                       <td className="study-cell study-cell--actions">
                         <button
                           className="icon-btn icon-btn--danger"
-                          onClick={() => { if (window.confirm(`Delete term "${term.term}"?`)) deleteTerm(term.id) }}
+                          onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete term "${term.term}"?`)) deleteTerm(term.id) }}
                           title="Delete term"
                         >
                           🗑
                         </button>
                       </td>
-                    </tr>
-                  )
+                    </tr>,
+                    isExpanded && (
+                      <NotesRow
+                        key={`${term.id}-notes`}
+                        id={term.id}
+                        notes={term.notes}
+                        onSave={(n) => updateTermNotes(term.id, n)}
+                        colSpan={7}
+                      />
+                    ),
+                  ]
                 })}
               </tbody>
             </table>

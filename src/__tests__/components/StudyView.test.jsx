@@ -43,6 +43,8 @@ const defaultProps = {
   clearRating: noop,
   getLastUpdated: () => null,
   updateTopicResources: noop,
+  updateTopicNotes: noop,
+  searchQuery: '',
 }
 
 describe('StudyView', () => {

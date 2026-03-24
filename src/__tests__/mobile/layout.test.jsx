@@ -104,6 +104,8 @@ describe('TopBar — mobile viewport', () => {
     darkMode: false,
     toggleDarkMode: noop,
     onEditCertName: noop,
+    searchQuery: '',
+    setSearchQuery: noop,
   }
 
   it('renders cert name at 375px', () => {
@@ -147,6 +149,9 @@ describe('TopicsView — mobile viewport', () => {
     setTestScore: noop,
     addTopic: noop,
     deleteTopic: noop,
+    clearRating: noop,
+    updateTopicNotes: noop,
+    searchQuery: '',
   }
 
   it('renders without crashing at 375px', () => {
@@ -186,6 +191,9 @@ describe('TerminologyView — mobile viewport', () => {
     updateTermResources: noop,
     addTerm: noop,
     deleteTerm: noop,
+    clearRating: noop,
+    updateTermNotes: noop,
+    searchQuery: '',
   }
 
   it('renders without crashing at 375px', () => {
@@ -215,8 +223,11 @@ describe('StudyView — mobile viewport', () => {
     getStatus: () => 'not-started',
     getSm2Card: () => null,
     rateCard: noop,
+    clearRating: noop,
     getLastUpdated: () => null,
     updateTopicResources: noop,
+    updateTopicNotes: noop,
+    searchQuery: '',
   }
 
   it('renders without crashing at 375px', () => {

@@ -38,10 +38,12 @@ const VIEWS = ['topics', 'study', 'calendar', 'terminology', 'help', 'settings']
 export default function App() {
   const [view, setView]             = useState('topics')
   const [renamingCert, setRenamingCert] = useState(false)
+  const [searchQuery, setSearchQuery]   = useState('')
 
   const {
     certData, setCertName, setTargetDate,
     updateTopicResources, updateTermResources,
+    updateTopicNotes, updateTermNotes,
     addTopic, deleteTopic,
     addCourse, updateCourse, addTerm, deleteTerm,
     exportData, importData, resetToSample,
@@ -72,13 +74,23 @@ export default function App() {
   const allIds      = useMemo(() => [...allTopicIds, ...allTermIds], [allTopicIds, allTermIds])
   const percentComplete = useMemo(() => computePercent(allIds), [allIds, progress])
 
+  // Clear search when changing views
+  useEffect(() => { setSearchQuery('') }, [view])
+
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
     function onKey(e) {
       const tag = e.target.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.metaKey || e.ctrlKey || e.altKey) return
-      if (e.key === 'Escape') { clearSelectedCourses(); return }
+      if (e.key === 'Escape') { clearSelectedCourses(); setSearchQuery(''); return }
+
+      // / key → focus global search
+      if (e.key === '/') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('focus-search'))
+        return
+      }
 
       // N key → open Add modal on current page
       if (e.key === 'n' || e.key === 'N') {
@@ -120,6 +132,8 @@ export default function App() {
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
         onEditCertName={() => setRenamingCert(true)}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
       />
 
       <ProgressBanner percent={percentComplete} targetDate={certData.targetDate} />
@@ -134,11 +148,13 @@ export default function App() {
             cycleStatus={cycleStatus}
             getLastUpdated={getLastUpdated}
             updateTopicResources={updateTopicResources}
+            updateTopicNotes={updateTopicNotes}
             getTestScore={getTestScore}
             setTestScore={setTestScore}
             addTopic={addTopic}
             deleteTopic={deleteTopic}
             clearRating={clearRating}
+            searchQuery={searchQuery}
           />
         )}
 
@@ -151,9 +167,11 @@ export default function App() {
             cycleStatus={cycleStatus}
             getLastUpdated={getLastUpdated}
             updateTermResources={updateTermResources}
+            updateTermNotes={updateTermNotes}
             addTerm={addTerm}
             deleteTerm={deleteTerm}
             clearRating={clearRating}
+            searchQuery={searchQuery}
           />
         )}
 
@@ -167,12 +185,15 @@ export default function App() {
             clearRating={clearRating}
             getLastUpdated={getLastUpdated}
             updateTopicResources={updateTopicResources}
+            updateTopicNotes={updateTopicNotes}
+            searchQuery={searchQuery}
           />
         )}
 
         {view === 'calendar' && (
           <CalendarView
             allTopics={allTopics}
+            courses={certData.courses}
             getSm2Card={getSm2Card}
             getStatus={getStatus}
             getTopicMins={getTopicMins}
@@ -182,6 +203,10 @@ export default function App() {
             rateCard={rateCard}
             clearRating={clearRating}
             maxSessionsPerDay={maxSessionsPerDay}
+            addCourse={addCourse}
+            addTopic={addTopic}
+            updateTopicNotes={updateTopicNotes}
+            searchQuery={searchQuery}
           />
         )}
 
