@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { daysUntilDue, dueLabel } from '../utils/sm2'
 import RateButtons from './RateButtons'
 import ResourceTooltip from './ResourceTooltip'
@@ -39,6 +39,11 @@ export default function StudyView({
         av = a.name; bv = b.name
         return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
       }
+      if (sort.key === 'rate') {
+        av = getSm2Card(a.id)?.lastQuality ?? -1
+        bv = getSm2Card(b.id)?.lastQuality ?? -1
+        return sort.dir === 'asc' ? av - bv : bv - av
+      }
       // Default: sort by due date (ascending = most overdue first)
       const da = daysUntilDue(getSm2Card(a.id))
       const db = daysUntilDue(getSm2Card(b.id))
@@ -66,6 +71,22 @@ export default function StudyView({
         : { key, dir: 'asc' }
     )
   }
+
+  // ── Keyboard shortcut: F toggles due-only filter ────────────────────────────
+  useEffect(() => {
+    function onKey(e) {
+      const tag = e.target.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === 'F' || e.key === 'f') {
+        e.preventDefault()
+        setShowDueOnly((v) => !v)
+        setPage(1)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   function SortTh({ colKey, children, style }) {
     const active = sort.key === colKey
@@ -99,8 +120,10 @@ export default function StudyView({
           <button
             className={`btn btn-secondary btn-sm ${showDueOnly ? 'btn-active' : ''}`}
             onClick={() => { setShowDueOnly((v) => !v); setPage(1) }}
+            title={showDueOnly ? 'Show all  [F]' : 'Show due only  [F]'}
           >
             {showDueOnly ? `Due only` : `Show all (${sorted.length})`}
+            <span className="btn-key">[F]</span>
           </button>
         </div>
       </div>
@@ -123,7 +146,7 @@ export default function StudyView({
                   <SortTh colKey="course" style={{ width: 130 }}>Course</SortTh>
                   <SortTh colKey="topic">Topic</SortTh>
                   <SortTh colKey="due" style={{ width: 110 }}>Due</SortTh>
-                  <th style={{ width: 260 }}>Rate</th>
+                  <SortTh colKey="rate" style={{ width: 260 }}>Rate</SortTh>
                   <th className="study-cell--resources">Resources</th>
                 </tr>
               </thead>

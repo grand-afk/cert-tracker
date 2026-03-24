@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 // ── CourseShortcutRow component ────────────────────────────────────────────────
 function CourseShortcutRow({ course, updateCourse }) {
@@ -106,12 +106,15 @@ export default function SettingsView({
   updateTopicResources, setTestScore,
   courses, updateCourse,
   addCourse, addTopic,
+  workStart, workEnd, defaultTopicMins,
+  setWorkStart, setWorkEnd, setDefaultTopicMins,
 }) {
   const [importText, setImportText]       = useState('')
   const [importError, setImportError]     = useState('')
   const [importSuccess, setImportSuccess] = useState('')
   const [showImport, setShowImport]       = useState(false)
   const [showConfirmReset, setShowConfirmReset] = useState(false)
+  const lastClickedIdx = useRef(null)
 
   function flash(setter, msg) { setter(msg); setTimeout(() => setter(''), 4000) }
 
@@ -225,6 +228,29 @@ export default function SettingsView({
   const totalTopics = certData.courses.reduce((s, c) => s + c.topics.length, 0)
   const totalTerms  = (certData.terminology || []).length
 
+  function handleTileClick(course, idx, e) {
+    if (e.shiftKey && lastClickedIdx.current !== null) {
+      // Shift+click: toggle all courses between lastClickedIdx and current
+      const start = Math.min(lastClickedIdx.current, idx)
+      const end = Math.max(lastClickedIdx.current, idx)
+      for (let i = start; i <= end; i++) {
+        updateCourse(courses[i].id, { hidden: !courses[i].hidden })
+      }
+    } else {
+      // Normal click: toggle this one
+      updateCourse(course.id, { hidden: !course.hidden })
+    }
+    lastClickedIdx.current = idx
+  }
+
+  function handleShowAll() {
+    courses.forEach((c) => updateCourse(c.id, { hidden: false }))
+  }
+
+  function handleHideAll() {
+    courses.forEach((c) => updateCourse(c.id, { hidden: true }))
+  }
+
   return (
     <div className="settings-view">
       <h2 className="study-title">⚙️ Settings</h2>
@@ -270,15 +296,19 @@ export default function SettingsView({
       <div className="settings-section">
         <div className="settings-section-title">Courses</div>
         <div className="settings-hint" style={{ padding: '0 16px 12px', color: 'var(--text-muted)', fontSize: 13 }}>
-          Hidden courses won't appear in the filter bar or chip shortcuts.
+          Hidden courses won't appear in the filter bar or chip shortcuts. Shift+click to toggle multiple.
+        </div>
+        <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary btn-sm" onClick={handleShowAll}>Show All</button>
+          <button className="btn btn-secondary btn-sm" onClick={handleHideAll}>Hide All</button>
         </div>
         <div className="course-settings-grid">
-          {courses.map((course) => (
+          {courses.map((course, idx) => (
             <button
               key={course.id}
               className={`course-settings-tile ${course.hidden ? 'course-settings-tile--hidden' : ''}`}
-              onClick={() => updateCourse(course.id, { hidden: !course.hidden })}
-              title={course.hidden ? 'Click to show' : 'Click to hide'}
+              onClick={(e) => handleTileClick(course, idx, e)}
+              title={course.hidden ? 'Click to show (Shift+click to select range)' : 'Click to hide (Shift+click to select range)'}
             >
               <span className="course-settings-dot" style={{ background: course.color }} />
               <span className="course-settings-name">{course.name}</span>
@@ -298,6 +328,35 @@ export default function SettingsView({
           {courses.map((course) => (
             <CourseShortcutRow key={course.id} course={course} updateCourse={updateCourse} />
           ))}
+        </div>
+      </div>
+
+      {/* Calendar Defaults */}
+      <div className="settings-section">
+        <div className="settings-section-title">Calendar Defaults</div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Working Hours Start</div>
+            <div className="settings-hint">Time of day when your study schedule begins</div>
+          </div>
+          <input className="settings-input" type="time" value={workStart}
+                 onChange={(e) => setWorkStart(e.target.value)} />
+        </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Working Hours End</div>
+            <div className="settings-hint">Time of day when your study schedule ends</div>
+          </div>
+          <input className="settings-input" type="time" value={workEnd}
+                 onChange={(e) => setWorkEnd(e.target.value)} />
+        </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Default Topic Duration</div>
+            <div className="settings-hint">Minutes per topic when auto-filling calendar (per-topic overrides in Calendar view)</div>
+          </div>
+          <input className="settings-input" type="number" min={5} max={180} value={defaultTopicMins}
+                 onChange={(e) => setDefaultTopicMins(parseInt(e.target.value))} style={{ width: 80 }} />
         </div>
       </div>
 

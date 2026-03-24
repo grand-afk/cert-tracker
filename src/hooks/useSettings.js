@@ -5,6 +5,9 @@ const STORAGE_KEY = 'certTracker_settings'
 const DEFAULTS = {
   darkMode: true,
   selectedCourses: [],  // empty = show all
+  workStart: '09:00',
+  workEnd: '17:00',
+  defaultTopicMins: 30,
 }
 
 function load() {
@@ -30,7 +33,7 @@ export function useSettings() {
     })
   }, [])
 
-  const { darkMode, selectedCourses } = settings
+  const { darkMode, selectedCourses, workStart, workEnd, defaultTopicMins } = settings
 
   useEffect(() => {
     document.documentElement.classList.toggle('light', !darkMode)
@@ -54,11 +57,29 @@ export function useSettings() {
     setSettings((s) => ({ ...s, selectedCourses: [] }))
   }, [setSettings])
 
+  const setWorkStart = useCallback((value) => {
+    setSettings((s) => ({ ...s, workStart: value }))
+  }, [setSettings])
+
+  const setWorkEnd = useCallback((value) => {
+    setSettings((s) => ({ ...s, workEnd: value }))
+  }, [setSettings])
+
+  const setDefaultTopicMins = useCallback((value) => {
+    setSettings((s) => ({ ...s, defaultTopicMins: value }))
+  }, [setSettings])
+
   return {
     darkMode,
     toggleDarkMode,
     selectedCourses,
     toggleCourse,
     clearSelectedCourses,
+    workStart,
+    workEnd,
+    defaultTopicMins,
+    setWorkStart,
+    setWorkEnd,
+    setDefaultTopicMins,
   }
 }

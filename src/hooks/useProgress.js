@@ -89,6 +89,16 @@ export function useProgress() {
     }))
   }, [setProgress])
 
+  // ── Per-topic duration overrides ───────────────────────────────────────────
+  const getTopicMins = useCallback((id) => progress[id]?.topicMins ?? null, [progress])
+
+  const setTopicMins = useCallback((id, mins) => {
+    setProgress((prev) => ({
+      ...prev,
+      [id]: { ...(prev[id] || {}), topicMins: mins },
+    }))
+  }, [setProgress])
+
   // ── Import / export / clear ───────────────────────────────────────────────
   const exportProgress = useCallback(() => progress, [progress])
 
@@ -103,6 +113,7 @@ export function useProgress() {
     computePercent,
     getSm2Card, rateCard,
     getTestScore, setTestScore,
+    getTopicMins, setTopicMins,
     exportProgress, importProgress, clearAll,
   }
 }

@@ -8,6 +8,8 @@ import ProgressBanner   from './components/ProgressBanner'
 import TopicsView       from './components/TopicsView'
 import TerminologyView  from './components/TerminologyView'
 import StudyView        from './components/StudyView'
+import CalendarView     from './components/CalendarView'
+import HelpView         from './components/HelpView'
 import SettingsView     from './components/SettingsView'
 
 function RenameCertModal({ current, onSave, onClose }) {
@@ -30,7 +32,7 @@ function RenameCertModal({ current, onSave, onClose }) {
   )
 }
 
-const VIEWS = ['topics', 'terminology', 'study', 'settings']
+const VIEWS = ['topics', 'study', 'calendar', 'terminology', 'help', 'settings']
 
 export default function App() {
   const [view, setView]             = useState('topics')
@@ -51,10 +53,15 @@ export default function App() {
     getLastUpdated, computePercent,
     getSm2Card, rateCard,
     getTestScore, setTestScore,
+    getTopicMins, setTopicMins,
     exportProgress, importProgress, clearAll,
   } = useProgress()
 
-  const { darkMode, toggleDarkMode, selectedCourses, toggleCourse, clearSelectedCourses } = useSettings()
+  const {
+    darkMode, toggleDarkMode, selectedCourses, toggleCourse, clearSelectedCourses,
+    workStart, workEnd, defaultTopicMins,
+    setWorkStart, setWorkEnd, setDefaultTopicMins,
+  } = useSettings()
 
   const allTopics  = useMemo(() => getAllTopics(), [getAllTopics])
   const allTopicIds = useMemo(() => allTopics.map((t) => t.id), [allTopics])
@@ -70,7 +77,13 @@ export default function App() {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key === 'Escape') { clearSelectedCourses(); return }
 
-      // Bottom nav: 1-4
+      // Calendar view: D/W/M dispatch custom event
+      if (view === 'calendar' && /^[dDwWmM]$/.test(e.key)) {
+        window.dispatchEvent(new CustomEvent('calendar-key', { detail: e.key.toLowerCase() }))
+        return
+      }
+
+      // Bottom nav: 1-6
       const navIdx = parseInt(e.key, 10)
       if (navIdx >= 1 && navIdx <= VIEWS.length) { setView(VIEWS[navIdx - 1]); return }
 
@@ -85,7 +98,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [certData.courses, toggleCourse, clearSelectedCourses])
+  }, [certData.courses, toggleCourse, clearSelectedCourses, view])
 
   return (
     <div className="app">
@@ -145,6 +158,20 @@ export default function App() {
           />
         )}
 
+        {view === 'calendar' && (
+          <CalendarView
+            allTopics={allTopics}
+            getSm2Card={getSm2Card}
+            getStatus={getStatus}
+            getTopicMins={getTopicMins}
+            workStart={workStart}
+            workEnd={workEnd}
+            defaultTopicMins={defaultTopicMins}
+          />
+        )}
+
+        {view === 'help' && <HelpView />}
+
         {view === 'settings' && (
           <SettingsView
             certData={certData}
@@ -164,6 +191,12 @@ export default function App() {
             updateCourse={updateCourse}
             addCourse={addCourse}
             addTopic={addTopic}
+            workStart={workStart}
+            workEnd={workEnd}
+            defaultTopicMins={defaultTopicMins}
+            setWorkStart={setWorkStart}
+            setWorkEnd={setWorkEnd}
+            setDefaultTopicMins={setDefaultTopicMins}
           />
         )}
       </main>

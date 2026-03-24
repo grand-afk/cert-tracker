@@ -30,7 +30,7 @@ export default function TopBar({
           onClick={clearSelectedCourses}
           title="Show all courses  [A]"
         >
-          All
+          All <span className="chip-key">A</span>
         </button>
 
         {courses.filter((c) => !c.hidden).map((course) => (

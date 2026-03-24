@@ -27,7 +27,7 @@ describe('TopBar', () => {
 
   it('renders an "All" chip', () => {
     render(<TopBar {...defaultProps} />)
-    expect(screen.getByRole('button', { name: /^All$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /All/i })).toBeInTheDocument()
   })
 
   it('renders a chip for each course', () => {
@@ -39,13 +39,13 @@ describe('TopBar', () => {
 
   it('"All" chip is active when no courses are selected', () => {
     render(<TopBar {...defaultProps} selectedCourses={[]} />)
-    const allChip = screen.getByRole('button', { name: /^All$/i })
+    const allChip = screen.getByRole('button', { name: /All/i })
     expect(allChip.className).toContain('course-chip--active')
   })
 
   it('"All" chip is NOT active when courses are selected', () => {
     render(<TopBar {...defaultProps} selectedCourses={['gke']} />)
-    const allChip = screen.getByRole('button', { name: /^All$/i })
+    const allChip = screen.getByRole('button', { name: /All/i })
     expect(allChip.className).not.toContain('course-chip--active')
   })
 
@@ -71,7 +71,7 @@ describe('TopBar', () => {
   it('clicking the "All" chip calls clearSelectedCourses', () => {
     const clearSelectedCourses = vi.fn()
     render(<TopBar {...defaultProps} clearSelectedCourses={clearSelectedCourses} />)
-    fireEvent.click(screen.getByRole('button', { name: /^All$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /All/i }))
     expect(clearSelectedCourses).toHaveBeenCalledTimes(1)
   })
 
@@ -118,8 +118,9 @@ describe('TopBar', () => {
   it('renders chip-key badge when course has a key', () => {
     const coursesWithKey = [{ id: 'gke', name: 'GKE', color: '#4285F4', key: 'G' }]
     const { container } = render(<TopBar {...defaultProps} courses={coursesWithKey} />)
-    const keyBadge = container.querySelector('.chip-key')
-    expect(keyBadge).toBeInTheDocument()
-    expect(keyBadge.textContent).toBe('G')
+    const keyBadges = container.querySelectorAll('.chip-key')
+    // First badge is the [A] on the All chip; second is the course key
+    const courseKeyBadge = [...keyBadges].find((b) => b.textContent === 'G')
+    expect(courseKeyBadge).toBeInTheDocument()
   })
 })

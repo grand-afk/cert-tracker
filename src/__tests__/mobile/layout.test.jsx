@@ -61,12 +61,14 @@ const noop = vi.fn()
 
 // ── BottomNav — mobile ────────────────────────────────────────────────────────
 describe('BottomNav — mobile viewport', () => {
-  it('renders all four tabs at 375px width', () => {
+  it('renders all six tabs at 375px width', () => {
     setViewport(MOBILE_WIDTH)
     render(<BottomNav view="topics" setView={noop} />)
     expect(screen.getByText('Topics')).toBeInTheDocument()
-    expect(screen.getByText('Terminology')).toBeInTheDocument()
     expect(screen.getByText('Study')).toBeInTheDocument()
+    expect(screen.getByText('Calendar')).toBeInTheDocument()
+    expect(screen.getByText('Terms')).toBeInTheDocument()
+    expect(screen.getByText('Help')).toBeInTheDocument()
     expect(screen.getByText('Settings')).toBeInTheDocument()
   })
 
@@ -81,7 +83,7 @@ describe('BottomNav — mobile viewport', () => {
     const { container } = render(<BottomNav view="topics" setView={noop} />)
     // The .nav-btn__key elements exist in DOM; CSS hides them at ≤600px
     const keyHints = container.querySelectorAll('.nav-btn__key')
-    expect(keyHints.length).toBe(4)
+    expect(keyHints.length).toBe(6)
   })
 
   it('renders correctly at tablet width (768px)', () => {
@@ -113,14 +115,15 @@ describe('TopBar — mobile viewport', () => {
   it('renders All chip at mobile width', () => {
     setViewport(MOBILE_WIDTH)
     render(<TopBar {...topBarProps} />)
-    expect(screen.getByRole('button', { name: /^All$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /All/i })).toBeInTheDocument()
   })
 
   it('chip-key badges are in the DOM (hidden via CSS on mobile)', () => {
     setViewport(MOBILE_WIDTH)
     const { container } = render(<TopBar {...topBarProps} />)
     const chipKeys = container.querySelectorAll('.chip-key')
-    expect(chipKeys.length).toBe(COURSES.length)
+    // +1 for the [A] badge on the All chip
+    expect(chipKeys.length).toBe(COURSES.length + 1)
   })
 
   it('chip bar row has topbar-row2 class for overflow scrolling', () => {
