@@ -1433,6 +1433,108 @@ body {
   border-color: var(--border);
 }
 
+/* ── Calendar slot card – Round 2 ─────────────────────────────────── */
+.cal-slot--focused { outline: 2px solid #fff; outline-offset: -2px; }
+
+.cal-slot__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.cal-slot__topic {
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-slot__course {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+.cal-slot__course-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.cal-slot__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.cal-slot__actions .rate-buttons { gap: 2px; }
+.cal-slot__actions .rate-btn { padding: 1px 4px; font-size: 10px; }
+.cal-slot__actions .clear-rating-btn { color: rgba(255,255,255,0.7); border-color: transparent; }
+.cal-slot__actions .clear-rating-btn:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+
+/* Resize handles */
+.cal-slot__resize-top,
+.cal-slot__resize-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+  z-index: 1;
+  background: transparent;
+}
+.cal-slot__resize-top { top: 0; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.cal-slot__resize-bottom { bottom: 0; border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+.cal-slot__resize-top:hover,
+.cal-slot__resize-bottom:hover { background: rgba(255,255,255,0.25); }
+
+/* ── Calendar actions bar ─────────────────────────────────────────── */
+.cal-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cal-action-btn {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.cal-action-btn:hover { background: var(--surface3); }
+
+.cal-action-btn--schedule {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cal-action-btn--schedule:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.cal-action-btn--clear {
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+.cal-action-btn--clear:hover {
+  border-color: #e55;
+  color: #e55;
+}
+
 @media (max-width: 600px) {
   .btn-key { display: none; }
   .cal-header { flex-direction: column; align-items: stretch; }
