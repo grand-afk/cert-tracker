@@ -126,6 +126,9 @@ export function useCertData() {
     }))
   }, [setCertData])
 
+  // ── Restore (for undo/redo) ───────────────────────────────────────────────
+  const restoreCertData = useCallback((data) => { setCertData(data) }, [setCertData])
+
   // ── Import / export ───────────────────────────────────────────────────────
   const exportData = useCallback(() => {
     const blob = new Blob([JSON.stringify(certData, null, 2)], { type: 'application/json' })
@@ -165,5 +168,6 @@ export function useCertData() {
     exportData, importData, resetToSample,
     getAllTopics, getCourseById,
     updateTopicNotes, updateTermNotes,
+    restoreCertData,
   }
 }

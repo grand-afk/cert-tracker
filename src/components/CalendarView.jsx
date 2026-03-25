@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo } from 'react'
+import { useState, useEffect, useRef, memo, useCallback } from 'react'
 import { useCalendar } from '../hooks/useCalendar'
 import { daysUntilDue } from '../utils/sm2'
 import RateButtons from './RateButtons'
@@ -198,12 +198,12 @@ function AddSlotModal({ allTopics, courses, defaultTopicMins, workStart, onAdd, 
 }
 
 // ─── SlotCard — defined OUTSIDE CalendarView so it has a stable identity ──────
-// This prevents React from unmounting/remounting it on every parent re-render,
-// which would kill in-progress drag operations.
 const SlotCard = memo(function SlotCard({
   slot, dk, pxPerMin, minTop,
   allTopics, getSm2Card, rateCard, clearRating, searchQuery,
-  focusedSlot, setFocusedSlot, setResizing, setTooltip, setEditingSlot, removeSlot, dragRef,
+  focusedSlot, setFocusedSlot,
+  selectedSlot, setSelectedSlot,
+  setResizing, setTooltip, setEditingSlot, removeSlot, dragRef,
 }) {
   const topic = allTopics.find((t) => t.id === slot.topicId)
   if (!topic) return null
@@ -211,6 +211,7 @@ const SlotCard = memo(function SlotCard({
   const card         = getSm2Card(slot.topicId)
   const lastQuality  = card?.lastQuality ?? null
   const isFocused    = focusedSlot?.dateKey === dk && focusedSlot?.slotId === slot.id
+  const isSelected   = selectedSlot?.dateKey === dk && selectedSlot?.slotId === slot.id
   const startMins    = timeToMinutes(slot.startTime)
   const top          = (startMins - minTop) * pxPerMin
   const height       = Math.max(22, slot.durationMins * pxPerMin)
@@ -221,7 +222,7 @@ const SlotCard = memo(function SlotCard({
 
   return (
     <div
-      className={`cal-slot${isFocused ? ' cal-slot--focused' : ''}${searchQuery && !matchesSearch ? ' cal-slot--dimmed' : ''}`}
+      className={`cal-slot${isFocused ? ' cal-slot--focused' : ''}${isSelected ? ' cal-slot--selected' : ''}${searchQuery && !matchesSearch ? ' cal-slot--dimmed' : ''}`}
       draggable
       tabIndex={0}
       style={{ top, height, position: 'absolute', left: 2, right: 2, background: topic.courseColor }}
@@ -236,6 +237,13 @@ const SlotCard = memo(function SlotCard({
       onMouseEnter={(e) => setTooltip({ slot, topic, card, x: e.clientX, y: e.clientY })}
       onMouseLeave={() => setTooltip(null)}
       onClick={(e) => {
+        if (e.target.closest('.cal-slot__resize-top,.cal-slot__resize-bottom,.cal-slot__remove')) return
+        // Single click = select/highlight
+        setSelectedSlot(isSelected ? null : { dateKey: dk, slotId: slot.id })
+        setTooltip(null)
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation()
         if (e.target.closest('.cal-slot__resize-top,.cal-slot__resize-bottom,.cal-slot__remove')) return
         setTooltip(null)
         setEditingSlot({ dateKey: dk, slot })
@@ -284,14 +292,18 @@ const SlotCard = memo(function SlotCard({
 export default function CalendarView({
   allTopics, courses,
   getSm2Card, getStatus, getTopicMins,
-  workStart, workEnd, defaultTopicMins,
+  workStart, workEnd, defaultTopicMins, defaultBreakMins,
   rateCard, clearRating,
   maxSessionsPerDay,
   addCourse, addTopic,
   updateTopicNotes, updateTopicResources,
   searchQuery,
+  recordAction,
+  calendar: calendarProp,
+  restoreCalendar,
 }) {
   const {
+    calendar,
     getDay, setStudyHours, addSlot, removeSlot, moveSlot,
     clearDay, updateSlotTime, updateSlotDuration,
     autoFill, batchSetSlots,
@@ -304,14 +316,18 @@ export default function CalendarView({
   const [addModalDate, setAddModalDate] = useState(null)
   const [editingSlot, setEditingSlot]   = useState(null)
   const [focusedSlot, setFocusedSlot]   = useState(null)
+  const [selectedSlot, setSelectedSlot] = useState(null)
   const [resizing, setResizing]         = useState(null)
   const [tooltip, setTooltip]           = useState(null)
   const dragRef                         = useRef(null)
+  const breakMins                       = defaultBreakMins ?? 0
 
   // Shared props passed to every SlotCard
   const slotProps = {
     allTopics, getSm2Card, rateCard, clearRating, searchQuery,
-    focusedSlot, setFocusedSlot, setResizing, setTooltip, setEditingSlot, removeSlot, dragRef,
+    focusedSlot, setFocusedSlot,
+    selectedSlot, setSelectedSlot,
+    setResizing, setTooltip, setEditingSlot, removeSlot, dragRef,
   }
 
   // ─── Keyboard events ─────────────────────────────────────────────────────
@@ -339,12 +355,48 @@ export default function CalendarView({
     function onKey(e) {
       const tag = e.target.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+
+      // S = schedule current view, X = clear current view
+      if (e.key === 's' || e.key === 'S') { e.preventDefault(); handleSchedule(viewMode); return }
+      if (e.key === 'x' || e.key === 'X') { e.preventDefault(); handleClear(viewMode); return }
+      // Arrow left/right = Prev/Next
+      if (e.key === 'ArrowLeft') { e.preventDefault(); handlePrev(); return }
+      if (e.key === 'ArrowRight') { e.preventDefault(); handleNext(); return }
+
+      // Delete key on selected slot
+      if (e.key === 'Delete' && selectedSlot) {
+        const before = JSON.parse(JSON.stringify(calendar))
+        removeSlot(selectedSlot.dateKey, selectedSlot.slotId)
+        const removedSlot = (before[selectedSlot.dateKey]?.slots || []).find((s) => s.id === selectedSlot.slotId)
+        if (removedSlot && recordAction) {
+          const dk = selectedSlot.dateKey
+          recordAction(
+            () => addSlot(dk, removedSlot),
+            () => removeSlot(dk, removedSlot.id),
+            'Delete slot'
+          )
+        }
+        setSelectedSlot(null)
+        return
+      }
+
+      // Delete or Enter on focused slot (Tab-navigated)
       if (!focusedSlot) return
       if (e.key === 'Delete') {
+        const before = JSON.parse(JSON.stringify(calendar))
         removeSlot(focusedSlot.dateKey, focusedSlot.slotId)
+        const removedSlot = (before[focusedSlot.dateKey]?.slots || []).find((s) => s.id === focusedSlot.slotId)
+        if (removedSlot && recordAction) {
+          const dk = focusedSlot.dateKey
+          recordAction(
+            () => addSlot(dk, removedSlot),
+            () => removeSlot(dk, removedSlot.id),
+            'Delete slot'
+          )
+        }
         setFocusedSlot(null)
       } else if (e.key === 'Enter') {
-        // Open edit modal for focused slot
         const day = getDay(focusedSlot.dateKey)
         const slot = (day.slots || []).find((s) => s.id === focusedSlot.slotId)
         if (slot) setEditingSlot({ dateKey: focusedSlot.dateKey, slot })
@@ -352,7 +404,18 @@ export default function CalendarView({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [focusedSlot, removeSlot, getDay])
+  }, [focusedSlot, selectedSlot, removeSlot, addSlot, getDay, calendar, recordAction, viewMode])
+
+  // Deselect slot when clicking outside
+  useEffect(() => {
+    function onMouseDown(e) {
+      if (!e.target.closest('.cal-slot')) {
+        setSelectedSlot(null)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [])
 
   // ─── Resize via mouse ────────────────────────────────────────────────────
   useEffect(() => {
@@ -407,14 +470,33 @@ export default function CalendarView({
     return days
   }
 
-  function handleClear(scope) { getDaysInScope(scope).forEach((d) => clearDay(d)) }
+  function handleClear(scope) {
+    const days = getDaysInScope(scope)
+    // Capture before state for undo
+    const before = JSON.parse(JSON.stringify(calendar))
+    days.forEach((d) => clearDay(d))
+    if (recordAction) {
+      recordAction(
+        () => restoreCalendar(before),
+        () => days.forEach((d) => clearDay(d)),
+        `Clear ${scope}`
+      )
+    }
+  }
 
   function handleSchedule(scope) {
     const days = getDaysInScope(scope)
+    const before = JSON.parse(JSON.stringify(calendar))
 
     if (scope === 'day') {
-      // Single day: standard per-day autoFill (top-ups existing)
-      autoFill(days[0], allTopics, defaultTopicMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessionsPerDay)
+      autoFill(days[0], allTopics, defaultTopicMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessionsPerDay, breakMins)
+      if (recordAction) {
+        recordAction(
+          () => restoreCalendar(before),
+          () => autoFill(days[0], allTopics, defaultTopicMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessionsPerDay, breakMins),
+          `Schedule day`
+        )
+      }
       return
     }
 
@@ -422,7 +504,6 @@ export default function CalendarView({
     const workStartMins = timeToMinutes(workStart)
     const workEndMins   = timeToMinutes(workEnd)
 
-    // Group all topics by course, sort each group most-overdue first
     const byCourse = {}
     allTopics.forEach((t) => {
       if (!byCourse[t.courseId]) byCourse[t.courseId] = []
@@ -433,7 +514,6 @@ export default function CalendarView({
       byCourse[cid].sort((a, b) => daysUntilDue(getSm2Card(a.id)) - daysUntilDue(getSm2Card(b.id)))
     )
 
-    // Global pointers per course — advance across days so every day gets different topics
     const pointers = {}
     courseIds.forEach((cid) => { pointers[cid] = 0 })
 
@@ -445,15 +525,16 @@ export default function CalendarView({
       const max          = maxSessionsPerDay ?? 10
       const remaining    = Math.max(0, max - existingSlots.length)
 
-      if (remaining === 0) return  // day already at or over max — skip
+      if (remaining === 0) return
 
-      // Find where to start appending new slots (after last existing slot)
       let currentMins = workStartMins
       if (existingSlots.length > 0) {
         currentMins = existingSlots.reduce((maxEnd, s) => {
           const end = timeToMinutes(s.startTime) + s.durationMins
           return end > maxEnd ? end : maxEnd
         }, workStartMins)
+        // Add break after last existing slot
+        if (breakMins > 0 && currentMins > workStartMins) currentMins += breakMins
       }
 
       const newSlots = []
@@ -464,7 +545,7 @@ export default function CalendarView({
         for (const cid of courseIds) {
           if (newSlots.length >= remaining) break
           const group     = byCourse[cid]
-          const ptr       = pointers[cid] % group.length   // wraps for long schedules
+          const ptr       = pointers[cid] % group.length
           const topic     = group[ptr]
           const topicMins = getTopicMins(topic.id) ?? defaultTopicMins
 
@@ -475,7 +556,7 @@ export default function CalendarView({
               startTime:    minutesToTime(currentMins),
               durationMins: topicMins,
             })
-            currentMins += topicMins
+            currentMins += topicMins + breakMins
             pointers[cid]++
             didAdd = true
           }
@@ -486,6 +567,20 @@ export default function CalendarView({
     })
 
     batchSetSlots(updates)
+
+    if (recordAction) {
+      recordAction(
+        () => restoreCalendar(before),
+        () => {
+          const u2 = {}
+          days.forEach((dateKey) => {
+            if (updates[dateKey]) u2[dateKey] = updates[dateKey]
+          })
+          batchSetSlots(u2)
+        },
+        `Schedule ${scope}`
+      )
+    }
   }
 
   // ─── Drop handler factory ────────────────────────────────────────────────
@@ -500,7 +595,18 @@ export default function CalendarView({
       const rect    = e.currentTarget.getBoundingClientRect()
       const y       = e.clientY - rect.top
       const newMins = snap15(Math.round(workStartMins + y / pxPerMin))
+      const before  = JSON.parse(JSON.stringify(calendar))
+      const fromDate = info.date
+      const fromSlot = (calendar[fromDate]?.slots || []).find((s) => s.id === info.id)
       moveSlot(info.date, info.id, targetDate, minutesToTime(newMins))
+      if (recordAction && fromSlot) {
+        const tdk = typeof targetDate === 'string' ? targetDate : targetDate.toISOString().split('T')[0]
+        recordAction(
+          () => restoreCalendar(before),
+          () => moveSlot(info.date, info.id, targetDate, minutesToTime(newMins)),
+          'Move slot'
+        )
+      }
       dragRef.current = null
     }
   }
@@ -689,16 +795,16 @@ export default function CalendarView({
               {tooltip.topic.notes.slice(0, 80)}{tooltip.topic.notes.length > 80 ? '…' : ''}
             </div>
           )}
-          <div className="cal-tooltip__hint">Click to edit · Tab then Enter to edit · Delete to remove</div>
+          <div className="cal-tooltip__hint">Click to select · Double-click to edit · Delete to remove</div>
         </div>
       )}
 
       {/* Header */}
       <div className="cal-header">
         <div className="cal-nav">
-          <button className="cal-nav-btn" onClick={handlePrev}>← Prev</button>
+          <button className="cal-nav-btn" onClick={handlePrev} title="Previous  [←]">← Prev</button>
           <button className="cal-nav-btn" onClick={() => setCurrentDate(new Date())}>Today</button>
-          <button className="cal-nav-btn" onClick={handleNext}>Next →</button>
+          <button className="cal-nav-btn" onClick={handleNext} title="Next  [→]">Next →</button>
         </div>
 
         <div className="cal-date-label">
@@ -723,9 +829,11 @@ export default function CalendarView({
 
         <div className="cal-actions">
           <button className="cal-action-btn cal-action-btn--schedule"
-                  onClick={() => handleSchedule(viewMode)}>▶ Schedule {scopeLabel}</button>
+                  onClick={() => handleSchedule(viewMode)}
+                  title="Schedule current view  [S]">▶ Schedule {scopeLabel}</button>
           <button className="cal-action-btn cal-action-btn--clear"
-                  onClick={() => handleClear(viewMode)}>✕ Clear {scopeLabel}</button>
+                  onClick={() => handleClear(viewMode)}
+                  title="Clear current view  [X]">✕ Clear {scopeLabel}</button>
         </div>
       </div>
 
@@ -741,7 +849,20 @@ export default function CalendarView({
           courses={courses}
           defaultTopicMins={defaultTopicMins}
           workStart={workStart}
-          onAdd={(slotData) => addSlot(addModalDate, slotData)}
+          onAdd={(slotData) => {
+            const before = JSON.parse(JSON.stringify(calendar))
+            addSlot(addModalDate, slotData)
+            if (recordAction) {
+              // We don't know the generated id yet; use restoreCalendar for undo
+              setTimeout(() => {
+                recordAction(
+                  () => restoreCalendar(before),
+                  () => addSlot(addModalDate, slotData),
+                  'Add slot'
+                )
+              }, 0)
+            }
+          }}
           onAddCourse={addCourse}
           onAddTopic={addTopic}
           onClose={() => { setShowAddModal(false); setAddModalDate(null) }}
@@ -755,10 +876,34 @@ export default function CalendarView({
           topic={allTopics.find((t) => t.id === editingSlot.slot.topicId)}
           card={getSm2Card(editingSlot.slot.topicId)}
           onSave={({ startTime, durationMins }) => {
+            const before = JSON.parse(JSON.stringify(calendar))
             updateSlotTime(editingSlot.dateKey, editingSlot.slot.id, startTime)
             updateSlotDuration(editingSlot.dateKey, editingSlot.slot.id, durationMins)
+            if (recordAction) {
+              const origTime = editingSlot.slot.startTime
+              const origDur  = editingSlot.slot.durationMins
+              const dk2      = editingSlot.dateKey
+              const sid      = editingSlot.slot.id
+              recordAction(
+                () => { updateSlotTime(dk2, sid, origTime); updateSlotDuration(dk2, sid, origDur) },
+                () => { updateSlotTime(dk2, sid, startTime); updateSlotDuration(dk2, sid, durationMins) },
+                'Edit slot time'
+              )
+            }
           }}
-          onRemove={() => removeSlot(editingSlot.dateKey, editingSlot.slot.id)}
+          onRemove={() => {
+            const before = JSON.parse(JSON.stringify(calendar))
+            const removedSlot = editingSlot.slot
+            const dk2 = editingSlot.dateKey
+            removeSlot(dk2, removedSlot.id)
+            if (recordAction) {
+              recordAction(
+                () => addSlot(dk2, removedSlot),
+                () => removeSlot(dk2, removedSlot.id),
+                'Remove slot'
+              )
+            }
+          }}
           onClose={() => setEditingSlot(null)}
           updateTopicNotes={updateTopicNotes}
           onRate={rateCard}

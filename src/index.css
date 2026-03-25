@@ -1435,6 +1435,7 @@ body {
 
 /* ── Calendar slot card – Round 2 ─────────────────────────────────── */
 .cal-slot--focused { outline: 2px solid #fff; outline-offset: -2px; }
+.cal-slot--selected { outline: 3px solid #fff; outline-offset: -3px; box-shadow: 0 0 0 4px rgba(255,255,255,0.4); z-index: 2; }
 
 .cal-slot__header {
   display: flex;
@@ -1574,6 +1575,8 @@ body {
 /* ── Notes row expand ─────────────────────────────────────────────── */
 .study-row--expandable { cursor: pointer; }
 .study-row--expanded td { border-bottom: none !important; }
+.study-row--selected td { background: rgba(255,255,255,0.06); }
+.light .study-row--selected td { background: rgba(0,0,0,0.05); }
 .notes-expand-row td {
   padding: 0 12px 12px !important;
   border-bottom: 1px solid var(--border) !important;

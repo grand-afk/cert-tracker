@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { daysUntilDue, dueLabel } from '../utils/sm2'
+import { daysUntilDue, dueLabel, isDue } from '../utils/sm2'
 import RateButtons from './RateButtons'
 import ResourceTooltip from './ResourceTooltip'
 import EditResourceModal from './EditResourceModal'
@@ -91,8 +91,9 @@ export default function StudyView({
     })
   }, [filtered, sort, getSm2Card])
 
-  const dueItems  = sorted.filter((t) => daysUntilDue(getSm2Card(t.id)) <= 0)
-  const displayed = showDueOnly ? sorted.filter((t) => daysUntilDue(getSm2Card(t.id)) <= 0) : sorted
+  // isDue: includes New (never reviewed), Due Today, and Overdue
+  const dueItems  = sorted.filter((t) => isDue(getSm2Card(t.id)))
+  const displayed = showDueOnly ? dueItems : sorted
 
   const totalPages = Math.max(1, Math.ceil(displayed.length / PAGE_SIZE))
   const safePage   = Math.min(page, totalPages)

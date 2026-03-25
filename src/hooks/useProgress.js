@@ -99,6 +99,9 @@ export function useProgress() {
     }))
   }, [setProgress])
 
+  // ── Restore (for undo/redo) ───────────────────────────────────────────────
+  const restoreProgress = useCallback((data) => { setProgress(data) }, [setProgress])
+
   // ── Import / export / clear ───────────────────────────────────────────────
   const exportProgress = useCallback(() => progress, [progress])
 
@@ -123,5 +126,6 @@ export function useProgress() {
     getTestScore, setTestScore,
     getTopicMins, setTopicMins,
     exportProgress, importProgress, clearAll,
+    restoreProgress,
   }
 }

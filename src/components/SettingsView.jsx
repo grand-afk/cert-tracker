@@ -106,8 +106,8 @@ export default function SettingsView({
   updateTopicResources, setTestScore,
   courses, updateCourse,
   addCourse, addTopic,
-  workStart, workEnd, defaultTopicMins, maxSessionsPerDay,
-  setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay,
+  workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins,
+  setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
   allTopics, calendar, exportCalendarCSV, importCalendarCSV,
 }) {
   const [importText, setImportText]       = useState('')
@@ -387,6 +387,16 @@ export default function SettingsView({
           <input className="settings-input" type="number" min={1} max={20}
                  value={maxSessionsPerDay}
                  onChange={(e) => setMaxSessionsPerDay(parseInt(e.target.value))} style={{ width: 80 }} />
+        </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Default Break Between Sessions</div>
+            <div className="settings-hint">Minutes of break added between auto-scheduled topics (0 = no break)</div>
+          </div>
+          <input className="settings-input" type="number" min={0} max={60} step={15}
+                 value={defaultBreakMins ?? 0}
+                 onChange={(e) => setDefaultBreakMins(Math.round(Math.max(0, parseInt(e.target.value) || 0) / 15) * 15)}
+                 style={{ width: 80 }} />
         </div>
       </div>
 

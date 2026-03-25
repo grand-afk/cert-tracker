@@ -3,6 +3,7 @@ import { useCertData }  from './hooks/useCertData'
 import { useProgress }  from './hooks/useProgress'
 import { useSettings }  from './hooks/useSettings'
 import { useCalendar }  from './hooks/useCalendar'
+import { useHistory }   from './hooks/useHistory'
 import TopBar           from './components/TopBar'
 import BottomNav        from './components/BottomNav'
 import ProgressBanner   from './components/ProgressBanner'
@@ -34,6 +35,7 @@ function RenameCertModal({ current, onSave, onClose }) {
 }
 
 const VIEWS = ['topics', 'study', 'calendar', 'terminology', 'help', 'settings']
+const STATUSES = ['not-started', 'in-progress', 'complete']
 
 export default function App() {
   const [view, setView]             = useState('topics')
@@ -47,7 +49,7 @@ export default function App() {
     addTopic, deleteTopic,
     addCourse, updateCourse, addTerm, deleteTerm,
     exportData, importData, resetToSample,
-    getAllTopics,
+    getAllTopics, restoreCertData,
   } = useCertData()
 
   const {
@@ -58,15 +60,18 @@ export default function App() {
     getTestScore, setTestScore,
     getTopicMins, setTopicMins,
     exportProgress, importProgress, clearAll,
+    restoreProgress,
   } = useProgress()
 
   const {
     darkMode, toggleDarkMode, selectedCourses, toggleCourse, clearSelectedCourses,
-    workStart, workEnd, defaultTopicMins, maxSessionsPerDay,
-    setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay,
+    workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins,
+    setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
   } = useSettings()
 
-  const { calendar, exportCSV: exportCalendarCSV, importCSV: importCalendarCSV } = useCalendar()
+  const { calendar, exportCSV: exportCalendarCSV, importCSV: importCalendarCSV, restoreCalendar } = useCalendar()
+
+  const { push: historyPush, undo, redo, canUndo, canRedo } = useHistory()
 
   const allTopics  = useMemo(() => getAllTopics(), [getAllTopics])
   const allTopicIds = useMemo(() => allTopics.map((t) => t.id), [allTopics])
@@ -77,12 +82,117 @@ export default function App() {
   // Clear search when changing views
   useEffect(() => { setSearchQuery('') }, [view])
 
-  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  // ── History-aware action wrappers ─────────────────────────────────────────
+  const cycleStatusH = useCallback((id) => {
+    const prev = getStatus(id)
+    const next = STATUSES[(STATUSES.indexOf(prev) + 1) % STATUSES.length]
+    cycleStatus(id)
+    historyPush(
+      () => setStatus(id, prev),
+      () => setStatus(id, next),
+      `Status ${id}`
+    )
+  }, [getStatus, cycleStatus, setStatus, historyPush])
+
+  const rateCardH = useCallback((id, quality) => {
+    const prevEntry = JSON.parse(JSON.stringify(progress[id] || {}))
+    rateCard(id, quality)
+    historyPush(
+      () => restoreProgress({ ...progress, [id]: prevEntry }),
+      () => rateCard(id, quality),
+      `Rate ${id}`
+    )
+  }, [progress, rateCard, restoreProgress, historyPush])
+
+  const clearRatingH = useCallback((id) => {
+    const prevEntry = JSON.parse(JSON.stringify(progress[id] || {}))
+    clearRating(id)
+    historyPush(
+      () => restoreProgress({ ...progress, [id]: prevEntry }),
+      () => clearRating(id),
+      `ClearRating ${id}`
+    )
+  }, [progress, clearRating, restoreProgress, historyPush])
+
+  const updateTopicNotesH = useCallback((topicId, notes) => {
+    const prevNotes = allTopics.find((t) => t.id === topicId)?.notes ?? ''
+    updateTopicNotes(topicId, notes)
+    historyPush(
+      () => updateTopicNotes(topicId, prevNotes),
+      () => updateTopicNotes(topicId, notes),
+      `Notes ${topicId}`
+    )
+  }, [allTopics, updateTopicNotes, historyPush])
+
+  const updateTermNotesH = useCallback((termId, notes) => {
+    const prevNotes = (certData.terminology || []).find((t) => t.id === termId)?.notes ?? ''
+    updateTermNotes(termId, notes)
+    historyPush(
+      () => updateTermNotes(termId, prevNotes),
+      () => updateTermNotes(termId, notes),
+      `TermNotes ${termId}`
+    )
+  }, [certData.terminology, updateTermNotes, historyPush])
+
+  const addTopicH = useCallback((courseId, topicData) => {
+    const prevCertData = JSON.parse(JSON.stringify(certData))
+    addTopic(courseId, topicData)
+    historyPush(
+      () => restoreCertData(prevCertData),
+      () => addTopic(courseId, topicData),
+      `AddTopic`
+    )
+  }, [certData, addTopic, restoreCertData, historyPush])
+
+  const deleteTopicH = useCallback((courseId, topicId) => {
+    const prevCertData = JSON.parse(JSON.stringify(certData))
+    deleteTopic(courseId, topicId)
+    historyPush(
+      () => restoreCertData(prevCertData),
+      () => deleteTopic(courseId, topicId),
+      `DeleteTopic`
+    )
+  }, [certData, deleteTopic, restoreCertData, historyPush])
+
+  const addTermH = useCallback((termData) => {
+    const prevCertData = JSON.parse(JSON.stringify(certData))
+    addTerm(termData)
+    historyPush(
+      () => restoreCertData(prevCertData),
+      () => addTerm(termData),
+      `AddTerm`
+    )
+  }, [certData, addTerm, restoreCertData, historyPush])
+
+  const deleteTermH = useCallback((termId) => {
+    const prevCertData = JSON.parse(JSON.stringify(certData))
+    deleteTerm(termId)
+    historyPush(
+      () => restoreCertData(prevCertData),
+      () => deleteTerm(termId),
+      `DeleteTerm`
+    )
+  }, [certData, deleteTerm, restoreCertData, historyPush])
+
+  // Calendar undo/redo: CalendarView calls this with its own before/after snapshots
+  const recordCalendarAction = useCallback((undoFn, redoFn, label = 'Calendar') => {
+    historyPush(undoFn, redoFn, label)
+  }, [historyPush])
+
+  // ── Global keyboard shortcuts ─────────────────────────────────────────────
   useEffect(() => {
     function onKey(e) {
       const tag = e.target.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
-      if (e.metaKey || e.ctrlKey || e.altKey) return
+
+      // Ctrl+Z = undo, Ctrl+Y = redo
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); undo(); return }
+        if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); redo(); return }
+        return
+      }
+
+      if (e.altKey) return
       if (e.key === 'Escape') { clearSelectedCourses(); setSearchQuery(''); return }
 
       // / key → focus global search
@@ -119,7 +229,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [certData.courses, toggleCourse, clearSelectedCourses, view])
+  }, [certData.courses, toggleCourse, clearSelectedCourses, view, undo, redo])
 
   return (
     <div className="app">
@@ -135,6 +245,10 @@ export default function App() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         currentView={view}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
 
       <ProgressBanner percent={percentComplete} targetDate={certData.targetDate} />
@@ -146,15 +260,15 @@ export default function App() {
             courses={certData.courses}
             selectedCourses={selectedCourses}
             getStatus={getStatus}
-            cycleStatus={cycleStatus}
+            cycleStatus={cycleStatusH}
             getLastUpdated={getLastUpdated}
             updateTopicResources={updateTopicResources}
-            updateTopicNotes={updateTopicNotes}
+            updateTopicNotes={updateTopicNotesH}
             getTestScore={getTestScore}
             setTestScore={setTestScore}
-            addTopic={addTopic}
-            deleteTopic={deleteTopic}
-            clearRating={clearRating}
+            addTopic={addTopicH}
+            deleteTopic={deleteTopicH}
+            clearRating={clearRatingH}
             searchQuery={searchQuery}
           />
         )}
@@ -165,13 +279,13 @@ export default function App() {
             courses={certData.courses}
             selectedCourses={selectedCourses}
             getStatus={getStatus}
-            cycleStatus={cycleStatus}
+            cycleStatus={cycleStatusH}
             getLastUpdated={getLastUpdated}
             updateTermResources={updateTermResources}
-            updateTermNotes={updateTermNotes}
-            addTerm={addTerm}
-            deleteTerm={deleteTerm}
-            clearRating={clearRating}
+            updateTermNotes={updateTermNotesH}
+            addTerm={addTermH}
+            deleteTerm={deleteTermH}
+            clearRating={clearRatingH}
             searchQuery={searchQuery}
           />
         )}
@@ -182,11 +296,11 @@ export default function App() {
             selectedCourses={selectedCourses}
             getStatus={getStatus}
             getSm2Card={getSm2Card}
-            rateCard={rateCard}
-            clearRating={clearRating}
+            rateCard={rateCardH}
+            clearRating={clearRatingH}
             getLastUpdated={getLastUpdated}
             updateTopicResources={updateTopicResources}
-            updateTopicNotes={updateTopicNotes}
+            updateTopicNotes={updateTopicNotesH}
             searchQuery={searchQuery}
           />
         )}
@@ -201,14 +315,18 @@ export default function App() {
             workStart={workStart}
             workEnd={workEnd}
             defaultTopicMins={defaultTopicMins}
-            rateCard={rateCard}
-            clearRating={clearRating}
+            defaultBreakMins={defaultBreakMins}
+            rateCard={rateCardH}
+            clearRating={clearRatingH}
             maxSessionsPerDay={maxSessionsPerDay}
             addCourse={addCourse}
             addTopic={addTopic}
-            updateTopicNotes={updateTopicNotes}
+            updateTopicNotes={updateTopicNotesH}
             updateTopicResources={updateTopicResources}
             searchQuery={searchQuery}
+            recordAction={recordCalendarAction}
+            calendar={calendar}
+            restoreCalendar={restoreCalendar}
           />
         )}
 
@@ -237,10 +355,12 @@ export default function App() {
             workEnd={workEnd}
             defaultTopicMins={defaultTopicMins}
             maxSessionsPerDay={maxSessionsPerDay}
+            defaultBreakMins={defaultBreakMins}
             setWorkStart={setWorkStart}
             setWorkEnd={setWorkEnd}
             setDefaultTopicMins={setDefaultTopicMins}
             setMaxSessionsPerDay={setMaxSessionsPerDay}
+            setDefaultBreakMins={setDefaultBreakMins}
             allTopics={allTopics}
             calendar={calendar}
             exportCalendarCSV={exportCalendarCSV}

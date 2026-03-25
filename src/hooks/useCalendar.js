@@ -43,12 +43,14 @@ export function useCalendar() {
     const key = date instanceof Date ? date.toISOString().split('T')[0] : date
     setCalendar((prev) => {
       const day = prev[key] || { studyHours: null, slots: [] }
-      const id = `slot-${Date.now()}-${Math.random()}`
+      // Preserve provided id for undo/redo; otherwise generate a new one
+      const id = slot.id ?? `slot-${Date.now()}-${Math.random()}`
+      const slotData = slot.id ? slot : { id, ...slot }
       return {
         ...prev,
         [key]: {
           ...day,
-          slots: [...day.slots, { id, ...slot }],
+          slots: [...day.slots, slotData],
         },
       }
     })
@@ -149,7 +151,7 @@ export function useCalendar() {
     setCalendar((prev) => ({ ...prev, ...newData }))
   }, [setCalendar])
 
-  const autoFill = useCallback((dateKey, topics, defaultMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessions) => {
+  const autoFill = useCallback((dateKey, topics, defaultMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessions, breakMins = 0) => {
     const key = typeof dateKey === 'string' ? dateKey : dateKey.toISOString().split('T')[0]
     const [wh, wm] = workStart.split(':').map(Number)
     const workStartMins = wh * 60 + wm
@@ -199,7 +201,7 @@ export function useCalendar() {
             startTime: `${String(Math.floor(absMins / 60)).padStart(2, '0')}:${String(absMins % 60).padStart(2, '0')}`,
             durationMins: topicMins,
           })
-          elapsed += topicMins
+          elapsed += topicMins + (breakMins || 0)
           addedThisRound = true
         }
       }
@@ -212,6 +214,9 @@ export function useCalendar() {
       [key]: { ...prev[key], studyHours, slots: newSlots },
     }))
   }, [calendar, setCalendar])
+
+  // ── Restore (for undo/redo) ───────────────────────────────────────────────
+  const restoreCalendar = useCallback((data) => { setCalendar(data) }, [setCalendar])
 
   // Set slots for multiple days in a single state update (used by week/month scheduling)
   const batchSetSlots = useCallback((updates) => {
@@ -268,5 +273,6 @@ export function useCalendar() {
     autoFill,
     batchSetSlots,
     exportCSV,
+    restoreCalendar,
   }
 }

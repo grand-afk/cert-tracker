@@ -12,6 +12,10 @@ export default function TopBar({
   searchQuery,
   setSearchQuery,
   currentView,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef(null)
@@ -73,6 +77,26 @@ export default function TopBar({
               🔍
             </button>
           )}
+          <button
+            className="topbar-icon-btn"
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="Undo  [Ctrl+Z]"
+            aria-label="Undo"
+            style={{ opacity: canUndo ? 1 : 0.35, fontSize: 16 }}
+          >
+            ↩
+          </button>
+          <button
+            className="topbar-icon-btn"
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="Redo  [Ctrl+Y]"
+            aria-label="Redo"
+            style={{ opacity: canRedo ? 1 : 0.35, fontSize: 16 }}
+          >
+            ↪
+          </button>
           <button
             className="topbar-icon-btn"
             onClick={toggleDarkMode}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import ResourceTooltip from './ResourceTooltip'
 import EditResourceModal from './EditResourceModal'
 import AddTopicModal from './AddTopicModal'
@@ -48,22 +48,35 @@ function TestScoreCell({ id, getTestScore, setTestScore }) {
   }
 
   return info ? (
-    <button className="test-score-badge" onClick={openEdit} title="Click to edit score">
+    // Score and date shown inline side-by-side
+    <button className="test-score-badge" onClick={openEdit} title="Click to edit score"
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <span className="test-score-pct">{info.score}%</span>
-      {info.date && <span className="test-score-date">{info.date}</span>}
+      {info.date && <span className="test-score-date" style={{ whiteSpace: 'nowrap' }}>{info.date}</span>}
     </button>
   ) : (
     <button className="test-score-empty" onClick={openEdit} title="Add test score">＋</button>
   )
 }
 
-function NotesRow({ id, notes, onSave, colSpan }) {
+function NotesRow({ id, notes, onSave, colSpan, onClose }) {
   const [val, setVal] = useState(notes ?? '')
   const dirty = val !== (notes ?? '')
+  const wrapRef = useRef(null)
+
+  // Close on Escape
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
     <tr className="notes-expand-row">
       <td colSpan={colSpan}>
-        <div className="notes-expand-wrap">
+        <div className="notes-expand-wrap" ref={wrapRef}>
           <textarea
             className="notes-textarea"
             placeholder="Add study notes…"
@@ -71,6 +84,7 @@ function NotesRow({ id, notes, onSave, colSpan }) {
             onChange={(e) => setVal(e.target.value)}
             onBlur={() => { if (dirty) onSave(val) }}
             rows={3}
+            autoFocus
           />
           {dirty && (
             <button className="btn btn-primary btn-sm notes-save-btn" onClick={() => onSave(val)}>
@@ -97,7 +111,9 @@ export default function TopicsView({
   const [sort, setSort]         = useState({ key: null, dir: 'asc' })
   const [editTarget, setEditTarget] = useState(null)
   const [showAdd, setShowAdd]   = useState(false)
-  const [expandedId, setExpandedId] = useState(null)
+  const [expandedId, setExpandedId] = useState(null)   // double-click expands notes
+  const [selectedId, setSelectedId] = useState(null)   // single-click selects row
+  const tableRef = useRef(null)
 
   const filtered = useMemo(() => {
     let result = topics
@@ -142,6 +158,17 @@ export default function TopicsView({
     setSort((prev) => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' })
   }
 
+  // Close notes when clicking outside table
+  useEffect(() => {
+    function onMouseDown(e) {
+      if (expandedId && tableRef.current && !tableRef.current.contains(e.target)) {
+        setExpandedId(null)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [expandedId])
+
   // N shortcut
   useEffect(() => {
     function onAdd() { setShowAdd(true) }
@@ -171,7 +198,8 @@ export default function TopicsView({
             {completeCount}/{filtered.length} complete
             {inProgressCount > 0 && ` · ${inProgressCount} in progress`}
           </span>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>＋ Add Topic</button>
+          {/* btn-secondary: not highlighted, consistent with other neutral actions */}
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowAdd(true)}>＋ Add Topic</button>
         </div>
       </div>
 
@@ -184,13 +212,13 @@ export default function TopicsView({
       ) : (
         <>
           <div className="study-table-wrapper">
-            <table className="study-table">
+            <table className="study-table" ref={tableRef}>
               <thead>
                 <tr>
                   <SortTh colKey="course"  className="study-cell--course">Course</SortTh>
                   <SortTh colKey="topic"   className="study-cell--topic">Topic</SortTh>
                   <SortTh colKey="status"  className="study-cell--status">Status</SortTh>
-                  <SortTh colKey="score"   style={{ width: 100 }}>Score</SortTh>
+                  <SortTh colKey="score"   style={{ width: 160 }}>Score</SortTh>
                   <th className="study-cell--resources">Resources</th>
                   <SortTh colKey="updated" className="study-cell--updated">Updated</SortTh>
                   <th style={{ width: 36 }}></th>
@@ -202,14 +230,22 @@ export default function TopicsView({
                   const cfg     = STATUS_CONFIG[status]
                   const lastUpd = getLastUpdated(topic.id)
                   const isExpanded = expandedId === topic.id
+                  const isSelected = selectedId === topic.id
                   return [
                     <tr
                       key={topic.id}
-                      className={`study-row study-row--expandable ${isExpanded ? 'study-row--expanded' : ''}`}
+                      className={`study-row study-row--expandable ${isExpanded ? 'study-row--expanded' : ''} ${isSelected ? 'study-row--selected' : ''}`}
                       onClick={(e) => {
-                        // Don't expand if clicking an interactive element
+                        // Don't select if clicking an interactive element
                         if (e.target.closest('button,input,select,a,textarea')) return
+                        // Single click = select row
+                        setSelectedId(isSelected ? null : topic.id)
+                      }}
+                      onDoubleClick={(e) => {
+                        if (e.target.closest('button,input,select,a,textarea')) return
+                        // Double click = toggle notes expansion
                         setExpandedId(isExpanded ? null : topic.id)
+                        setSelectedId(topic.id)
                       }}
                     >
                       <td className="study-cell study-cell--course">
@@ -231,7 +267,7 @@ export default function TopicsView({
                           {cfg.label}
                         </button>
                       </td>
-                      <td className="study-cell" style={{ width: 100 }}>
+                      <td className="study-cell" style={{ width: 160 }}>
                         <TestScoreCell id={topic.id} getTestScore={getTestScore} setTestScore={setTestScore} />
                       </td>
                       <td className="study-cell study-cell--resources">
@@ -261,6 +297,7 @@ export default function TopicsView({
                         notes={topic.notes}
                         onSave={(n) => updateTopicNotes(topic.id, n)}
                         colSpan={7}
+                        onClose={() => setExpandedId(null)}
                       />
                     ),
                   ]
