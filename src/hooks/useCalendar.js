@@ -200,6 +200,18 @@ export function useCalendar() {
     }))
   }, [calendar, setCalendar])
 
+  // Set slots for multiple days in a single state update (used by week/month scheduling)
+  const batchSetSlots = useCallback((updates) => {
+    // updates: { [dateKey]: { studyHours, slots } }
+    setCalendar((prev) => {
+      const next = { ...prev }
+      Object.entries(updates).forEach(([dk, data]) => {
+        next[dk] = { ...(prev[dk] || {}), ...data }
+      })
+      return next
+    })
+  }, [setCalendar])
+
   const exportCSV = useCallback((allTopics, certData) => {
     const rows = [['Date', 'StartTime', 'DurationMins', 'TopicId', 'TopicName', 'CourseName'].join(',')]
 
@@ -241,6 +253,7 @@ export function useCalendar() {
     updateSlotDuration,
     importCSV,
     autoFill,
+    batchSetSlots,
     exportCSV,
   }
 }
