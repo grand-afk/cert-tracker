@@ -99,7 +99,7 @@ function parseCSV(text) {
 export default function SettingsView({
   certData, progress,
   darkMode, toggleDarkMode,
-  setTargetDate,
+  setCertName, setTargetDate,
   exportData, importData,
   exportProgress, importProgress,
   clearAllProgress, resetToSample,
@@ -227,7 +227,7 @@ export default function SettingsView({
   }
 
   function handleExportCalendarCSV() {
-    const csv = exportCalendarCSV(allTopics, certData)
+    const csv = exportCalendarCSV(allTopics, certData, progress)
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = Object.assign(document.createElement('a'), { href: url, download: `calendar-${Date.now()}.csv` })
@@ -283,7 +283,10 @@ export default function SettingsView({
       <div className="settings-section">
         <div className="settings-section-title">Certification</div>
         <div className="settings-row">
-          <div><div className="settings-label">Cert Name</div><div className="settings-hint">{certData.certName}</div></div>
+          <div><div className="settings-label">Cert Name</div></div>
+          <input className="settings-input" type="text" value={certData.certName}
+                 onChange={(e) => setCertName(e.target.value)}
+                 style={{ minWidth: 260, flex: 1 }} />
         </div>
         <div className="settings-row">
           <div>
@@ -394,8 +397,10 @@ export default function SettingsView({
             <div className="settings-hint">Minutes of break added between auto-scheduled topics (0 = no break)</div>
           </div>
           <input className="settings-input" type="number" min={0} max={60} step={15}
-                 value={defaultBreakMins ?? 0}
-                 onChange={(e) => setDefaultBreakMins(Math.round(Math.max(0, parseInt(e.target.value) || 0) / 15) * 15)}
+                 defaultValue={defaultBreakMins ?? 0}
+                 key={defaultBreakMins}
+                 onBlur={(e) => setDefaultBreakMins(Math.round(Math.max(0, parseInt(e.target.value) || 0) / 15) * 15)}
+                 onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
                  style={{ width: 80 }} />
         </div>
       </div>

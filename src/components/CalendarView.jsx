@@ -36,6 +36,13 @@ function EditSlotModal({ slot, topic, card, onSave, onRemove, onClose,
     ['testLink',      '📝 Practice Test URL'],
   ]
 
+  // Close on Escape
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth: 480 }}>

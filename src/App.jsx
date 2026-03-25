@@ -338,6 +338,7 @@ export default function App() {
             progress={progress}
             darkMode={darkMode}
             toggleDarkMode={toggleDarkMode}
+            setCertName={setCertName}
             setTargetDate={setTargetDate}
             exportData={exportData}
             importData={importData}

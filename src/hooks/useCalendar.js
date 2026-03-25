@@ -230,27 +230,57 @@ export function useCalendar() {
     })
   }, [setCalendar])
 
-  const exportCSV = useCallback((allTopics, certData) => {
-    const rows = [['Date', 'StartTime', 'DurationMins', 'TopicId', 'TopicName', 'CourseName'].join(',')]
+  const exportCSV = useCallback((allTopics, certData, progress) => {
+    const headers = [
+      'Date', 'StartTime', 'DurationMins',
+      'TopicId', 'TopicName', 'CourseName',
+      'Rating', 'Notes',
+      'CourseContentUrl', 'VideoUrl', 'AnkiUrl', 'TestUrl',
+    ]
+    const rows = [headers.join(',')]
 
-    const getCourseNameByTopicId = (topicId) => {
+    const QUALITY_LABELS = { 0: 'Again', 3: 'Hard', 4: 'Good', 5: 'Easy' }
+
+    const getTopicInfo = (topicId) => {
+      if (allTopics) {
+        const t = allTopics.find((t) => t.id === topicId)
+        if (t) return {
+          name: t.name, courseName: t.courseName,
+          notes: t.notes ?? '',
+          resources: t.resources || {},
+        }
+      }
       for (const course of certData.courses) {
         const topic = course.topics.find((t) => t.id === topicId)
-        if (topic) return { name: topic.name, courseName: course.name }
+        if (topic) return {
+          name: topic.name, courseName: course.name,
+          notes: topic.notes ?? '',
+          resources: topic.resources || {},
+        }
       }
-      return { name: '', courseName: '' }
+      return { name: '', courseName: '', notes: '', resources: {} }
     }
+
+    const q = (s) => `"${String(s ?? '').replace(/"/g, '""')}"`
 
     for (const [dateKey, day] of Object.entries(calendar)) {
       for (const slot of day.slots || []) {
-        const { name, courseName } = getCourseNameByTopicId(slot.topicId)
+        const { name, courseName, notes, resources } = getTopicInfo(slot.topicId)
+        const sm2 = progress?.[slot.topicId]?.sm2
+        const rating = sm2?.lastQuality != null ? (QUALITY_LABELS[sm2.lastQuality] ?? sm2.lastQuality) : ''
         const row = [
           dateKey,
           slot.startTime,
           slot.durationMins,
           slot.topicId,
-          `"${name.replace(/"/g, '""')}"`,
-          `"${courseName.replace(/"/g, '""')}"`,
+          q(name),
+          q(courseName),
+          q(rating),
+          q(notes),
+          q(resources.courseContent),
+          q(resources.video),
+          q(resources.anki),
+          q(resources.testLink),
         ]
         rows.push(row.join(','))
       }
