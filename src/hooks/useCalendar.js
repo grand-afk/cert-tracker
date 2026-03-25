@@ -70,9 +70,20 @@ export function useCalendar() {
     const toKey = toDate instanceof Date ? toDate.toISOString().split('T')[0] : toDate
     setCalendar((prev) => {
       const fromDay = prev[fromKey] || { studyHours: null, slots: [] }
-      const toDay = prev[toKey] || { studyHours: null, slots: [] }
       const slot = fromDay.slots.find((s) => s.id === slotId)
       if (!slot) return prev
+      const updatedSlot = { ...slot, startTime: newStartTime }
+      // Same-day drag: just update the start time in place (don't duplicate)
+      if (fromKey === toKey) {
+        return {
+          ...prev,
+          [fromKey]: {
+            ...fromDay,
+            slots: fromDay.slots.map((s) => s.id === slotId ? updatedSlot : s),
+          },
+        }
+      }
+      const toDay = prev[toKey] || { studyHours: null, slots: [] }
       return {
         ...prev,
         [fromKey]: {
@@ -81,7 +92,7 @@ export function useCalendar() {
         },
         [toKey]: {
           ...toDay,
-          slots: [...toDay.slots, { ...slot, startTime: newStartTime }],
+          slots: [...toDay.slots, updatedSlot],
         },
       }
     })
@@ -138,14 +149,16 @@ export function useCalendar() {
     setCalendar((prev) => ({ ...prev, ...newData }))
   }, [setCalendar])
 
-  const autoFill = useCallback((dateKey, topics, defaultMins, getTopicMins, getSm2Card, workStart, maxSessions) => {
+  const autoFill = useCallback((dateKey, topics, defaultMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessions) => {
     const key = typeof dateKey === 'string' ? dateKey : dateKey.toISOString().split('T')[0]
     const [wh, wm] = workStart.split(':').map(Number)
     const workStartMins = wh * 60 + wm
+    const [eh, em] = (workEnd || '17:00').split(':').map(Number)
+    const workEndMins = eh * 60 + em
+    const totalMins = workEndMins - workStartMins  // use full work window
 
     const day = calendar[key] || { studyHours: null, slots: [] }
     const studyHours = day.studyHours ?? 2
-    const totalMins = studyHours * 60
     const max = maxSessions ?? 10
 
     // Group topics by courseId, each group sorted most-overdue first

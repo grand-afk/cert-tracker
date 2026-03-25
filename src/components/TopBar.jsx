@@ -11,6 +11,7 @@ export default function TopBar({
   onEditCertName,
   searchQuery,
   setSearchQuery,
+  currentView,
 }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef(null)
@@ -62,14 +63,16 @@ export default function TopBar({
         )}
 
         <div className="topbar-icons">
-          <button
-            className={`topbar-icon-btn ${searchOpen ? 'topbar-icon-btn--active' : ''}`}
-            onClick={toggleSearch}
-            title="Search  [/]"
-            aria-label="Toggle search"
-          >
-            🔍
-          </button>
+          {currentView !== 'settings' && (
+            <button
+              className={`topbar-icon-btn ${searchOpen ? 'topbar-icon-btn--active' : ''}`}
+              onClick={toggleSearch}
+              title="Search  [/]"
+              aria-label="Toggle search"
+            >
+              🔍
+            </button>
+          )}
           <button
             className="topbar-icon-btn"
             onClick={toggleDarkMode}

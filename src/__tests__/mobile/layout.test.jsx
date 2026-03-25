@@ -106,6 +106,7 @@ describe('TopBar — mobile viewport', () => {
     onEditCertName: noop,
     searchQuery: '',
     setSearchQuery: noop,
+    currentView: 'topics',
   }
 
   it('renders cert name at 375px', () => {

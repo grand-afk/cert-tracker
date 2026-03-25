@@ -9,19 +9,36 @@ function minutesToTime(m) { return `${String(Math.floor(m/60)).padStart(2,'0')}:
 function snap15(m) { return Math.round(m / 15) * 15 }
 
 // ─── Edit Slot Modal ──────────────────────────────────────────────────────────
-function EditSlotModal({ slot, topic, onSave, onRemove, onClose, updateTopicNotes }) {
+function EditSlotModal({ slot, topic, card, onSave, onRemove, onClose,
+                         updateTopicNotes, onRate, onClearRating, onSaveResources }) {
   const [startTime, setStartTime]   = useState(slot.startTime)
   const [duration, setDuration]     = useState(slot.durationMins)
   const [notes, setNotes]           = useState(topic?.notes ?? '')
+  const [resources, setResources]   = useState({
+    courseContent: topic?.resources?.courseContent ?? '',
+    video:         topic?.resources?.video         ?? '',
+    anki:          topic?.resources?.anki          ?? '',
+    testLink:      topic?.resources?.testLink      ?? '',
+  })
+  const [localQuality, setLocalQuality] = useState(card?.lastQuality ?? null)
 
   function save() {
     onSave({ startTime, durationMins: duration })
     if (notes !== (topic?.notes ?? '')) updateTopicNotes?.(topic?.id, notes)
+    onSaveResources?.(topic?.id, resources)
     onClose()
   }
+
+  const RESOURCE_FIELDS = [
+    ['courseContent', '📚 Course Content URL'],
+    ['video',         '🎬 Video URL'],
+    ['anki',          '🃏 Anki Deck URL'],
+    ['testLink',      '📝 Practice Test URL'],
+  ]
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+      <div className="modal" style={{ maxWidth: 480 }}>
         <div className="modal-title">Edit Session</div>
         {topic && (
           <div className="edit-slot-topic">
@@ -30,21 +47,57 @@ function EditSlotModal({ slot, topic, onSave, onRemove, onClose, updateTopicNote
             <span className="text-muted" style={{ marginLeft: 8, fontSize: 12 }}>{topic.courseName}</span>
           </div>
         )}
-        <div className="form-group">
-          <label className="form-label">Start Time</label>
-          <input type="time" className="form-input" value={startTime} step={900}
-                 onChange={(e) => setStartTime(e.target.value)} />
+
+        {/* Time & Duration */}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">Start Time</label>
+            <input type="time" className="form-input" value={startTime} step={900}
+                   onChange={(e) => setStartTime(e.target.value)} />
+          </div>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">Duration (mins)</label>
+            <input type="number" className="form-input" value={duration} min={15} step={15}
+                   onChange={(e) => setDuration(Math.max(15, Math.round(Number(e.target.value)/15)*15))} />
+          </div>
         </div>
+
+        {/* Rating */}
         <div className="form-group">
-          <label className="form-label">Duration (minutes)</label>
-          <input type="number" className="form-input" value={duration} min={15} step={15}
-                 onChange={(e) => setDuration(Math.max(15, Math.round(Number(e.target.value)/15)*15))} />
+          <label className="form-label">Rating</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <RateButtons
+              onRate={(q) => { onRate?.(slot.topicId, q); setLocalQuality(q) }}
+              card={card}
+              lastQuality={localQuality}
+            />
+            {card && (
+              <button className="clear-rating-btn"
+                      onClick={() => { onClearRating?.(slot.topicId); setLocalQuality(null) }}>
+                ✕ rating
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Notes */}
         <div className="form-group">
           <label className="form-label">Notes</label>
           <textarea className="form-input notes-textarea" rows={3} placeholder="Add study notes…"
                     value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
+
+        {/* Resources */}
+        <div className="form-group">
+          <label className="form-label">Resources</label>
+          {RESOURCE_FIELDS.map(([key, placeholder]) => (
+            <input key={key} className="form-input" style={{ marginBottom: 4 }}
+                   placeholder={placeholder}
+                   value={resources[key]}
+                   onChange={(e) => setResources((r) => ({ ...r, [key]: e.target.value }))} />
+          ))}
+        </div>
+
         <div className="modal-footer">
           <button className="btn btn-danger btn-sm" onClick={() => { onRemove(); onClose() }}>Remove</button>
           <div style={{ flex: 1 }} />
@@ -235,7 +288,7 @@ export default function CalendarView({
   rateCard, clearRating,
   maxSessionsPerDay,
   addCourse, addTopic,
-  updateTopicNotes,
+  updateTopicNotes, updateTopicResources,
   searchQuery,
 }) {
   const {
@@ -284,14 +337,22 @@ export default function CalendarView({
 
   useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Delete' && focusedSlot) {
+      const tag = e.target.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (!focusedSlot) return
+      if (e.key === 'Delete') {
         removeSlot(focusedSlot.dateKey, focusedSlot.slotId)
         setFocusedSlot(null)
+      } else if (e.key === 'Enter') {
+        // Open edit modal for focused slot
+        const day = getDay(focusedSlot.dateKey)
+        const slot = (day.slots || []).find((s) => s.id === focusedSlot.slotId)
+        if (slot) setEditingSlot({ dateKey: focusedSlot.dateKey, slot })
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [focusedSlot, removeSlot])
+  }, [focusedSlot, removeSlot, getDay])
 
   // ─── Resize via mouse ────────────────────────────────────────────────────
   useEffect(() => {
@@ -352,12 +413,16 @@ export default function CalendarView({
     const days = getDaysInScope(scope)
 
     if (scope === 'day') {
-      // Single day: standard per-day autoFill
-      autoFill(days[0], allTopics, defaultTopicMins, getTopicMins, getSm2Card, workStart, maxSessionsPerDay)
+      // Single day: standard per-day autoFill (top-ups existing)
+      autoFill(days[0], allTopics, defaultTopicMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessionsPerDay)
       return
     }
 
-    // Week / Month: distribute DIFFERENT topics across days (round-robin, cycling through courses)
+    // Week / Month: distribute DIFFERENT topics across days, topping up existing slots
+    const workStartMins = timeToMinutes(workStart)
+    const workEndMins   = timeToMinutes(workEnd)
+
+    // Group all topics by course, sort each group most-overdue first
     const byCourse = {}
     allTopics.forEach((t) => {
       if (!byCourse[t.courseId]) byCourse[t.courseId] = []
@@ -367,44 +432,57 @@ export default function CalendarView({
     courseIds.forEach((cid) =>
       byCourse[cid].sort((a, b) => daysUntilDue(getSm2Card(a.id)) - daysUntilDue(getSm2Card(b.id)))
     )
+
     // Global pointers per course — advance across days so every day gets different topics
     const pointers = {}
     courseIds.forEach((cid) => { pointers[cid] = 0 })
 
-    const workStartMins = timeToMinutes(workStart)
     const updates = {}
 
     days.forEach((dateKey) => {
-      const day        = getDay(dateKey)
-      const studyHours = day.studyHours ?? 2
-      const totalMins  = studyHours * 60
-      const max        = maxSessionsPerDay ?? 10
-      const newSlots   = []
-      let elapsed = 0
-      let didAdd  = true
+      const day          = getDay(dateKey)
+      const existingSlots = day.slots || []
+      const max          = maxSessionsPerDay ?? 10
+      const remaining    = Math.max(0, max - existingSlots.length)
 
-      while (didAdd && newSlots.length < max && elapsed < totalMins) {
+      if (remaining === 0) return  // day already at or over max — skip
+
+      // Find where to start appending new slots (after last existing slot)
+      let currentMins = workStartMins
+      if (existingSlots.length > 0) {
+        currentMins = existingSlots.reduce((maxEnd, s) => {
+          const end = timeToMinutes(s.startTime) + s.durationMins
+          return end > maxEnd ? end : maxEnd
+        }, workStartMins)
+      }
+
+      const newSlots = []
+      let didAdd = true
+
+      while (didAdd && newSlots.length < remaining) {
         didAdd = false
         for (const cid of courseIds) {
-          if (newSlots.length >= max || elapsed >= totalMins) break
-          const group   = byCourse[cid]
-          const ptr     = pointers[cid] % group.length  // wraps so long schedules cycle back
-          const topic   = group[ptr]
+          if (newSlots.length >= remaining) break
+          const group     = byCourse[cid]
+          const ptr       = pointers[cid] % group.length   // wraps for long schedules
+          const topic     = group[ptr]
           const topicMins = getTopicMins(topic.id) ?? defaultTopicMins
-          if (elapsed + topicMins <= totalMins) {
+
+          if (currentMins + topicMins <= workEndMins) {
             newSlots.push({
               id: `slot-${Date.now()}-${Math.random()}`,
-              topicId: topic.id,
-              startTime: minutesToTime(workStartMins + elapsed),
+              topicId:      topic.id,
+              startTime:    minutesToTime(currentMins),
               durationMins: topicMins,
             })
-            elapsed += topicMins
+            currentMins += topicMins
             pointers[cid]++
             didAdd = true
           }
         }
       }
-      updates[dateKey] = { studyHours, slots: newSlots }
+
+      updates[dateKey] = { studyHours: day.studyHours, slots: [...existingSlots, ...newSlots] }
     })
 
     batchSetSlots(updates)
@@ -421,7 +499,7 @@ export default function CalendarView({
       if (!info) return
       const rect    = e.currentTarget.getBoundingClientRect()
       const y       = e.clientY - rect.top
-      const newMins = Math.max(workStartMins, snap15(Math.round(workStartMins + y / pxPerMin)))
+      const newMins = snap15(Math.round(workStartMins + y / pxPerMin))
       moveSlot(info.date, info.id, targetDate, minutesToTime(newMins))
       dragRef.current = null
     }
@@ -611,7 +689,7 @@ export default function CalendarView({
               {tooltip.topic.notes.slice(0, 80)}{tooltip.topic.notes.length > 80 ? '…' : ''}
             </div>
           )}
-          <div className="cal-tooltip__hint">Click to edit</div>
+          <div className="cal-tooltip__hint">Click to edit · Tab then Enter to edit · Delete to remove</div>
         </div>
       )}
 
@@ -675,6 +753,7 @@ export default function CalendarView({
         <EditSlotModal
           slot={editingSlot.slot}
           topic={allTopics.find((t) => t.id === editingSlot.slot.topicId)}
+          card={getSm2Card(editingSlot.slot.topicId)}
           onSave={({ startTime, durationMins }) => {
             updateSlotTime(editingSlot.dateKey, editingSlot.slot.id, startTime)
             updateSlotDuration(editingSlot.dateKey, editingSlot.slot.id, durationMins)
@@ -682,6 +761,9 @@ export default function CalendarView({
           onRemove={() => removeSlot(editingSlot.dateKey, editingSlot.slot.id)}
           onClose={() => setEditingSlot(null)}
           updateTopicNotes={updateTopicNotes}
+          onRate={rateCard}
+          onClearRating={clearRating}
+          onSaveResources={updateTopicResources}
         />
       )}
     </div>

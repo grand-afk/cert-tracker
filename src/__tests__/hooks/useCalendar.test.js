@@ -80,9 +80,38 @@ describe('useCalendar', () => {
     const getSm2Card = () => null
     const getTopicMins = () => null
     act(() => {
-      result.current.autoFill('2026-03-24', topics, 30, getTopicMins, getSm2Card, '09:00', 3)
+      result.current.autoFill('2026-03-24', topics, 30, getTopicMins, getSm2Card, '09:00', '17:00', 3)
     })
     const day = result.current.getDay('2026-03-24')
     expect(day.slots.length).toBeLessThanOrEqual(3)
+  })
+
+  it('autoFill fills up to maxSessions within work window', () => {
+    const { result } = renderHook(() => useCalendar())
+    const topics = [
+      { id: 't1', courseId: 'c1' }, { id: 't2', courseId: 'c1' },
+      { id: 't3', courseId: 'c1' }, { id: 't4', courseId: 'c1' },
+      { id: 't5', courseId: 'c1' },
+    ]
+    const getSm2Card = () => null
+    const getTopicMins = () => null
+    act(() => {
+      // 09:00–17:00 = 480 mins, 30-min slots → up to 16; max=5 → expect 5
+      result.current.autoFill('2026-03-24', topics, 30, getTopicMins, getSm2Card, '09:00', '17:00', 5)
+    })
+    const day = result.current.getDay('2026-03-24')
+    expect(day.slots.length).toBe(5)
+  })
+
+  it('moveSlot within same day updates start time without duplicating', () => {
+    const { result } = renderHook(() => useCalendar())
+    act(() => {
+      result.current.addSlot('2026-03-24', { topicId: 't1', startTime: '09:00', durationMins: 30 })
+    })
+    const slotId = result.current.getDay('2026-03-24').slots[0].id
+    act(() => { result.current.moveSlot('2026-03-24', slotId, '2026-03-24', '10:00') })
+    const slots = result.current.getDay('2026-03-24').slots
+    expect(slots).toHaveLength(1)           // no duplicate
+    expect(slots[0].startTime).toBe('10:00') // time updated
   })
 })

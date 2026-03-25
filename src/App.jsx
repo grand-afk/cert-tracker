@@ -134,6 +134,7 @@ export default function App() {
         onEditCertName={() => setRenamingCert(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        currentView={view}
       />
 
       <ProgressBanner percent={percentComplete} targetDate={certData.targetDate} />
@@ -206,6 +207,7 @@ export default function App() {
             addCourse={addCourse}
             addTopic={addTopic}
             updateTopicNotes={updateTopicNotes}
+            updateTopicResources={updateTopicResources}
             searchQuery={searchQuery}
           />
         )}

@@ -19,6 +19,7 @@ const defaultProps = {
   onEditCertName: vi.fn(),
   searchQuery: '',
   setSearchQuery: vi.fn(),
+  currentView: 'topics',
 }
 
 describe('TopBar', () => {
@@ -115,6 +116,16 @@ describe('TopBar', () => {
     expect(screen.getByRole('button', { name: /GKE/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^IAM/ })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Networking/ })).toBeInTheDocument()
+  })
+
+  it('hides search icon when currentView is settings', () => {
+    render(<TopBar {...defaultProps} currentView="settings" />)
+    expect(document.querySelector('[aria-label="Toggle search"]')).not.toBeInTheDocument()
+  })
+
+  it('shows search icon when currentView is not settings', () => {
+    render(<TopBar {...defaultProps} currentView="topics" />)
+    expect(document.querySelector('[aria-label="Toggle search"]')).toBeInTheDocument()
   })
 
   it('renders chip-key badge when course has a key', () => {
