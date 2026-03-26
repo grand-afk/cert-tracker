@@ -897,13 +897,13 @@ export default function CalendarView({
       <div className="cal-header">
         <div className="cal-nav">
           <button className="cal-nav-btn" onClick={handlePrev} title="Previous  [←]">
-            ← Prev <span className="chip-key">←</span>
+            Prev <span className="chip-key">←</span>
           </button>
           <button className="cal-nav-btn" onClick={() => setCurrentDate(new Date())} title="Go to today  [T]">
             Today <span className="chip-key">T</span>
           </button>
           <button className="cal-nav-btn" onClick={handleNext} title="Next  [→]">
-            Next → <span className="chip-key">→</span>
+            Next <span className="chip-key">→</span>
           </button>
         </div>
 
