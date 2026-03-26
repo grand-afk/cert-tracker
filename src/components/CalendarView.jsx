@@ -809,9 +809,13 @@ export default function CalendarView({
       {/* Header */}
       <div className="cal-header">
         <div className="cal-nav">
-          <button className="cal-nav-btn" onClick={handlePrev} title="Previous  [←]">← Prev</button>
+          <button className="cal-nav-btn" onClick={handlePrev} title="Previous  [←]">
+            ← Prev <span className="chip-key">←</span>
+          </button>
           <button className="cal-nav-btn" onClick={() => setCurrentDate(new Date())}>Today</button>
-          <button className="cal-nav-btn" onClick={handleNext} title="Next  [→]">Next →</button>
+          <button className="cal-nav-btn" onClick={handleNext} title="Next  [→]">
+            Next → <span className="chip-key">→</span>
+          </button>
         </div>
 
         <div className="cal-date-label">
@@ -829,7 +833,7 @@ export default function CalendarView({
                     className={`cal-view-btn${viewMode === m ? ' cal-view-btn--active' : ''}`}
                     onClick={() => setViewMode(m)}
                     title={`${m[0].toUpperCase() + m.slice(1)} view  [${m[0].toUpperCase()}]`}>
-              {m[0].toUpperCase()}
+              {m[0].toUpperCase()} <span className="chip-key">{m[0].toUpperCase()}</span>
             </button>
           ))}
         </div>
@@ -837,10 +841,14 @@ export default function CalendarView({
         <div className="cal-actions">
           <button className="cal-action-btn cal-action-btn--schedule"
                   onClick={() => handleSchedule(viewMode)}
-                  title="Schedule current view  [S]">▶ Schedule {scopeLabel}</button>
+                  title="Schedule current view  [S]">
+            ▶ Schedule {scopeLabel} <span className="chip-key">S</span>
+          </button>
           <button className="cal-action-btn cal-action-btn--clear"
                   onClick={() => handleClear(viewMode)}
-                  title="Clear current view  [X]">✕ Clear {scopeLabel}</button>
+                  title="Clear current view  [X]">
+            ✕ Clear {scopeLabel} <span className="chip-key">X</span>
+          </button>
         </div>
       </div>
 
