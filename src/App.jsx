@@ -218,8 +218,8 @@ export default function App() {
           window.dispatchEvent(new CustomEvent('calendar-key', { detail: e.key.toLowerCase() }))
           return
         }
-        // S and X are reserved for Schedule / Clear on this view
-        if (/^[sSxX]$/.test(e.key)) return
+        // S, X, T are reserved for Schedule / Clear / Today on this view
+        if (/^[sSxXtT]$/.test(e.key)) return
       }
 
       // Bottom nav: 1-6

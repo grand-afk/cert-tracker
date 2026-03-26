@@ -367,6 +367,8 @@ export default function CalendarView({
       // S = schedule current view, X = clear current view
       if (e.key === 's' || e.key === 'S') { e.preventDefault(); handleSchedule(viewMode); return }
       if (e.key === 'x' || e.key === 'X') { e.preventDefault(); handleClear(viewMode); return }
+      // T = go to today
+      if (e.key === 't' || e.key === 'T') { e.preventDefault(); setCurrentDate(new Date()); return }
       // Arrow left/right = Prev/Next
       if (e.key === 'ArrowLeft') { e.preventDefault(); handlePrev(); return }
       if (e.key === 'ArrowRight') { e.preventDefault(); handleNext(); return }
@@ -812,7 +814,9 @@ export default function CalendarView({
           <button className="cal-nav-btn" onClick={handlePrev} title="Previous  [←]">
             ← Prev <span className="chip-key">←</span>
           </button>
-          <button className="cal-nav-btn" onClick={() => setCurrentDate(new Date())}>Today</button>
+          <button className="cal-nav-btn" onClick={() => setCurrentDate(new Date())} title="Go to today  [T]">
+            Today <span className="chip-key">T</span>
+          </button>
           <button className="cal-nav-btn" onClick={handleNext} title="Next  [→]">
             Next → <span className="chip-key">→</span>
           </button>
@@ -833,7 +837,7 @@ export default function CalendarView({
                     className={`cal-view-btn${viewMode === m ? ' cal-view-btn--active' : ''}`}
                     onClick={() => setViewMode(m)}
                     title={`${m[0].toUpperCase() + m.slice(1)} view  [${m[0].toUpperCase()}]`}>
-              {m[0].toUpperCase()} <span className="chip-key">{m[0].toUpperCase()}</span>
+              {m[0].toUpperCase() + m.slice(1)} <span className="chip-key">{m[0].toUpperCase()}</span>
             </button>
           ))}
         </div>
