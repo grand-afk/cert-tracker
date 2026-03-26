@@ -40,6 +40,7 @@ const defaultProps = {
   updateTopicResources: noop,
   getTestScore: () => null,
   setTestScore: noop,
+  setTopicDueDate: noop,
   addTopic: noop,
   deleteTopic: noop,
   clearRating: noop,
@@ -256,6 +257,41 @@ describe('TopicsView', () => {
       fireEvent.click(addBtns[0])
       fireEvent.click(screen.getAllByTitle('Cancel')[0])
       expect(setTestScore).not.toHaveBeenCalled()
+    })
+  })
+
+  // ── Due date column ───────────────────────────────────────────────────────
+  describe('due date column', () => {
+    it('renders a "＋" due date button when no due date is set', () => {
+      render(<TopicsView {...defaultProps} />)
+      const addBtns = screen.getAllByTitle('Set due date')
+      expect(addBtns.length).toBeGreaterThan(0)
+    })
+
+    it('renders a due date badge when topic has a dueDate', () => {
+      const topicsWithDue = defaultProps.topics.map((t, i) =>
+        i === 0 ? { ...t, dueDate: '2099-12-31', dueTime: null } : t
+      )
+      render(<TopicsView {...defaultProps} topics={topicsWithDue} />)
+      expect(screen.getByText('2099-12-31')).toBeInTheDocument()
+    })
+
+    it('opens inline date edit when ＋ button is clicked', () => {
+      render(<TopicsView {...defaultProps} />)
+      fireEvent.click(screen.getAllByTitle('Set due date')[0])
+      expect(screen.getByTitle('Save')).toBeInTheDocument()
+    })
+
+    it('calls setTopicDueDate when due date is saved', () => {
+      const setTopicDueDate = vi.fn()
+      render(<TopicsView {...defaultProps} setTopicDueDate={setTopicDueDate} />)
+      fireEvent.click(screen.getAllByTitle('Set due date')[0])
+      const dateInput = document.querySelector('input[type="date"]')
+      fireEvent.change(dateInput, { target: { value: '2099-06-01' } })
+      fireEvent.click(screen.getByTitle('Save'))
+      expect(setTopicDueDate).toHaveBeenCalledWith(
+        defaultProps.topics[0].id, '2099-06-01', null
+      )
     })
   })
 

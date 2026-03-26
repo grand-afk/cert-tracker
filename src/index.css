@@ -135,11 +135,12 @@ body {
 }
 .progress-bar-wrap {
   flex: 1;
-  height: 5px;
+  height: 8px;
   background: var(--surface2);
   border-radius: 3px;
-  overflow: hidden;
+  overflow: visible;   /* allow tick marks to poke out */
   min-width: 60px;
+  position: relative;
 }
 .progress-bar-fill {
   height: 100%;
@@ -147,6 +148,19 @@ body {
   border-radius: 3px;
   transition: width 0.4s ease;
 }
+/* Course milestone ticks on the progress bar */
+.progress-milestone-tick {
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  cursor: default;
+  z-index: 2;
+  transition: opacity 0.2s;
+}
+.progress-milestone-tick:hover { opacity: 1 !important; transform: translateX(-50%) scaleY(1.2); }
 .progress-pct { font-weight: 700; color: var(--complete); min-width: 38px; }
 .progress-days { white-space: nowrap; }
 .progress-target { white-space: nowrap; color: var(--text-muted); }
@@ -746,6 +760,34 @@ body {
   transition: border-color 0.15s, color 0.15s;
 }
 .test-score-empty:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Topic Due Date cell ─────────────────────────────────────── */
+.due-date-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text);
+  transition: border-color 0.15s;
+}
+.due-date-badge:hover { border-color: var(--accent); }
+.due-date-badge--overdue { border-color: var(--danger, #e53935); background: rgba(229,57,53,0.08); }
+.due-date-badge--overdue .due-date-rel { color: var(--danger, #e53935); font-weight: 600; }
+.due-date-abs { font-size: 11px; }
+.due-date-time { font-size: 10px; color: var(--text-muted); margin-left: 3px; }
+.due-date-rel { font-size: 10px; color: var(--text-muted); }
+.due-date-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
 
 .test-score-edit {
   display: flex;
@@ -1441,6 +1483,65 @@ body {
 /* ── Calendar slot card – Round 2 ─────────────────────────────────── */
 .cal-slot--focused { outline: 2px solid #fff; outline-offset: -2px; }
 .cal-slot--selected { outline: 3px solid #fff; outline-offset: -3px; box-shadow: 0 0 0 4px rgba(255,255,255,0.4); z-index: 2; }
+
+/* ── Calendar milestones ─────────────────────────────────────── */
+.cal-allday-strip {
+  padding: 2px 4px 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.cal-allday-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.cal-milestone-card {
+  position: absolute;
+  left: 0; right: 0;
+  padding: 2px 5px;
+  background: var(--surface2);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.9;
+  pointer-events: none; /* read-only — don't block drag/click on sessions */
+  z-index: 3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: 18px;
+  line-height: 14px;
+}
+/* Month view milestone dots */
+.cal-month-milestone-dots {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.cal-month-milestone-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+/* Sync timestamps in settings */
+.sync-timestamp {
+  font-size: 12px;
+  color: var(--text);
+  font-family: monospace;
+  white-space: nowrap;
+}
 
 .cal-slot__header {
   display: flex;

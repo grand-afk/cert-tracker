@@ -104,4 +104,37 @@ describe('useSettings', () => {
       expect(result.current.selectedCourses).toEqual([])
     })
   })
+
+  // ── sync metadata ─────────────────────────────────────────────────────────
+  describe('sync metadata', () => {
+    it('lastSaved defaults to null', () => {
+      const { result } = renderHook(() => useSettings())
+      expect(result.current.lastSaved).toBeNull()
+    })
+
+    it('stampLastSaved sets lastSaved to an ISO string', () => {
+      const { result } = renderHook(() => useSettings())
+      act(() => { result.current.stampLastSaved() })
+      expect(typeof result.current.lastSaved).toBe('string')
+      expect(() => new Date(result.current.lastSaved)).not.toThrow()
+    })
+
+    it('stampLastExported sets lastExported', () => {
+      const { result } = renderHook(() => useSettings())
+      act(() => { result.current.stampLastExported() })
+      expect(result.current.lastExported).toBeTruthy()
+    })
+
+    it('stampLastImported sets lastImported', () => {
+      const { result } = renderHook(() => useSettings())
+      act(() => { result.current.stampLastImported() })
+      expect(result.current.lastImported).toBeTruthy()
+    })
+
+    it('setSyncFilePath stores the path', () => {
+      const { result } = renderHook(() => useSettings())
+      act(() => { result.current.setSyncFilePath('G:\\My Drive\\backup.json') })
+      expect(result.current.syncFilePath).toBe('G:\\My Drive\\backup.json')
+    })
+  })
 })

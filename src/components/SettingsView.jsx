@@ -109,6 +109,9 @@ export default function SettingsView({
   workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins,
   setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
   allTopics, calendar, exportCalendarCSV, importCalendarCSV,
+  // Sync metadata
+  lastSaved, lastExported, lastImported, syncFilePath,
+  stampLastExported, stampLastImported, setSyncFilePath,
 }) {
   const [importText, setImportText]       = useState('')
   const [importError, setImportError]     = useState('')
@@ -123,6 +126,7 @@ export default function SettingsView({
     setImportError('')
     try {
       importData(importText)
+      stampLastImported?.()
       setImportText(''); setShowImport(false)
       flash(setImportSuccess, 'Course structure imported!')
     } catch (e) { setImportError(e.message) }
@@ -143,13 +147,18 @@ export default function SettingsView({
     const url  = URL.createObjectURL(blob)
     const a    = Object.assign(document.createElement('a'), { href: url, download: `cert-progress-${Date.now()}.json` })
     a.click(); URL.revokeObjectURL(url)
+    stampLastExported?.()
   }
 
   function handleImportProgress(e) {
     const file = e.target.files[0]; if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
-      try { importProgress(JSON.parse(ev.target.result)); flash(setImportSuccess, 'Progress imported!') }
+      try {
+        importProgress(JSON.parse(ev.target.result))
+        stampLastImported?.()
+        flash(setImportSuccess, 'Progress imported!')
+      }
       catch  { flash(setImportError, 'Invalid progress file.') }
     }
     reader.readAsText(file); e.target.value = ''
@@ -244,6 +253,33 @@ export default function SettingsView({
       } catch (err) { flash(setImportError, `Calendar CSV error: ${err.message}`) }
     }
     reader.readAsText(file); e.target.value = ''
+  }
+
+  // ── Full-data export (for sync) ───────────────────────────────────────────
+  function handleFullExport() {
+    exportData()            // triggers download of certData JSON
+    stampLastExported?.()
+  }
+
+  function handleFullImportFile(e) {
+    const file = e.target.files[0]; if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        importData(ev.target.result)
+        stampLastImported?.()
+        flash(setImportSuccess, 'Full data imported from file!')
+      } catch (err) { flash(setImportError, `Import error: ${err.message}`) }
+    }
+    reader.readAsText(file); e.target.value = ''
+  }
+
+  function fmtTimestamp(iso) {
+    if (!iso) return '—'
+    return new Date(iso).toLocaleString('en-GB', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    })
   }
 
   const totalTopics = certData.courses.reduce((s, c) => s + c.topics.length, 0)
@@ -487,6 +523,63 @@ export default function SettingsView({
           ) : (
             <button className="btn btn-secondary btn-sm" onClick={() => setShowConfirmReset(true)}>Reset</button>
           )}
+        </div>
+      </div>
+
+      {/* Data Sync */}
+      <div className="settings-section">
+        <div className="settings-section-title">Data Sync</div>
+        <div className="settings-hint" style={{ padding: '0 16px 12px', color: 'var(--text-muted)', fontSize: 13 }}>
+          Use these timestamps to compare which device has the latest data. Export on the newer device, import on the older one. Set a sync file path as a reminder of where to save/load your backup.
+        </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Last Saved</div>
+            <div className="settings-hint">Most recent time any data was changed on this device</div>
+          </div>
+          <span className="sync-timestamp">{fmtTimestamp(lastSaved)}</span>
+        </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Last Exported</div>
+            <div className="settings-hint">Last time data was exported from this device</div>
+          </div>
+          <span className="sync-timestamp">{fmtTimestamp(lastExported)}</span>
+        </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Last Imported</div>
+            <div className="settings-hint">Last time data was imported on this device</div>
+          </div>
+          <span className="sync-timestamp">{fmtTimestamp(lastImported)}</span>
+        </div>
+        <div className="settings-row" style={{ alignItems: 'flex-start', gap: 8 }}>
+          <div>
+            <div className="settings-label">Sync File Path</div>
+            <div className="settings-hint">Memo: where you save your sync file (e.g. Google Drive path)</div>
+          </div>
+          <input className="settings-input" type="text"
+                 value={syncFilePath ?? ''}
+                 placeholder="e.g. G:\My Drive\cert-tracker\backup.json"
+                 onChange={(e) => setSyncFilePath?.(e.target.value)}
+                 style={{ minWidth: 280, flex: 1 }} />
+        </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Export Full Data</div>
+            <div className="settings-hint">Download cert structure as JSON for syncing to another device</div>
+          </div>
+          <button className="btn btn-secondary btn-sm" onClick={handleFullExport}>⬇ Export JSON</button>
+        </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Import Full Data</div>
+            <div className="settings-hint">Replace all data from a previously exported JSON file</div>
+          </div>
+          <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
+            📂 Import JSON
+            <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleFullImportFile} />
+          </label>
         </div>
       </div>
 

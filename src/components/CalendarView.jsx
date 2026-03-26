@@ -308,6 +308,7 @@ export default function CalendarView({
   recordAction,
   calendar: calendarProp,
   restoreCalendar,
+  topicDueDates = [],  // [{id, name, courseId, courseName, courseColor, dueDate, dueTime}]
 }) {
   const {
     calendar,
@@ -620,6 +621,52 @@ export default function CalendarView({
     }
   }
 
+  // ─── Milestone helpers ────────────────────────────────────────────────────
+  function getMilestonesForDate(dateKey) {
+    const onDay = topicDueDates.filter((t) => t.dueDate === dateKey)
+    const allDay = onDay.filter((t) => !t.dueTime)
+    const timed  = onDay.filter((t) => t.dueTime)
+
+    function summariseGroup(items) {
+      if (!items.length) return []
+      const courseIds = [...new Set(items.map((t) => t.courseId))]
+      if (courseIds.length === 1) {
+        if (items.length === 1)
+          return [{ label: `⚑ ${items[0].name}`, color: items[0].courseColor }]
+        return [{ label: `⚑ ${items[0].courseName} — ${items.length} Due`, color: items[0].courseColor }]
+      }
+      return [{ label: `⚑ Various Topics — ${items.length} Due`, color: '#9e9e9e' }]
+    }
+
+    // Group timed milestones by time, summarise each group
+    const byTime = {}
+    timed.forEach((t) => {
+      if (!byTime[t.dueTime]) byTime[t.dueTime] = []
+      byTime[t.dueTime].push(t)
+    })
+    const timedGroups = Object.entries(byTime).map(([time, items]) => {
+      const summary = summariseGroup(items)[0]
+      return { ...summary, time }
+    })
+
+    return { allDay: summariseGroup(allDay), timed: timedGroups }
+  }
+
+  // Renders all-day milestone badges for a given dateKey
+  function AllDayMilestones({ dateKey }) {
+    const { allDay } = getMilestonesForDate(dateKey)
+    if (!allDay.length) return null
+    return (
+      <div className="cal-allday-strip">
+        {allDay.map((m, i) => (
+          <span key={i} className="cal-allday-badge" style={{ background: m.color + '33', borderLeft: `3px solid ${m.color}`, color: m.color }}>
+            {m.label}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
   // ─── DayView — called as a function, NOT a component, to avoid remounts ──
   function DayView() {
     const key            = dk(currentDate)
@@ -628,6 +675,8 @@ export default function CalendarView({
     const workEndMins    = timeToMinutes(workEnd)
     const totalMins      = workEndMins - workStartMins
     const PX             = 1.5
+
+    const { timed: timedMs } = getMilestonesForDate(key)
 
     return (
       <div className="cal-day-view">
@@ -641,6 +690,7 @@ export default function CalendarView({
                     onClick={() => { setAddModalDate(currentDate); setShowAddModal(true) }}>+ Add Topic</button>
           </div>
         </div>
+        <AllDayMilestones dateKey={key} />
         <div className="cal-time-grid">
           <div className="cal-time-col">
             {Array.from({ length: Math.ceil(totalMins / 60) }, (_, i) => {
@@ -654,6 +704,17 @@ export default function CalendarView({
             {(day.slots || []).map((slot) => (
               <SlotCard key={slot.id} slot={slot} dk={key} pxPerMin={PX} minTop={workStartMins} {...slotProps} />
             ))}
+            {timedMs.map((m, i) => {
+              const topMins = timeToMinutes(m.time) - workStartMins
+              if (topMins < 0 || topMins > totalMins) return null
+              return (
+                <div key={i} className="cal-milestone-card"
+                     style={{ top: topMins * PX, borderLeft: `3px solid ${m.color}` }}
+                     title={`${m.time} — ${m.label}`}>
+                  {m.time} {m.label}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -672,20 +733,33 @@ export default function CalendarView({
       <div className="cal-week-view">
         <div className="cal-week-grid">
           {Array.from({ length: 7 }, (_, i) => {
-            const date = addDays(weekStart, i)
-            const key  = dk(date)
-            const day  = getDay(key)
+            const date    = addDays(weekStart, i)
+            const key     = dk(date)
+            const day     = getDay(key)
+            const { timed: timedMs } = getMilestonesForDate(key)
             return (
               <div key={key} className="cal-day-col">
                 <div className="cal-day-col-header">
                   {date.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })}
                 </div>
+                <AllDayMilestones dateKey={key} />
                 <div className="cal-slot-area" style={{ position: 'relative', height: totalMins * PX }}
                      onDragOver={(e) => e.preventDefault()}
                      onDrop={makeDropHandler(date, workStartMins, PX)}>
                   {(day.slots || []).map((slot) => (
                     <SlotCard key={slot.id} slot={slot} dk={key} pxPerMin={PX} minTop={workStartMins} {...slotProps} />
                   ))}
+                  {timedMs.map((m, idx) => {
+                    const topMins = timeToMinutes(m.time) - workStartMins
+                    if (topMins < 0 || topMins > totalMins) return null
+                    return (
+                      <div key={idx} className="cal-milestone-card"
+                           style={{ top: topMins * PX, borderLeft: `3px solid ${m.color}` }}
+                           title={`${m.time} — ${m.label}`}>
+                        {m.time} {m.label}
+                      </div>
+                    )
+                  })}
                 </div>
                 <button className="cal-add-day-btn"
                         onClick={() => { setAddModalDate(date); setShowAddModal(true) }}>+</button>
@@ -717,10 +791,21 @@ export default function CalendarView({
             const key  = dk(date)
             const day  = getDay(key)
             const isCM = date.getMonth() === currentDate.getMonth()
+            const { allDay: allDayMs, timed: timedMs } = getMilestonesForDate(key)
+            const allMs = [...allDayMs, ...timedMs]
             return (
               <div key={key} className={`cal-month-day ${!isCM ? 'cal-month-day--other' : ''}`}
                    onClick={() => isCM && setSelectedDay(date)}>
-                <div className="cal-month-day-num">{date.getDate()}</div>
+                <div className="cal-month-day-num">
+                  {date.getDate()}
+                  {allMs.length > 0 && (
+                    <span className="cal-month-milestone-dots">
+                      {allMs.slice(0, 3).map((m, i) => (
+                        <span key={i} className="cal-month-milestone-dot" style={{ background: m.color }} title={m.label} />
+                      ))}
+                    </span>
+                  )}
+                </div>
                 <div className="cal-month-chips">
                   {(day.slots || []).slice(0, 2).map((slot) => {
                     const topic = allTopics.find((t) => t.id === slot.topicId)

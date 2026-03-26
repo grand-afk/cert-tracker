@@ -10,6 +10,11 @@ const DEFAULTS = {
   defaultTopicMins: 30,
   maxSessionsPerDay: 5,
   defaultBreakMins: 0,
+  // Sync metadata
+  lastSaved: null,     // ISO string — auto-stamped on any data mutation
+  lastExported: null,  // ISO string — stamped on full-data JSON export
+  lastImported: null,  // ISO string — stamped on full-data JSON import
+  syncFilePath: '',    // user memo — where they keep their sync file
 }
 
 function load() {
@@ -75,6 +80,12 @@ export function useSettings() {
 
   const setDefaultBreakMins = useCallback((n) => setSettings((s) => ({ ...s, defaultBreakMins: Math.max(0, n) })), [setSettings])
 
+  // Sync timestamps
+  const stampLastSaved    = useCallback(() => setSettings((s) => ({ ...s, lastSaved:    new Date().toISOString() })), [setSettings])
+  const stampLastExported = useCallback(() => setSettings((s) => ({ ...s, lastExported: new Date().toISOString() })), [setSettings])
+  const stampLastImported = useCallback(() => setSettings((s) => ({ ...s, lastImported: new Date().toISOString() })), [setSettings])
+  const setSyncFilePath   = useCallback((path) => setSettings((s) => ({ ...s, syncFilePath: path })), [setSettings])
+
   return {
     darkMode,
     toggleDarkMode,
@@ -91,5 +102,14 @@ export function useSettings() {
     setDefaultTopicMins,
     setMaxSessionsPerDay,
     setDefaultBreakMins,
+    // Sync
+    lastSaved:    settings.lastSaved,
+    lastExported: settings.lastExported,
+    lastImported: settings.lastImported,
+    syncFilePath: settings.syncFilePath,
+    stampLastSaved,
+    stampLastExported,
+    stampLastImported,
+    setSyncFilePath,
   }
 }

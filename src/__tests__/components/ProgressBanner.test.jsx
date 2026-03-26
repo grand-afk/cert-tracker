@@ -87,4 +87,42 @@ describe('ProgressBanner', () => {
     render(<ProgressBanner targetDate="" />)
     expect(screen.getByText('0%')).toBeInTheDocument()
   })
+
+  describe('course milestone ticks', () => {
+    const futureTarget = '2099-12-31'
+    const milestones = [
+      { courseId: 'gke', courseName: 'GKE', courseColor: '#4285F4', latestDueDate: '2099-06-01' },
+      { courseId: 'iam', courseName: 'IAM', courseColor: '#EA4335', latestDueDate: '2099-09-01' },
+    ]
+
+    it('renders one tick per milestone when targetDate is set', () => {
+      const { container } = render(
+        <ProgressBanner percent={20} targetDate={futureTarget} courseMilestones={milestones} />
+      )
+      const ticks = container.querySelectorAll('.progress-milestone-tick')
+      expect(ticks).toHaveLength(2)
+    })
+
+    it('applies course color to tick', () => {
+      const { container } = render(
+        <ProgressBanner percent={20} targetDate={futureTarget} courseMilestones={milestones} />
+      )
+      const tick = container.querySelector('.progress-milestone-tick')
+      expect(tick.style.background).toBeTruthy()
+    })
+
+    it('renders no ticks when courseMilestones is empty', () => {
+      const { container } = render(
+        <ProgressBanner percent={20} targetDate={futureTarget} courseMilestones={[]} />
+      )
+      expect(container.querySelectorAll('.progress-milestone-tick')).toHaveLength(0)
+    })
+
+    it('renders no ticks when targetDate is not set', () => {
+      const { container } = render(
+        <ProgressBanner percent={20} targetDate={null} courseMilestones={milestones} />
+      )
+      expect(container.querySelectorAll('.progress-milestone-tick')).toHaveLength(0)
+    })
+  })
 })

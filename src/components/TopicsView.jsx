@@ -61,6 +61,66 @@ function TestScoreCell({ id, getTestScore, setTestScore }) {
   )
 }
 
+function DueDateCell({ topic, setTopicDueDate }) {
+  const [editing, setEditing] = useState(false)
+  const [dateVal, setDateVal] = useState('')
+  const [timeVal, setTimeVal] = useState('')
+  const { dueDate, dueTime } = topic
+
+  function openEdit() {
+    setDateVal(dueDate ?? '')
+    setTimeVal(dueTime ?? '')
+    setEditing(true)
+  }
+  function save() {
+    setTopicDueDate(topic.id, dateVal || null, timeVal || null)
+    setEditing(false)
+  }
+  function clear() {
+    setTopicDueDate(topic.id, null, null)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="due-date-edit">
+        <input type="date" className="test-score-input" value={dateVal}
+               onChange={(e) => setDateVal(e.target.value)}
+               onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
+               autoFocus />
+        <input type="time" className="test-score-input" value={timeVal}
+               onChange={(e) => setTimeVal(e.target.value)}
+               style={{ width: 90 }} />
+        <button className="icon-btn" onClick={save} title="Save">✓</button>
+        {dueDate && <button className="icon-btn" onClick={clear} title="Clear due date">✕</button>}
+        {!dueDate && <button className="icon-btn" onClick={() => setEditing(false)} title="Cancel">✕</button>}
+      </div>
+    )
+  }
+
+  if (!dueDate) {
+    return <button className="test-score-empty" onClick={openEdit} title="Set due date">＋</button>
+  }
+
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const due   = new Date(dueDate); due.setHours(0, 0, 0, 0)
+  const diff  = Math.ceil((due - today) / 86400000)
+  const overdue = diff < 0
+  const label = overdue
+    ? `${Math.abs(diff)}d overdue`
+    : diff === 0 ? 'Today'
+    : `in ${diff}d`
+
+  return (
+    <button className={`due-date-badge ${overdue ? 'due-date-badge--overdue' : ''}`}
+            onClick={openEdit}
+            title={`Due: ${dueDate}${dueTime ? ' ' + dueTime : ''} — click to edit`}>
+      <span className="due-date-abs">{dueDate}{dueTime && <span className="due-date-time"> {dueTime}</span>}</span>
+      <span className="due-date-rel">{label}</span>
+    </button>
+  )
+}
+
 function NotesRow({ id, notes, onSave, colSpan, onClose }) {
   const [val, setVal] = useState(notes ?? '')
   const dirty = val !== (notes ?? '')
@@ -105,6 +165,7 @@ export default function TopicsView({
   getLastUpdated, updateTopicResources,
   updateTopicNotes,
   getTestScore, setTestScore,
+  setTopicDueDate,
   addTopic, deleteTopic,
   clearRating,
   searchQuery,
@@ -141,6 +202,7 @@ export default function TopicsView({
       if (sort.key === 'course')  { av = a.courseName; bv = b.courseName }
       if (sort.key === 'status')  { av = getStatus(a.id); bv = getStatus(b.id) }
       if (sort.key === 'updated') { av = getLastUpdated(a.id) ?? ''; bv = getLastUpdated(b.id) ?? '' }
+      if (sort.key === 'due') { av = a.dueDate ?? '9999'; bv = b.dueDate ?? '9999' }
       if (sort.key === 'score') {
         const sa = getTestScore(a.id)?.score ?? -1
         const sb = getTestScore(b.id)?.score ?? -1
@@ -221,6 +283,7 @@ export default function TopicsView({
                   <SortTh colKey="topic"   className="study-cell--topic">Topic</SortTh>
                   <SortTh colKey="status"  className="study-cell--status">Status</SortTh>
                   <SortTh colKey="score"   style={{ width: 160 }}>Score</SortTh>
+                  <SortTh colKey="due"     style={{ width: 170 }}>Due</SortTh>
                   <th className="study-cell--resources">Resources</th>
                   <SortTh colKey="updated" className="study-cell--updated">Updated</SortTh>
                   <th style={{ width: 36 }}></th>
@@ -272,6 +335,11 @@ export default function TopicsView({
                       <td className="study-cell" style={{ width: 160 }}>
                         <TestScoreCell id={topic.id} getTestScore={getTestScore} setTestScore={setTestScore} />
                       </td>
+                      <td className="study-cell" style={{ width: 170 }}>
+                        {setTopicDueDate && (
+                          <DueDateCell topic={topic} setTopicDueDate={setTopicDueDate} />
+                        )}
+                      </td>
                       <td className="study-cell study-cell--resources">
                         <ResourceTooltip resources={topic.resources} topicName={topic.name}
                                          onEdit={(e) => { e?.stopPropagation?.(); setEditTarget(topic) }} />
@@ -298,7 +366,7 @@ export default function TopicsView({
                         id={topic.id}
                         notes={topic.notes}
                         onSave={(n) => updateTopicNotes(topic.id, n)}
-                        colSpan={7}
+                        colSpan={8}
                         onClose={() => setExpandedId(null)}
                       />
                     ),

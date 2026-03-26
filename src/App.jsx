@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useCertData }  from './hooks/useCertData'
 import { useProgress }  from './hooks/useProgress'
 import { useSettings }  from './hooks/useSettings'
@@ -50,6 +50,7 @@ export default function App() {
     addCourse, updateCourse, addTerm, deleteTerm,
     exportData, importData, resetToSample,
     getAllTopics, restoreCertData,
+    setTopicDueDate,
   } = useCertData()
 
   const {
@@ -67,6 +68,8 @@ export default function App() {
     darkMode, toggleDarkMode, selectedCourses, toggleCourse, clearSelectedCourses,
     workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins,
     setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
+    lastSaved, lastExported, lastImported, syncFilePath,
+    stampLastSaved, stampLastExported, stampLastImported, setSyncFilePath,
   } = useSettings()
 
   const { calendar, exportCSV: exportCalendarCSV, importCSV: importCalendarCSV, restoreCalendar } = useCalendar()
@@ -78,6 +81,31 @@ export default function App() {
   const allTermIds  = useMemo(() => (certData.terminology || []).map((t) => t.id), [certData])
   const allIds      = useMemo(() => [...allTopicIds, ...allTermIds], [allTopicIds, allTermIds])
   const percentComplete = useMemo(() => computePercent(allIds), [allIds, progress])
+
+  // Auto-stamp lastSaved whenever certData, progress, or calendar mutates (skip initial mount)
+  const hasHydrated = useRef(false)
+  useEffect(() => {
+    if (!hasHydrated.current) { hasHydrated.current = true; return }
+    stampLastSaved()
+  }, [certData, progress, calendar]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Derived: topics that have a due date set (for CalendarView milestones)
+  const topicDueDates = useMemo(
+    () => allTopics.filter((t) => t.dueDate),
+    [allTopics]
+  )
+
+  // Derived: per-course latest due date (for ProgressBanner ticks)
+  const courseMilestones = useMemo(() => {
+    const byCoure = {}
+    allTopics.forEach((t) => {
+      if (!t.dueDate) return
+      if (!byCoure[t.courseId] || t.dueDate > byCoure[t.courseId].latestDueDate) {
+        byCoure[t.courseId] = { courseId: t.courseId, courseName: t.courseName, courseColor: t.courseColor, latestDueDate: t.dueDate }
+      }
+    })
+    return Object.values(byCoure)
+  }, [allTopics])
 
   // Clear search when changing views
   useEffect(() => { setSearchQuery('') }, [view])
@@ -259,7 +287,7 @@ export default function App() {
         canRedo={canRedo}
       />
 
-      <ProgressBanner percent={percentComplete} targetDate={certData.targetDate} />
+      <ProgressBanner percent={percentComplete} targetDate={certData.targetDate} courseMilestones={courseMilestones} />
 
       <main className="main-content">
         {view === 'topics' && (
@@ -274,6 +302,7 @@ export default function App() {
             updateTopicNotes={updateTopicNotesH}
             getTestScore={getTestScore}
             setTestScore={setTestScore}
+            setTopicDueDate={setTopicDueDate}
             addTopic={addTopicH}
             deleteTopic={deleteTopicH}
             clearRating={clearRatingH}
@@ -335,6 +364,7 @@ export default function App() {
             recordAction={recordCalendarAction}
             calendar={calendar}
             restoreCalendar={restoreCalendar}
+            topicDueDates={topicDueDates}
           />
         )}
 
@@ -374,6 +404,13 @@ export default function App() {
             calendar={calendar}
             exportCalendarCSV={exportCalendarCSV}
             importCalendarCSV={importCalendarCSV}
+            lastSaved={lastSaved}
+            lastExported={lastExported}
+            lastImported={lastImported}
+            syncFilePath={syncFilePath}
+            stampLastExported={stampLastExported}
+            stampLastImported={stampLastImported}
+            setSyncFilePath={setSyncFilePath}
           />
         )}
       </main>

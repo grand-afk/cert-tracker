@@ -12,10 +12,11 @@ Inspired by [keydeck](https://github.com/grand-afk/keydeck).
 Track every exam topic across multiple course modules. Each topic has:
 - **Status** — cycle between Not Started / In Progress / Complete (click the badge)
 - **Test Score** — record your practice test score and date (inline edit)
+- **Due Date** — set a target deadline per topic (date + optional time); displays relative label ("in 3d", "Today", "2d overdue"); sortable column
 - **Resources** — link to course content, video, Anki deck, and practice test
 - **SM-2 Spaced Repetition** — Again / Hard / Good / Easy ratings automatically schedule reviews
 - **Add / Delete topics** — use the ＋ Add Topic button or the 🗑 delete button per row
-- **Sort** by course, topic name, status, score, or last updated
+- **Sort** by course, topic name, status, score, due date, or last updated
 - **Pagination** — 15 topics per page
 
 ### 📖 Terminology
@@ -39,24 +40,29 @@ A dedicated review queue sorted by SM-2 due date — overdue and new cards alway
 Plan your study schedule with three interactive views.
 - **Day view** — time slots from working hours start to end
 - **Week view** — 7 columns with all topics for the week
-- **Month view** — calendar grid with topic counts per day
+- **Month view** — calendar grid with topic counts per day; milestone dots shown on due dates
 - **Drag & drop** topics to different time slots or days
 - **Auto-fill** — populates study hours with most-overdue topics first (respects per-topic duration overrides)
 - **Study hours** — set hours per day to control auto-fill capacity
-- **Keyboard shortcuts** — `D` day view, `W` week view, `M` month view
-- **CSV export** — download schedule as spreadsheet with Date, StartTime, Duration, Topic, Course columns
+- **Keyboard shortcuts** — `D` day, `W` week, `M` month, `T` today, `S` schedule, `X` clear, `←`/`→` prev/next
+- **Due date milestones** — topic deadlines appear automatically in the calendar:
+  - *Timed milestones* (topic has a date + time): rendered as a slim ⚑ card in the time grid alongside study sessions
+  - *All-day milestones* (date only): shown in a reserved strip at the top of each day column
+  - Multiple topics on same day/course are grouped ("GKE — 3 Due"); mixed courses show "Various Topics — N Due"
+- **CSV export** — download schedule as spreadsheet including Notes, Rating, and all resource links
 - **Per-topic duration** — override default study duration in Calendar view
 
 ### ⚙️ Settings
 - **Courses** — show or hide individual courses from the filter bar (Show All / Hide All buttons, Shift+click for range select)
 - **Course Keyboard Shortcuts** — view and reassign per-course letter keys
-- **Calendar Defaults** — working hours start/end, default topic duration in minutes
-- **Target Date** — set your exam date; the progress banner counts down
+- **Calendar Defaults** — working hours start/end, default topic duration, default break between sessions
+- **Target Date** — set your exam date; the progress banner counts down with per-course milestone ticks
 - **Dark / Light mode** toggle
 - **CSV Import / Export** — full data round-trip for topics (resources, scores, SM-2)
 - **JSON Import / Export** — backup or share the full cert structure
 - **Progress Import / Export** — backup and restore study progress separately
 - **Reset to Sample Data** — restore the default GCP Professional Architect example
+- **Data Sync** — compare *Last Saved / Last Exported / Last Imported* timestamps between devices to know which is newer; store a *Sync File Path* as a memo; full JSON export/import for manual multi-device sync
 
 ### ❓ Help
 Interactive guide covering:
@@ -104,6 +110,14 @@ Interactive guide covering:
 | `D` | Switch to day view |
 | `W` | Switch to week view |
 | `M` | Switch to month view |
+| `T` | Jump to today |
+| `S` | Schedule current view |
+| `X` | Clear current view |
+| `←` | Previous day / week / month |
+| `→` | Next day / week / month |
+| `Delete` | Remove selected session |
+| `Tab` | Cycle through sessions |
+| `Enter` | Open edit modal on focused session |
 
 ---
 

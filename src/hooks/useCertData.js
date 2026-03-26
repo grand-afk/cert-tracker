@@ -58,6 +58,20 @@ export function useCertData() {
     }))
   }, [setCertData])
 
+  const setTopicDueDate = useCallback((topicId, dueDate, dueTime) => {
+    setCertData((d) => ({
+      ...d,
+      courses: d.courses.map((c) => ({
+        ...c,
+        topics: c.topics.map((t) =>
+          t.id === topicId
+            ? { ...t, dueDate: dueDate || null, dueTime: dueTime || null }
+            : t
+        ),
+      })),
+    }))
+  }, [setCertData])
+
   const updateTermNotes = useCallback((termId, notes) => {
     setCertData((d) => ({
       ...d,
@@ -168,6 +182,7 @@ export function useCertData() {
     exportData, importData, resetToSample,
     getAllTopics, getCourseById,
     updateTopicNotes, updateTermNotes,
+    setTopicDueDate,
     restoreCertData,
   }
 }
