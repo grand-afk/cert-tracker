@@ -20,6 +20,10 @@ const defaultProps = {
   searchQuery: '',
   setSearchQuery: vi.fn(),
   currentView: 'topics',
+  onUndo: vi.fn(),
+  onRedo: vi.fn(),
+  canUndo: false,
+  canRedo: false,
 }
 
 describe('TopBar', () => {
@@ -135,5 +139,49 @@ describe('TopBar', () => {
     // First badge is the [A] on the All chip; second is the course key
     const courseKeyBadge = [...keyBadges].find((b) => b.textContent === 'G')
     expect(courseKeyBadge).toBeInTheDocument()
+  })
+
+  it('renders undo button', () => {
+    render(<TopBar {...defaultProps} />)
+    expect(screen.getByTitle(/Undo/i)).toBeInTheDocument()
+  })
+
+  it('renders redo button', () => {
+    render(<TopBar {...defaultProps} />)
+    expect(screen.getByTitle(/Redo/i)).toBeInTheDocument()
+  })
+
+  it('undo button is disabled when canUndo is false', () => {
+    render(<TopBar {...defaultProps} canUndo={false} />)
+    expect(screen.getByTitle(/Undo/i)).toBeDisabled()
+  })
+
+  it('redo button is disabled when canRedo is false', () => {
+    render(<TopBar {...defaultProps} canRedo={false} />)
+    expect(screen.getByTitle(/Redo/i)).toBeDisabled()
+  })
+
+  it('undo button is enabled when canUndo is true', () => {
+    render(<TopBar {...defaultProps} canUndo={true} />)
+    expect(screen.getByTitle(/Undo/i)).not.toBeDisabled()
+  })
+
+  it('redo button is enabled when canRedo is true', () => {
+    render(<TopBar {...defaultProps} canRedo={true} />)
+    expect(screen.getByTitle(/Redo/i)).not.toBeDisabled()
+  })
+
+  it('clicking undo button calls onUndo', () => {
+    const onUndo = vi.fn()
+    render(<TopBar {...defaultProps} canUndo={true} onUndo={onUndo} />)
+    fireEvent.click(screen.getByTitle(/Undo/i))
+    expect(onUndo).toHaveBeenCalledTimes(1)
+  })
+
+  it('clicking redo button calls onRedo', () => {
+    const onRedo = vi.fn()
+    render(<TopBar {...defaultProps} canRedo={true} onRedo={onRedo} />)
+    fireEvent.click(screen.getByTitle(/Redo/i))
+    expect(onRedo).toHaveBeenCalledTimes(1)
   })
 })

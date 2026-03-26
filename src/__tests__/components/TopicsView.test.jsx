@@ -243,7 +243,7 @@ describe('TopicsView', () => {
       const addBtns = screen.getAllByTitle('Add test score')
       fireEvent.click(addBtns[0])
       // Find number input and set value
-      const numberInputs = screen.getAllByRole('spinbutton')
+      const numberInputs = screen.getAllByRole('textbox', { name: '' }).filter(el => el.placeholder === '0–100')
       fireEvent.change(numberInputs[0], { target: { value: '90' } })
       fireEvent.click(screen.getAllByTitle('Save')[0])
       expect(setTestScore).toHaveBeenCalledWith('gke-autopilot', 90, expect.any(String))

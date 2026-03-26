@@ -208,10 +208,18 @@ export default function App() {
         return
       }
 
-      // Calendar view: D/W/M dispatch custom event
-      if (view === 'calendar' && /^[dDwWmM]$/.test(e.key)) {
-        window.dispatchEvent(new CustomEvent('calendar-key', { detail: e.key.toLowerCase() }))
-        return
+      // Calendar view shortcuts — handled by CalendarView's own listeners.
+      // D/W/M: dispatch via custom event so CalendarView can handle view-switching.
+      // S/X: CalendarView's keydown handler handles Schedule/Clear directly; return
+      //   early here to prevent S/X from reaching the course-chip shortcut handler
+      //   (the sample data uses S=Storage which would conflict otherwise).
+      if (view === 'calendar') {
+        if (/^[dDwWmM]$/.test(e.key)) {
+          window.dispatchEvent(new CustomEvent('calendar-key', { detail: e.key.toLowerCase() }))
+          return
+        }
+        // S and X are reserved for Schedule / Clear on this view
+        if (/^[sSxX]$/.test(e.key)) return
       }
 
       // Bottom nav: 1-6

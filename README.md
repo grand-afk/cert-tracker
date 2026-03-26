@@ -32,17 +32,38 @@ A dedicated review queue sorted by SM-2 due date — overdue and new cards alway
   - Good / Easy → marks topic as Complete
   - Hard → marks as In Progress
 - **Due badge** shows how many days until review (or overdue count)
-- Toggle between "due only" and "show all"
+- Toggle between "due only" and "show all" (keyboard: `F`)
+- **Sort** by course, topic name, due date, or last rating
+
+### 📅 Calendar
+Plan your study schedule with three interactive views.
+- **Day view** — time slots from working hours start to end
+- **Week view** — 7 columns with all topics for the week
+- **Month view** — calendar grid with topic counts per day
+- **Drag & drop** topics to different time slots or days
+- **Auto-fill** — populates study hours with most-overdue topics first (respects per-topic duration overrides)
+- **Study hours** — set hours per day to control auto-fill capacity
+- **Keyboard shortcuts** — `D` day view, `W` week view, `M` month view
+- **CSV export** — download schedule as spreadsheet with Date, StartTime, Duration, Topic, Course columns
+- **Per-topic duration** — override default study duration in Calendar view
 
 ### ⚙️ Settings
-- **Courses** — show or hide individual courses from the filter bar
+- **Courses** — show or hide individual courses from the filter bar (Show All / Hide All buttons, Shift+click for range select)
 - **Course Keyboard Shortcuts** — view and reassign per-course letter keys
+- **Calendar Defaults** — working hours start/end, default topic duration in minutes
 - **Target Date** — set your exam date; the progress banner counts down
 - **Dark / Light mode** toggle
 - **CSV Import / Export** — full data round-trip for topics (resources, scores, SM-2)
 - **JSON Import / Export** — backup or share the full cert structure
 - **Progress Import / Export** — backup and restore study progress separately
 - **Reset to Sample Data** — restore the default GCP Professional Architect example
+
+### ❓ Help
+Interactive guide covering:
+- Feature overview with icons and descriptions
+- Complete keyboard shortcut reference (navigation, course filters, study, calendar)
+- Getting started guide
+- Links to external resources (GitHub)
 
 ---
 
@@ -52,9 +73,11 @@ A dedicated review queue sorted by SM-2 due date — overdue and new cards alway
 | Key | Tab |
 |-----|-----|
 | `1` | Topics |
-| `2` | Terminology |
-| `3` | Study |
-| `4` | Settings |
+| `2` | Study |
+| `3` | Calendar |
+| `4` | Terms |
+| `5` | Help |
+| `6` | Settings |
 
 ### Course Chip Filters (configurable in Settings)
 | Key | Default Course |
@@ -69,6 +92,18 @@ A dedicated review queue sorted by SM-2 due date — overdue and new cards alway
 | `Esc` | Clear filter (same as A) |
 
 > Keys are shown on each chip. Reassign any key in Settings → Course Keyboard Shortcuts.
+
+### Study View
+| Key | Action |
+|-----|--------|
+| `F` | Toggle "Due only" / "Show all" |
+
+### Calendar View
+| Key | Action |
+|-----|--------|
+| `D` | Switch to day view |
+| `W` | Switch to week view |
+| `M` | Switch to month view |
 
 ---
 
@@ -112,12 +147,14 @@ src/
 ├── index.css                # All styles (CSS custom properties, dark/light)
 ├── components/
 │   ├── TopBar.jsx           # Cert title + course chip filters
-│   ├── BottomNav.jsx        # 4-tab navigation with key hints
+│   ├── BottomNav.jsx        # 6-tab navigation with key hints
 │   ├── ProgressBanner.jsx   # Overall % complete + days to exam
 │   ├── TopicsView.jsx       # Topics table with sort, paginate, add/delete
 │   ├── TerminologyView.jsx  # Glossary table with add/delete
-│   ├── StudyView.jsx        # SM-2 review queue
-│   ├── SettingsView.jsx     # All settings including course visibility & shortcuts
+│   ├── StudyView.jsx        # SM-2 review queue with F key toggle
+│   ├── CalendarView.jsx     # Day/Week/Month views with drag & drop scheduling
+│   ├── HelpView.jsx         # Help guide with features and shortcuts
+│   ├── SettingsView.jsx     # All settings including course visibility, calendar defaults
 │   ├── AddTopicModal.jsx    # Modal for adding a new topic
 │   ├── AddTermModal.jsx     # Modal for adding a new term
 │   ├── RateButtons.jsx      # Again/Hard/Good/Easy SM-2 rating buttons
@@ -125,8 +162,9 @@ src/
 │   └── ResourceTooltip.jsx  # Hover tooltip showing resource links
 ├── hooks/
 │   ├── useCertData.js       # Cert structure state + localStorage
-│   ├── useProgress.js       # Topic/term progress + SM-2 + test scores
-│   └── useSettings.js       # Dark mode + course filter selections
+│   ├── useProgress.js       # Topic/term progress + SM-2 + test scores + topic duration
+│   ├── useSettings.js       # Dark mode + course filter selections + calendar defaults
+│   └── useCalendar.js       # Calendar scheduling + localStorage
 ├── utils/
 │   ├── sm2.js               # SM-2 spaced repetition algorithm
 │   └── relativeTime.js      # "just now / Xm ago / Xd ago" formatter
@@ -173,12 +211,37 @@ src/
     "lastUpdated": "2026-03-23T09:00:00.000Z",
     "testScore": 87,
     "testDate": "2026-03-20",
+    "topicMins": 45,
     "sm2": {
       "interval": 6, "repetitions": 2, "easeFactor": 2.5,
       "nextReview": "2026-03-29", "lastRated": "2026-03-23T09:00:00.000Z",
       "lastQuality": 4
     }
   }
+}
+```
+
+### Calendar (localStorage: `certTracker_calendar`)
+```json
+{
+  "2026-03-23": {
+    "studyHours": 2,
+    "slots": [
+      { "id": "slot-...", "topicId": "gke-autopilot", "startTime": "09:00", "durationMins": 30 },
+      { "id": "slot-...", "topicId": "gke-networking", "startTime": "09:30", "durationMins": 30 }
+    ]
+  }
+}
+```
+
+### Settings (localStorage: `certTracker_settings`)
+```json
+{
+  "darkMode": true,
+  "selectedCourses": [],
+  "workStart": "09:00",
+  "workEnd": "17:00",
+  "defaultTopicMins": 30
 }
 ```
 
@@ -196,6 +259,21 @@ The test suite covers: SM-2 algorithm, all hooks, all components, and mobile vie
 
 ---
 
+## Calendar CSV Export Format
+
+When exporting from the Calendar view, the CSV file includes the following columns:
+
+| Column | Description |
+|--------|-------------|
+| Date | Study date in YYYY-MM-DD format |
+| StartTime | Session start time in HH:MM format |
+| DurationMins | Session duration in minutes |
+| TopicId | Topic identifier |
+| TopicName | Topic name |
+| CourseName | Associated course name |
+
+---
+
 ## Mobile
 
 The app is responsive down to 375px wide:
@@ -204,3 +282,4 @@ The app is responsive down to 375px wide:
 - Keyboard key hints are hidden on small screens
 - Settings rows stack vertically
 - Bottom nav compresses to icon + label only
+- Calendar adapts column widths and hides non-essential details

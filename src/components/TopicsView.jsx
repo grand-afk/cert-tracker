@@ -34,10 +34,12 @@ function TestScoreCell({ id, getTestScore, setTestScore }) {
   if (editing) {
     return (
       <div className="test-score-edit">
-        <input className="test-score-input" type="number" min="0" max="100" value={scoreVal}
+        {/* type="text" removes browser spinner arrows; save() validates numerically */}
+        <input className="test-score-input" type="text" inputMode="numeric" placeholder="0–100"
+               value={scoreVal}
                onChange={(e) => setScoreVal(e.target.value)}
                onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
-               autoFocus style={{ width: 54 }} />
+               autoFocus style={{ width: 60 }} />
         <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>%</span>
         <input className="test-score-input" type="date" value={dateVal}
                onChange={(e) => setDateVal(e.target.value)} style={{ width: 120 }} />
