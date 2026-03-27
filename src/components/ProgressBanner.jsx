@@ -1,3 +1,5 @@
+import { fmtDisplayDate } from '../utils/relativeTime'
+
 // courseMilestones: [{ courseId, courseName, courseColor, latestDueDate }]
 // Ticks are positioned proportionally on the time axis: today → targetDate
 export default function ProgressBanner({ percent, targetDate, courseMilestones = [] }) {
@@ -57,7 +59,7 @@ export default function ProgressBanner({ percent, targetDate, courseMilestones =
       {daysInfo && <span className="progress-days">{daysInfo}</span>}
       {targetDate && (
         <span className="progress-target">
-          🎯 {new Date(targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          🎯 {fmtDisplayDate(targetDate)}
         </span>
       )}
     </div>

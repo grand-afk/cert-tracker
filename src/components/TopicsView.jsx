@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import ResourceTooltip from './ResourceTooltip'
 import EditResourceModal from './EditResourceModal'
 import AddTopicModal from './AddTopicModal'
-import { relativeTime } from '../utils/relativeTime'
+import { relativeTime, fmtDisplayDate } from '../utils/relativeTime'
 
 const PAGE_SIZE = 15
 
@@ -54,7 +54,7 @@ function TestScoreCell({ id, getTestScore, setTestScore }) {
     <button className="test-score-badge" onClick={openEdit} title="Click to edit score"
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <span className="test-score-pct">{info.score}%</span>
-      {info.date && <span className="test-score-date" style={{ whiteSpace: 'nowrap' }}>{info.date}</span>}
+      {info.date && <span className="test-score-date" style={{ whiteSpace: 'nowrap' }}>{fmtDisplayDate(info.date)}</span>}
     </button>
   ) : (
     <button className="test-score-empty" onClick={openEdit} title="Add test score">＋</button>
@@ -114,8 +114,8 @@ function DueDateCell({ topic, setTopicDueDate }) {
   return (
     <button className={`due-date-badge ${overdue ? 'due-date-badge--overdue' : ''}`}
             onClick={openEdit}
-            title={`Due: ${dueDate}${dueTime ? ' ' + dueTime : ''} — click to edit`}>
-      <span className="due-date-abs">{dueDate}{dueTime && <span className="due-date-time"> {dueTime}</span>}</span>
+            title={`Due: ${fmtDisplayDate(dueDate)}${dueTime ? ' ' + dueTime : ''} — click to edit`}>
+      <span className="due-date-abs">{fmtDisplayDate(dueDate)}{dueTime && <span className="due-date-time"> {dueTime}</span>}</span>
       <span className="due-date-rel">{label}</span>
     </button>
   )

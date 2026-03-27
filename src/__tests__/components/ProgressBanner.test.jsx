@@ -60,10 +60,9 @@ describe('ProgressBanner', () => {
     expect(screen.getByText('1 day overdue')).toBeInTheDocument()
   })
 
-  it('renders target date in en-GB format', () => {
+  it('renders target date in DD-MMM-YY format', () => {
     render(<ProgressBanner percent={0} targetDate="2026-09-30" />)
-    // en-GB format: "30 Sep 2026" or "30 Sept 2026" depending on runtime locale data
-    expect(screen.getByText(/30 Sep.* 2026/)).toBeInTheDocument()
+    expect(screen.getByText(/30-Sep-26/)).toBeInTheDocument()
   })
 
   it('renders the target icon 🎯 when targetDate is provided', () => {

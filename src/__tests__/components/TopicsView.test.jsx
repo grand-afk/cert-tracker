@@ -273,7 +273,8 @@ describe('TopicsView', () => {
         i === 0 ? { ...t, dueDate: '2099-12-31', dueTime: null } : t
       )
       render(<TopicsView {...defaultProps} topics={topicsWithDue} />)
-      expect(screen.getByText('2099-12-31')).toBeInTheDocument()
+      // Due dates are displayed as DD-MMM-YY (e.g. 31-Dec-99)
+      expect(screen.getByText('31-Dec-99')).toBeInTheDocument()
     })
 
     it('opens inline date edit when ＋ button is clicked', () => {
