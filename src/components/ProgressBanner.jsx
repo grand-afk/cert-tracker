@@ -52,7 +52,7 @@ export default function ProgressBanner({ percent, targetDate, courseMilestones =
               background: tick.courseColor,
               opacity: tick.pos < 0 || tick.pos > 100 ? 0.4 : 1,
             }}
-            title={`${tick.courseName}: last topic due ${tick.latestDueDate}`}
+            title={`${tick.courseName}: last topic due ${fmtDisplayDate(tick.latestDueDate)}`}
           />
         ))}
       </div>

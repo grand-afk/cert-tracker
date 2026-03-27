@@ -1,5 +1,20 @@
 import { useState, useRef } from 'react'
 
+// ── StepInput — mobile-friendly stepper for numeric settings ──────────────────
+function StepInput({ value, onChange, min, max, step = 1, suffix = '' }) {
+  return (
+    <div className="step-input">
+      <button className="step-input__btn" type="button"
+              onClick={() => onChange(Math.max(min, value - step))}
+              disabled={value <= min}>−</button>
+      <span className="step-input__val">{value}{suffix}</span>
+      <button className="step-input__btn" type="button"
+              onClick={() => onChange(Math.min(max, value + step))}
+              disabled={value >= max}>+</button>
+    </div>
+  )
+}
+
 // ── CourseShortcutRow component ────────────────────────────────────────────────
 function CourseShortcutRow({ course, updateCourse }) {
   const [editing, setEditing] = useState(false)
@@ -108,7 +123,7 @@ export default function SettingsView({
   addCourse, addTopic,
   workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins,
   setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
-  allTopics, calendar, exportCalendarCSV, importCalendarCSV,
+  allTopics, calendar, exportCalendarCSV, importCalendarCSV, restoreCalendar,
   // Sync metadata
   lastSaved, lastExported, lastImported, syncFilePath,
   stampLastExported, stampLastImported, setSyncFilePath,
@@ -257,7 +272,21 @@ export default function SettingsView({
 
   // ── Full-data export (for sync) ───────────────────────────────────────────
   function handleFullExport() {
-    exportData()            // triggers download of certData JSON
+    const bundle = {
+      _type: 'cert-tracker-full',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      certData,
+      progress,
+      calendar,
+    }
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `cert-tracker-full-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
     stampLastExported?.()
   }
 
@@ -266,7 +295,15 @@ export default function SettingsView({
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
-        importData(ev.target.result)
+        const raw = JSON.parse(ev.target.result)
+        if (raw._type === 'cert-tracker-full') {
+          if (raw.certData)  importData(JSON.stringify(raw.certData))
+          if (raw.progress)  importProgress(raw.progress)
+          if (raw.calendar)  restoreCalendar?.(raw.calendar)
+        } else {
+          // Fallback: treat as structure-only export
+          importData(ev.target.result)
+        }
         stampLastImported?.()
         flash(setImportSuccess, 'Full data imported from file!')
       } catch (err) { flash(setImportError, `Import error: ${err.message}`) }
@@ -415,29 +452,21 @@ export default function SettingsView({
             <div className="settings-label">Default Topic Duration</div>
             <div className="settings-hint">Minutes per topic when auto-filling calendar (per-topic overrides in Calendar view)</div>
           </div>
-          <input className="settings-input" type="number" min={15} max={180} step={15} value={defaultTopicMins}
-                 onChange={(e) => setDefaultTopicMins(Math.max(15, Math.round(parseInt(e.target.value) / 15) * 15))} style={{ width: 80 }} />
+          <StepInput value={defaultTopicMins} onChange={setDefaultTopicMins} min={15} max={180} step={15} suffix=" min" />
         </div>
         <div className="settings-row">
           <div>
             <div className="settings-label">Max Sessions Per Day</div>
             <div className="settings-hint">Maximum number of topics auto-scheduled per day</div>
           </div>
-          <input className="settings-input" type="number" min={1} max={20}
-                 value={maxSessionsPerDay}
-                 onChange={(e) => setMaxSessionsPerDay(parseInt(e.target.value))} style={{ width: 80 }} />
+          <StepInput value={maxSessionsPerDay} onChange={setMaxSessionsPerDay} min={1} max={20} />
         </div>
         <div className="settings-row">
           <div>
             <div className="settings-label">Default Break Between Sessions</div>
             <div className="settings-hint">Minutes of break added between auto-scheduled topics (0 = no break)</div>
           </div>
-          <input className="settings-input" type="number" min={0} max={60} step={15}
-                 defaultValue={defaultBreakMins ?? 0}
-                 key={defaultBreakMins}
-                 onBlur={(e) => setDefaultBreakMins(Math.round(Math.max(0, parseInt(e.target.value) || 0) / 15) * 15)}
-                 onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-                 style={{ width: 80 }} />
+          <StepInput value={defaultBreakMins ?? 0} onChange={setDefaultBreakMins} min={0} max={60} step={15} suffix=" min" />
         </div>
       </div>
 
@@ -489,7 +518,7 @@ export default function SettingsView({
       <div className="settings-section">
         <div className="settings-section-title">Course Structure (JSON)</div>
         <div className="settings-row">
-          <div><div className="settings-label">Export JSON</div><div className="settings-hint">Download full cert structure</div></div>
+          <div><div className="settings-label">Export Structure</div><div className="settings-hint">Course topics and structure only — no progress, scores or calendar data</div></div>
           <button className="btn btn-secondary btn-sm" onClick={exportData}>⬇ Export JSON</button>
         </div>
         <div className="settings-row">
@@ -567,14 +596,14 @@ export default function SettingsView({
         <div className="settings-row">
           <div>
             <div className="settings-label">Export Full Data</div>
-            <div className="settings-hint">Download cert structure as JSON for syncing to another device</div>
+            <div className="settings-hint">All data — courses, study progress, scores and calendar — for syncing between devices</div>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={handleFullExport}>⬇ Export JSON</button>
         </div>
         <div className="settings-row">
           <div>
             <div className="settings-label">Import Full Data</div>
-            <div className="settings-hint">Replace all data from a previously exported JSON file</div>
+            <div className="settings-hint">Restore all data from a full sync export — courses, progress, scores and calendar</div>
           </div>
           <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
             📂 Import JSON

@@ -66,6 +66,8 @@ function DueDateCell({ topic, setTopicDueDate }) {
   const [dateVal, setDateVal] = useState('')
   const [timeVal, setTimeVal] = useState('')
   const { dueDate, dueTime } = topic
+  const editRef  = useRef(null)
+  const saveFnRef = useRef(null)
 
   function openEdit() {
     setDateVal(dueDate ?? '')
@@ -81,9 +83,25 @@ function DueDateCell({ topic, setTopicDueDate }) {
     setEditing(false)
   }
 
+  // Keep saveFnRef current so the pointerdown listener always calls the latest save
+  saveFnRef.current = save
+
+  // Commit on tap/click outside the editing widget
+  useEffect(() => {
+    if (!editing) return
+    function onPointerDown(e) {
+      if (editRef.current && !editRef.current.contains(e.target)) {
+        saveFnRef.current()
+      }
+    }
+    // Use capture so we catch taps on other rows before they bubble
+    document.addEventListener('pointerdown', onPointerDown, { capture: true })
+    return () => document.removeEventListener('pointerdown', onPointerDown, { capture: true })
+  }, [editing])
+
   if (editing) {
     return (
-      <div className="due-date-edit">
+      <div className="due-date-edit" ref={editRef}>
         <input type="date" className="test-score-input" value={dateVal}
                onChange={(e) => setDateVal(e.target.value)}
                onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}

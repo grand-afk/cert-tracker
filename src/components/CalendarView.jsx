@@ -232,6 +232,8 @@ const SlotCard = memo(function SlotCard({
       className={`cal-slot${isFocused ? ' cal-slot--focused' : ''}${isSelected ? ' cal-slot--selected' : ''}${searchQuery && !matchesSearch ? ' cal-slot--dimmed' : ''}`}
       draggable
       tabIndex={0}
+      data-slot-id={slot.id}
+      data-dk={dk}
       style={{ top, height, position: 'absolute', left: 2, right: 2, background: topic.courseColor }}
       onFocus={() => setFocusedSlot({ dateKey: dk, slotId: slot.id })}
       onBlur={() => setFocusedSlot(null)}
@@ -257,7 +259,8 @@ const SlotCard = memo(function SlotCard({
       }}
     >
       <div className="cal-slot__resize-top"
-           onMouseDown={(e) => { e.stopPropagation(); e.preventDefault()
+           onPointerDown={(e) => { e.stopPropagation(); e.preventDefault()
+             e.currentTarget.setPointerCapture(e.pointerId)
              setResizing({ dateKey: dk, slotId: slot.id, edge: 'top', startY: e.clientY,
                origStart: timeToMinutes(slot.startTime), origDuration: slot.durationMins }) }} />
 
@@ -288,7 +291,8 @@ const SlotCard = memo(function SlotCard({
       )}
 
       <div className="cal-slot__resize-bottom"
-           onMouseDown={(e) => { e.stopPropagation(); e.preventDefault()
+           onPointerDown={(e) => { e.stopPropagation(); e.preventDefault()
+             e.currentTarget.setPointerCapture(e.pointerId)
              setResizing({ dateKey: dk, slotId: slot.id, edge: 'bottom', startY: e.clientY,
                origStart: timeToMinutes(slot.startTime), origDuration: slot.durationMins }) }} />
     </div>
@@ -443,10 +447,78 @@ export default function CalendarView({
       }
     }
     const onUp = () => setResizing(null)
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp) }
   }, [resizing, updateSlotTime, updateSlotDuration])
+
+  // ─── Touch drag ───────────────────────────────────────────────────────────
+  const touchDrag = useRef({ timer: null, active: false })
+  useEffect(() => {
+    function onTouchStart(e) {
+      const slotEl = e.target.closest('.cal-slot')
+      if (!slotEl) return
+      if (e.target.closest('.cal-slot__resize-top,.cal-slot__resize-bottom,.cal-slot__remove')) return
+      const slotId  = slotEl.dataset.slotId
+      const dateKey = slotEl.dataset.dk
+      if (!slotId || !dateKey) return
+      const touch = e.touches[0]
+      touchDrag.current = {
+        timer: setTimeout(() => {
+          touchDrag.current.active = true
+          slotEl.classList.add('cal-slot--dragging')
+          dragRef.current = { id: slotId, date: dateKey }
+        }, 400),
+        active: false, slotEl, slotId, dateKey,
+        startX: touch.clientX, startY: touch.clientY,
+      }
+    }
+    function onTouchMove(e) {
+      const td = touchDrag.current
+      if (!td.timer && !td.active) return
+      const touch = e.touches[0]
+      if (!td.active) {
+        // Cancel long-press if finger moved significantly
+        if (Math.abs(touch.clientX - td.startX) > 12 || Math.abs(touch.clientY - td.startY) > 12) {
+          clearTimeout(td.timer)
+          touchDrag.current = { timer: null, active: false }
+        }
+        return
+      }
+      e.preventDefault() // prevent page scroll while dragging
+    }
+    function onTouchEnd(e) {
+      const td = touchDrag.current
+      clearTimeout(td.timer)
+      if (!td.active) { touchDrag.current = { timer: null, active: false }; return }
+      td.slotEl?.classList.remove('cal-slot--dragging')
+      const touch = e.changedTouches[0]
+      // Temporarily disable pointer events on slot so elementFromPoint finds the drop zone below
+      td.slotEl.style.pointerEvents = 'none'
+      const dropEl = document.elementFromPoint(touch.clientX, touch.clientY)
+      td.slotEl.style.pointerEvents = ''
+      const dropArea = dropEl?.closest('[data-date-key]')
+      if (dropArea && td.slotId && td.dateKey) {
+        const targetDateKey = dropArea.dataset.dateKey
+        const wStart  = parseInt(dropArea.dataset.workStart)
+        const ppMin   = parseFloat(dropArea.dataset.pxPerMin)
+        const rect    = dropArea.getBoundingClientRect()
+        const y       = touch.clientY - rect.top
+        const newMins = snap15(Math.round(wStart + y / ppMin))
+        moveSlot(td.dateKey, td.slotId, targetDateKey, minutesToTime(newMins))
+      }
+      dragRef.current = null
+      touchDrag.current = { timer: null, active: false }
+    }
+    document.addEventListener('touchstart', onTouchStart, { passive: true })
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
+    document.addEventListener('touchend', onTouchEnd)
+    return () => {
+      document.removeEventListener('touchstart', onTouchStart)
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [moveSlot, dragRef])
 
   // ─── Date helpers ────────────────────────────────────────────────────────
   function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r }
@@ -699,6 +771,7 @@ export default function CalendarView({
             })}
           </div>
           <div className="cal-slot-area" style={{ position: 'relative', height: totalMins * PX }}
+               data-date-key={key} data-work-start={workStartMins} data-px-per-min={PX}
                onDragOver={(e) => e.preventDefault()}
                onDrop={makeDropHandler(currentDate, workStartMins, PX)}>
             {(day.slots || []).map((slot) => (
@@ -744,6 +817,7 @@ export default function CalendarView({
                 </div>
                 <AllDayMilestones dateKey={key} />
                 <div className="cal-slot-area" style={{ position: 'relative', height: totalMins * PX }}
+                     data-date-key={key} data-work-start={workStartMins} data-px-per-min={PX}
                      onDragOver={(e) => e.preventDefault()}
                      onDrop={makeDropHandler(date, workStartMins, PX)}>
                   {(day.slots || []).map((slot) => (

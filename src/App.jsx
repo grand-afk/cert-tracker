@@ -404,6 +404,7 @@ export default function App() {
             calendar={calendar}
             exportCalendarCSV={exportCalendarCSV}
             importCalendarCSV={importCalendarCSV}
+            restoreCalendar={restoreCalendar}
             lastSaved={lastSaved}
             lastExported={lastExported}
             lastImported={lastImported}
