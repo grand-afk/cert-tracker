@@ -61,6 +61,51 @@ function TestScoreCell({ id, getTestScore, setTestScore }) {
   )
 }
 
+// ── TimeStepInput — step time by 15-min increments ────────────────────────────
+function TimeStepInput({ value, onChange }) {
+  function toMins(hhmm) {
+    if (!hhmm) return 0
+    const [h, m] = hhmm.split(':').map(Number)
+    return h * 60 + m
+  }
+  function fromMins(mins) {
+    const h = Math.floor(((mins % 1440) + 1440) % 1440 / 60)
+    const m = ((mins % 1440) + 1440) % 1440 % 60
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+  }
+  const mins = toMins(value)
+  return (
+    <div className="step-input" style={{ height: 30 }}>
+      <button type="button" className="step-input__btn" style={{ width: 28, height: 30 }}
+              onClick={() => onChange(fromMins(mins - 15))}>−</button>
+      <span className="step-input__val" style={{ minWidth: 44, fontSize: 12 }}>{value || '—'}</span>
+      <button type="button" className="step-input__btn" style={{ width: 28, height: 30 }}
+              onClick={() => onChange(fromMins(mins + 15))}>+</button>
+    </div>
+  )
+}
+
+// ── RevisionSelect — dropdown with hover tooltip ───────────────────────────────
+function RevisionSelect({ topicId, field, value, techniques, onSet }) {
+  const selected = techniques.find((t) => t.id === value)
+  return (
+    <div className="rev-select-wrap">
+      <select className="rev-select" value={value || ''} onClick={(e) => e.stopPropagation()}
+              onChange={(e) => onSet(topicId, field, e.target.value || null)}>
+        <option value="">—</option>
+        {techniques.filter((t) => t.active).map((t) => (
+          <option key={t.id} value={t.id}>{t.name}</option>
+        ))}
+      </select>
+      {selected && (
+        <button className="rev-info-btn"
+                title={`${selected.name}\n\nMethod: ${selected.method}\n\nWhy: ${selected.rationale}`}
+                onClick={(e) => e.stopPropagation()}>ℹ</button>
+      )}
+    </div>
+  )
+}
+
 function DueDateCell({ topic, setTopicDueDate }) {
   const [editing, setEditing] = useState(false)
   const [dateVal, setDateVal] = useState('')
@@ -106,9 +151,7 @@ function DueDateCell({ topic, setTopicDueDate }) {
                onChange={(e) => setDateVal(e.target.value)}
                onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
                autoFocus />
-        <input type="time" className="test-score-input" value={timeVal}
-               onChange={(e) => setTimeVal(e.target.value)}
-               style={{ width: 90 }} />
+        <TimeStepInput value={timeVal} onChange={setTimeVal} />
         <button className="icon-btn" onClick={save} title="Save">✓</button>
         {dueDate && <button className="icon-btn" onClick={clear} title="Clear due date">✕</button>}
         {!dueDate && <button className="icon-btn" onClick={() => setEditing(false)} title="Cancel">✕</button>}
@@ -187,6 +230,10 @@ export default function TopicsView({
   addTopic, deleteTopic,
   clearRating,
   searchQuery,
+  // Revision techniques
+  revisionTechniques = [],
+  getRevisionTechnique,
+  setRevisionTechnique,
 }) {
   const [page, setPage]         = useState(1)
   const [sort, setSort]         = useState({ key: null, dir: 'asc' })
@@ -195,6 +242,17 @@ export default function TopicsView({
   const [expandedId, setExpandedId] = useState(null)   // double-click expands notes
   const [selectedId, setSelectedId] = useState(null)   // single-click selects row
   const tableRef = useRef(null)
+
+  // ── Column visibility ──────────────────────────────────────────────────────
+  const [hiddenCols, setHiddenCols] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('topics_hidden_cols') || '[]') } catch { return [] }
+  })
+  function toggleCol(key) {
+    const next = hiddenCols.includes(key) ? hiddenCols.filter((k) => k !== key) : [...hiddenCols, key]
+    setHiddenCols(next)
+    try { localStorage.setItem('topics_hidden_cols', JSON.stringify(next)) } catch {}
+  }
+  const cv = (key) => !hiddenCols.includes(key)  // isVisible(key)
 
   const filtered = useMemo(() => {
     let result = topics
@@ -280,9 +338,27 @@ export default function TopicsView({
             {completeCount}/{filtered.length} complete
             {inProgressCount > 0 && ` · ${inProgressCount} in progress`}
           </span>
-          {/* btn-secondary: not highlighted, consistent with other neutral actions */}
           <button className="btn btn-secondary btn-sm" onClick={() => setShowAdd(true)}>＋ Add Topic</button>
         </div>
+      </div>
+
+      {/* Column visibility toggles */}
+      <div className="col-vis-bar">
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Columns:</span>
+        {[
+          { key: 'score',        label: 'Score' },
+          { key: 'due',          label: 'Due' },
+          ...(revisionTechniques.length > 0 ? [
+            { key: 'lastRevision', label: 'Last Revision' },
+            { key: 'nextRevision', label: 'Next Revision' },
+          ] : []),
+          { key: 'updated',      label: 'Updated' },
+        ].map(({ key, label }) => (
+          <button key={key} className={`col-vis-btn ${cv(key) ? 'col-vis-btn--visible' : ''}`}
+                  onClick={() => toggleCol(key)} title={`${cv(key) ? 'Hide' : 'Show'} ${label}`}>
+            {cv(key) ? '●' : '○'} {label}
+          </button>
+        ))}
       </div>
 
       {sorted.length === 0 ? (
@@ -300,10 +376,12 @@ export default function TopicsView({
                   <SortTh colKey="course"  className="study-cell--course">Course</SortTh>
                   <SortTh colKey="topic"   className="study-cell--topic">Topic</SortTh>
                   <SortTh colKey="status"  className="study-cell--status">Status</SortTh>
-                  <SortTh colKey="score"   style={{ width: 160 }}>Score</SortTh>
-                  <SortTh colKey="due"     style={{ width: 170 }}>Due</SortTh>
+                  {cv('score')        && <SortTh colKey="score"   style={{ width: 160 }}>Score</SortTh>}
+                  {cv('due')          && <SortTh colKey="due"     style={{ width: 170 }}>Due</SortTh>}
+                  {revisionTechniques.length > 0 && cv('lastRevision') && <th style={{ width: 140 }} title="Technique used last time">Last Revision</th>}
+                  {revisionTechniques.length > 0 && cv('nextRevision') && <th style={{ width: 140 }} title="Technique planned for next session">Next Revision</th>}
                   <th className="study-cell--resources">Resources</th>
-                  <SortTh colKey="updated" className="study-cell--updated">Updated</SortTh>
+                  {cv('updated')      && <SortTh colKey="updated" className="study-cell--updated">Updated</SortTh>}
                   <th style={{ width: 36 }}></th>
                 </tr>
               </thead>
@@ -350,21 +428,47 @@ export default function TopicsView({
                           {cfg.label}
                         </button>
                       </td>
-                      <td className="study-cell" style={{ width: 160 }}>
-                        <TestScoreCell id={topic.id} getTestScore={getTestScore} setTestScore={setTestScore} />
-                      </td>
-                      <td className="study-cell" style={{ width: 170 }}>
-                        {setTopicDueDate && (
-                          <DueDateCell topic={topic} setTopicDueDate={setTopicDueDate} />
-                        )}
-                      </td>
+                      {cv('score') && (
+                        <td className="study-cell" style={{ width: 160 }}>
+                          <TestScoreCell id={topic.id} getTestScore={getTestScore} setTestScore={setTestScore} />
+                        </td>
+                      )}
+                      {cv('due') && (
+                        <td className="study-cell" style={{ width: 170 }}>
+                          {setTopicDueDate && (
+                            <DueDateCell topic={topic} setTopicDueDate={setTopicDueDate} />
+                          )}
+                        </td>
+                      )}
+                      {revisionTechniques.length > 0 && cv('lastRevision') && (
+                        <td className="study-cell" style={{ width: 140 }}>
+                          <RevisionSelect
+                            topicId={topic.id} field="lastRevTechnique"
+                            value={getRevisionTechnique?.(topic.id, 'lastRevTechnique')}
+                            techniques={revisionTechniques}
+                            onSet={setRevisionTechnique ?? (() => {})}
+                          />
+                        </td>
+                      )}
+                      {revisionTechniques.length > 0 && cv('nextRevision') && (
+                        <td className="study-cell" style={{ width: 140 }}>
+                          <RevisionSelect
+                            topicId={topic.id} field="nextRevTechnique"
+                            value={getRevisionTechnique?.(topic.id, 'nextRevTechnique')}
+                            techniques={revisionTechniques}
+                            onSet={setRevisionTechnique ?? (() => {})}
+                          />
+                        </td>
+                      )}
                       <td className="study-cell study-cell--resources">
                         <ResourceTooltip resources={topic.resources} topicName={topic.name}
                                          onEdit={(e) => { e?.stopPropagation?.(); setEditTarget(topic) }} />
                       </td>
-                      <td className="study-cell study-cell--updated">
-                        {lastUpd ? <span title={new Date(lastUpd).toLocaleString()}>{relativeTime(lastUpd)}</span> : '—'}
-                      </td>
+                      {cv('updated') && (
+                        <td className="study-cell study-cell--updated">
+                          {lastUpd ? <span title={new Date(lastUpd).toLocaleString()}>{relativeTime(lastUpd)}</span> : '—'}
+                        </td>
+                      )}
                       <td className="study-cell" style={{ textAlign: 'right' }}>
                         <button className="icon-btn icon-btn--danger"
                                 title="Delete topic"
@@ -384,7 +488,7 @@ export default function TopicsView({
                         id={topic.id}
                         notes={topic.notes}
                         onSave={(n) => updateTopicNotes(topic.id, n)}
-                        colSpan={8}
+                        colSpan={3 + [cv('score'), cv('due'), revisionTechniques.length > 0 && cv('lastRevision'), revisionTechniques.length > 0 && cv('nextRevision'), cv('updated')].filter(Boolean).length + 2}
                         onClose={() => setExpandedId(null)}
                       />
                     ),

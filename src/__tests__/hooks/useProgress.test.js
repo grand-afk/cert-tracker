@@ -281,4 +281,48 @@ describe('useProgress', () => {
       expect(result.current.getLastUpdated('topic-z')).toBeTruthy()
     })
   })
+
+  // ── getRevisionTechnique / setRevisionTechnique ───────────────────────────
+  describe('getRevisionTechnique', () => {
+    it('returns null for unknown topic and field', () => {
+      const { result } = renderHook(() => useProgress())
+      expect(result.current.getRevisionTechnique('no-topic', 'lastRevTechnique')).toBeNull()
+    })
+
+    it('returns the stored technique id after setRevisionTechnique', () => {
+      const { result } = renderHook(() => useProgress())
+      act(() => { result.current.setRevisionTechnique('t1', 'lastRevTechnique', 'active-recall') })
+      expect(result.current.getRevisionTechnique('t1', 'lastRevTechnique')).toBe('active-recall')
+    })
+
+    it('returns null when technique is cleared (null passed)', () => {
+      const { result } = renderHook(() => useProgress())
+      act(() => { result.current.setRevisionTechnique('t1', 'lastRevTechnique', 'active-recall') })
+      act(() => { result.current.setRevisionTechnique('t1', 'lastRevTechnique', null) })
+      expect(result.current.getRevisionTechnique('t1', 'lastRevTechnique')).toBeNull()
+    })
+
+    it('stores lastRevTechnique and nextRevTechnique independently', () => {
+      const { result } = renderHook(() => useProgress())
+      act(() => {
+        result.current.setRevisionTechnique('t1', 'lastRevTechnique', 'blurting')
+        result.current.setRevisionTechnique('t1', 'nextRevTechnique', 'feynman')
+      })
+      expect(result.current.getRevisionTechnique('t1', 'lastRevTechnique')).toBe('blurting')
+      expect(result.current.getRevisionTechnique('t1', 'nextRevTechnique')).toBe('feynman')
+    })
+
+    it('persists revision technique to localStorage', () => {
+      const { result } = renderHook(() => useProgress())
+      act(() => { result.current.setRevisionTechnique('t2', 'nextRevTechnique', 'dual-coding') })
+      const stored = JSON.parse(localStorage.getItem('certTracker_progress'))
+      expect(stored['t2'].nextRevTechnique).toBe('dual-coding')
+    })
+
+    it('updates lastUpdated when technique is set', () => {
+      const { result } = renderHook(() => useProgress())
+      act(() => { result.current.setRevisionTechnique('t3', 'lastRevTechnique', 'interleaving') })
+      expect(result.current.getLastUpdated('t3')).toBeTruthy()
+    })
+  })
 })

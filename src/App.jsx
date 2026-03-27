@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { useCertData }  from './hooks/useCertData'
-import { useProgress }  from './hooks/useProgress'
-import { useSettings }  from './hooks/useSettings'
-import { useCalendar }  from './hooks/useCalendar'
-import { useHistory }   from './hooks/useHistory'
+import { useCertData }             from './hooks/useCertData'
+import { useProgress }             from './hooks/useProgress'
+import { useSettings }             from './hooks/useSettings'
+import { useCalendar }             from './hooks/useCalendar'
+import { useHistory }              from './hooks/useHistory'
+import { useRevisionTechniques }   from './hooks/useRevisionTechniques'
 import TopBar           from './components/TopBar'
 import BottomNav        from './components/BottomNav'
 import ProgressBanner   from './components/ProgressBanner'
@@ -62,6 +63,7 @@ export default function App() {
     getTopicMins, setTopicMins,
     exportProgress, importProgress, clearAll,
     restoreProgress,
+    getRevisionTechnique, setRevisionTechnique,
   } = useProgress()
 
   const {
@@ -75,6 +77,15 @@ export default function App() {
   const { calendar, exportCSV: exportCalendarCSV, importCSV: importCalendarCSV, restoreCalendar } = useCalendar()
 
   const { push: historyPush, undo, redo, canUndo, canRedo } = useHistory()
+
+  const {
+    techniques: revisionTechniques,
+    toggleActive: toggleTechniqueActive,
+    exportTechniques,
+    importTechniques,
+    resetToDefaults: resetTechniquesToDefaults,
+    lastImported: techniquesLastImported,
+  } = useRevisionTechniques()
 
   const allTopics  = useMemo(() => getAllTopics(), [getAllTopics])
   const allTopicIds = useMemo(() => allTopics.map((t) => t.id), [allTopics])
@@ -307,6 +318,9 @@ export default function App() {
             deleteTopic={deleteTopicH}
             clearRating={clearRatingH}
             searchQuery={searchQuery}
+            revisionTechniques={revisionTechniques}
+            getRevisionTechnique={getRevisionTechnique}
+            setRevisionTechnique={setRevisionTechnique}
           />
         )}
 
@@ -339,6 +353,9 @@ export default function App() {
             updateTopicResources={updateTopicResources}
             updateTopicNotes={updateTopicNotesH}
             searchQuery={searchQuery}
+            revisionTechniques={revisionTechniques}
+            getRevisionTechnique={getRevisionTechnique}
+            setRevisionTechnique={setRevisionTechnique}
           />
         )}
 
@@ -412,6 +429,12 @@ export default function App() {
             stampLastExported={stampLastExported}
             stampLastImported={stampLastImported}
             setSyncFilePath={setSyncFilePath}
+            techniques={revisionTechniques}
+            toggleTechniqueActive={toggleTechniqueActive}
+            exportTechniques={exportTechniques}
+            importTechniques={importTechniques}
+            resetTechniquesToDefaults={resetTechniquesToDefaults}
+            techniquesLastImported={techniquesLastImported}
           />
         )}
       </main>

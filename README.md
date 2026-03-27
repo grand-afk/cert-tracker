@@ -12,11 +12,13 @@ Inspired by [keydeck](https://github.com/grand-afk/keydeck).
 Track every exam topic across multiple course modules. Each topic has:
 - **Status** — cycle between Not Started / In Progress / Complete (click the badge)
 - **Test Score** — record your practice test score and date (inline edit)
-- **Due Date** — set a target deadline per topic (date + optional time); displays relative label ("in 3d", "Today", "2d overdue"); sortable column
+- **Due Date** — set a target deadline per topic (date + optional time, in 15-minute steps); displays relative label ("in 3d", "Today", "2d overdue"); sortable column
 - **Resources** — link to course content, video, Anki deck, and practice test
 - **SM-2 Spaced Repetition** — Again / Hard / Good / Easy ratings automatically schedule reviews
+- **Last Revision / Next Revision** — track which revision technique was used and plan the next one; dropdowns show active techniques from the Revision Techniques config
 - **Add / Delete topics** — use the ＋ Add Topic button or the 🗑 delete button per row
 - **Sort** by course, topic name, status, score, due date, or last updated
+- **Column visibility** — toggle individual columns on/off via the column bar (Score, Due, Last Revision, Next Revision, Updated); state is persisted per-device
 - **Pagination** — 15 topics per page
 
 ### 📖 Terminology
@@ -35,6 +37,7 @@ A dedicated review queue sorted by SM-2 due date — overdue and new cards alway
 - **Due badge** shows how many days until review (or overdue count)
 - Toggle between "due only" and "show all" (keyboard: `F`)
 - **Sort** by course, topic name, due date, or last rating
+- **Last Revision / Next Revision** columns — log which technique you used and plan the next session; shown automatically when revision techniques are configured
 
 ### 📅 Calendar
 Plan your study schedule with three interactive views.
@@ -55,19 +58,37 @@ Plan your study schedule with three interactive views.
 ### ⚙️ Settings
 - **Courses** — show or hide individual courses from the filter bar (Show All / Hide All buttons, Shift+click for range select)
 - **Course Keyboard Shortcuts** — view and reassign per-course letter keys
-- **Calendar Defaults** — working hours start/end, default topic duration, default break between sessions
+- **Calendar Defaults** — working hours start/end, default topic duration (±15 min steps), default break between sessions (±15 min steps), max sessions per day — all via stepper controls (no freetext number inputs)
 - **Target Date** — set your exam date; the progress banner counts down with per-course milestone ticks
 - **Dark / Light mode** toggle
+- **Revision Techniques** — enable/disable individual techniques; Export JSON / Import JSON for sharing across devices; Reset to defaults; displays last-imported timestamp
+- **Export Structure** — JSON export of the cert structure (courses + topics) only
+- **Export Full Data** — single JSON bundle containing cert structure, study progress, and calendar (recommended for full backups and device sync)
+- **Import Full Data** — restore from a full-data bundle; partial JSON (cert structure only) is also accepted
 - **CSV Import / Export** — full data round-trip for topics (resources, scores, SM-2)
-- **JSON Import / Export** — backup or share the full cert structure
 - **Progress Import / Export** — backup and restore study progress separately
 - **Reset to Sample Data** — restore the default GCP Professional Architect example
-- **Data Sync** — compare *Last Saved / Last Exported / Last Imported* timestamps between devices to know which is newer; store a *Sync File Path* as a memo; full JSON export/import for manual multi-device sync
+- **Data Sync** — compare *Last Saved / Last Exported / Last Imported* timestamps between devices to know which is newer; store a *Sync File Path* as a memo
+
+### 🧠 Revision Techniques
+Six evidence-based techniques are built in, each with a method description and rationale:
+
+| Technique | Method |
+|-----------|--------|
+| Active Recall | Close notes; retrieve from memory or answer questions from scratch |
+| Spaced Repetition | Review at increasing intervals (1d → 3d → 1w → 1m) |
+| Blurting | Read for 10 min, then write everything remembered on a blank page |
+| Dual Coding | Combine words with diagrams, timelines, or icons |
+| The Feynman Technique | Explain the concept out loud as if teaching a 10-year-old |
+| Interleaving | Mix different subjects in one session rather than blocking one all day |
+
+Techniques can be enabled/disabled in Settings and are described in full in the Help view.
 
 ### ❓ Help
 Interactive guide covering:
 - Feature overview with icons and descriptions
 - Complete keyboard shortcut reference (navigation, course filters, study, calendar)
+- Revision Techniques reference table with method and rationale for each technique
 - Getting started guide
 - Links to external resources (GitHub)
 
@@ -175,10 +196,11 @@ src/
 │   ├── EditResourceModal.jsx# Modal for editing resource links
 │   └── ResourceTooltip.jsx  # Hover tooltip showing resource links
 ├── hooks/
-│   ├── useCertData.js       # Cert structure state + localStorage
-│   ├── useProgress.js       # Topic/term progress + SM-2 + test scores + topic duration
-│   ├── useSettings.js       # Dark mode + course filter selections + calendar defaults
-│   └── useCalendar.js       # Calendar scheduling + localStorage
+│   ├── useCertData.js           # Cert structure state + localStorage
+│   ├── useProgress.js           # Topic/term progress + SM-2 + test scores + revision techniques
+│   ├── useSettings.js           # Dark mode + course filter selections + calendar defaults
+│   ├── useCalendar.js           # Calendar scheduling + localStorage
+│   └── useRevisionTechniques.js # Revision technique list + enable/disable + import/export
 ├── utils/
 │   ├── sm2.js               # SM-2 spaced repetition algorithm
 │   └── relativeTime.js      # "just now / Xm ago / Xd ago" formatter
@@ -226,6 +248,8 @@ src/
     "testScore": 87,
     "testDate": "2026-03-20",
     "topicMins": 45,
+    "lastRevTechnique": "active-recall",
+    "nextRevTechnique": "feynman",
     "sm2": {
       "interval": 6, "repetitions": 2, "easeFactor": 2.5,
       "nextReview": "2026-03-29", "lastRated": "2026-03-23T09:00:00.000Z",
@@ -233,6 +257,14 @@ src/
     }
   }
 }
+```
+
+### Revision Techniques (localStorage: `certTracker_revisionTechniques`)
+```json
+[
+  { "id": "active-recall", "name": "Active Recall", "method": "...", "rationale": "...", "active": true },
+  { "id": "spaced-repetition", "name": "Spaced Repetition", "method": "...", "rationale": "...", "active": true }
+]
 ```
 
 ### Calendar (localStorage: `certTracker_calendar`)
@@ -294,6 +326,11 @@ The app is responsive down to 375px wide:
 - Course chips scroll horizontally
 - Tables scroll horizontally with a minimum width
 - Keyboard key hints are hidden on small screens
-- Settings rows stack vertically
+- Settings rows stack vertically with stepper controls for numeric inputs (no freetext number entry)
 - Bottom nav compresses to icon + label only
-- Calendar adapts column widths and hides non-essential details
+- Calendar week view scrolls horizontally (7 columns, min 80px each) — no row-wrapping
+- Calendar sessions support long-press drag-and-drop (400ms hold, then drag to a new slot)
+- Calendar resize handles use pointer events (works for both mouse and touch)
+- Calendar tooltips show on tap; tap again to close (desktop hover also works)
+- Calendar edit modal is constrained to viewport height with scroll on overflow
+- Topics due-date editor commits on tap-outside the row (no explicit save button needed)

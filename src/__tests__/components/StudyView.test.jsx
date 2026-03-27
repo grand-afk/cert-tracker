@@ -208,4 +208,44 @@ describe('StudyView', () => {
       expect(resBtns.length).toBe(TOPICS.length)
     })
   })
+
+  // ── Revision techniques ───────────────────────────────────────────────────
+  describe('revision techniques', () => {
+    const TECHNIQUES = [
+      { id: 'active-recall', name: 'Active Recall', method: 'Retrieve info', rationale: 'Strengthens memory', active: true },
+      { id: 'blurting',      name: 'Blurting',      method: 'Write it out',  rationale: 'Identifies gaps',   active: true },
+    ]
+
+    it('shows Last Revision and Next Revision columns when techniques are provided', () => {
+      render(<StudyView {...defaultProps} revisionTechniques={TECHNIQUES}
+               getRevisionTechnique={() => null} setRevisionTechnique={noop} />)
+      expect(screen.getByText('Last Revision')).toBeInTheDocument()
+      expect(screen.getByText('Next Revision')).toBeInTheDocument()
+    })
+
+    it('does not show revision columns when no techniques are provided', () => {
+      render(<StudyView {...defaultProps} />)
+      expect(screen.queryByText('Last Revision')).not.toBeInTheDocument()
+      expect(screen.queryByText('Next Revision')).not.toBeInTheDocument()
+    })
+
+    it('renders a technique dropdown per row when techniques are provided', () => {
+      render(<StudyView {...defaultProps} revisionTechniques={TECHNIQUES}
+               getRevisionTechnique={() => null} setRevisionTechnique={noop} />)
+      // Two columns × N topics = 2N selects
+      const selects = screen.getAllByRole('combobox')
+      expect(selects.length).toBe(TOPICS.length * 2)
+    })
+
+    it('calls setRevisionTechnique when a dropdown value changes', () => {
+      const setRevisionTechnique = vi.fn()
+      render(<StudyView {...defaultProps} revisionTechniques={TECHNIQUES}
+               getRevisionTechnique={() => null} setRevisionTechnique={setRevisionTechnique} />)
+      const selects = screen.getAllByRole('combobox')
+      fireEvent.change(selects[0], { target: { value: 'active-recall' } })
+      expect(setRevisionTechnique).toHaveBeenCalledWith(
+        expect.any(String), expect.any(String), 'active-recall'
+      )
+    })
+  })
 })
