@@ -1796,7 +1796,7 @@ body {
 .col-vis-btn--visible { background: var(--accent-muted, var(--surface2)); color: var(--text); border-color: var(--accent); }
 .col-vis-btn:hover { border-color: var(--accent); }
 
-/* ── Revision techniques help table ─────────────────────────────── */
+/* ── Revision techniques help table (HelpView) ───────────────────── */
 .rev-techniques-table-wrap { overflow-x: auto; margin-top: 12px; }
 .rev-techniques-table {
   width: 100%; border-collapse: collapse; font-size: 13px;
@@ -1812,6 +1812,34 @@ body {
 }
 .rev-tech-name { font-weight: 700; white-space: nowrap; color: var(--accent); }
 .rev-techniques-table tr:last-child td { border-bottom: none; }
+
+/* ── Revision techniques settings table ──────────────────────────── */
+.rev-tech-settings-wrap {
+  overflow-x: auto;
+  margin: 0 16px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.rev-tech-settings-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.rev-tech-settings-table th {
+  text-align: left; padding: 7px 10px;
+  background: var(--surface2); color: var(--text-muted);
+  border-bottom: 1px solid var(--border); font-weight: 600;
+  white-space: nowrap;
+}
+.rev-tech-settings-table td {
+  padding: 8px 10px; border-bottom: 1px solid var(--border);
+  vertical-align: top; color: var(--text); font-size: 12px;
+  line-height: 1.45;
+}
+.rev-tech-settings-table tr:last-child td { border-bottom: none; }
+.rev-tech-settings-table .rev-tech-name {
+  font-weight: 600; white-space: nowrap; color: var(--accent);
+}
+.rev-tech-settings-table .rev-tech-cell { color: var(--text-muted); }
+.rev-tech-row--inactive td { opacity: 0.45; }
 
 /* ── Edit slot modal topic header ────────────────────────────────── */
 .edit-slot-topic {

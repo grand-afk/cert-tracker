@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { daysUntilDue, dueLabel, isDue } from '../utils/sm2'
 import RateButtons from './RateButtons'
 import ResourceTooltip from './ResourceTooltip'
@@ -7,30 +7,50 @@ import EditResourceModal from './EditResourceModal'
 const PAGE_SIZE = 20
 
 // ── RevisionSelect ────────────────────────────────────────────────────────────
+// Uses local optimistic state so the dropdown shows the chosen value instantly,
+// without waiting for the full App → useProgress → prop round-trip.
 function RevisionSelect({ topicId, field, value, techniques, onSet }) {
+  const [local, setLocal] = useState(value ?? '')
+  // Sync local state when the persisted value arrives from the parent
+  const prevValue = useRef(value)
+  useEffect(() => {
+    if (prevValue.current !== value) {
+      prevValue.current = value
+      setLocal(value ?? '')
+    }
+  }, [value])
+
   const activeOptions = techniques.filter((t) => t.active)
-  // Include the stored value even if its technique was disabled, so it still shows
-  const storedTech = value ? techniques.find((t) => t.id === value) : null
-  const options = storedTech && !storedTech.active
-    ? [storedTech, ...activeOptions]
+  // Keep the saved technique visible even if it was later disabled
+  const savedTech = local ? techniques.find((t) => t.id === local) : null
+  const options = savedTech && !savedTech.active
+    ? [savedTech, ...activeOptions]
     : activeOptions
+
+  function handleChange(e) {
+    e.stopPropagation()
+    const newVal = e.target.value || null
+    setLocal(e.target.value)        // immediate visual update
+    onSet(topicId, field, newVal)   // persist to progress store
+  }
+
   return (
     <div className="rev-select-wrap">
       <select
-        className={`rev-select${value ? ' rev-select--set' : ''}`}
-        value={value ?? ''}
+        className={`rev-select${local ? ' rev-select--set' : ''}`}
+        value={local}
         onClick={(e) => e.stopPropagation()}
-        onChange={(e) => { e.stopPropagation(); onSet(topicId, field, e.target.value || null) }}
+        onChange={handleChange}
       >
         <option value="">—</option>
         {options.map((t) => (
           <option key={t.id} value={t.id}>{t.name}</option>
         ))}
       </select>
-      {storedTech && (
+      {savedTech && (
         <button
           className="rev-info-btn"
-          title={`${storedTech.name}\n\nMethod: ${storedTech.method}\n\nWhy: ${storedTech.rationale}`}
+          title={`${savedTech.name}\n\nMethod: ${savedTech.method}\n\nWhy: ${savedTech.rationale}`}
           onClick={(e) => e.stopPropagation()}
         >ℹ</button>
       )}

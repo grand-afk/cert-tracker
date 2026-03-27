@@ -618,44 +618,52 @@ export default function SettingsView({
       {/* Revision Techniques */}
       <div className="settings-section">
         <div className="settings-section-title">Revision Techniques</div>
-        <div className="settings-hint" style={{ padding: '0 16px 12px', color: 'var(--text-muted)', fontSize: 13 }}>
-          Configure the evidence-based study techniques available in the Study view. Toggle techniques on/off to control what appears in the Last/Next Revision dropdowns. Download or upload the list to customise or share between devices.
+        <div className="settings-hint" style={{ padding: '0 16px 10px', color: 'var(--text-muted)', fontSize: 13 }}>
+          These techniques appear in the <strong>Last / Next Revision</strong> dropdowns on the Study page.
+          Toggle techniques on/off, or export the list as JSON, edit it to add your own, then re-import.
+          {techniquesLastImported && (
+            <span className="sync-timestamp" style={{ marginLeft: 8 }}>
+              Last imported: {fmtTimestamp(techniquesLastImported)}
+            </span>
+          )}
         </div>
-        <div style={{ padding: '0 16px 8px' }}>
-          {techniques.map((t) => (
-            <div key={t.id} className="settings-row" style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-              <div>
-                <div className="settings-label" style={{ marginBottom: 2 }}>{t.name}</div>
-                <div className="settings-hint" style={{ fontSize: 11 }}>{t.method.slice(0, 80)}…</div>
-              </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
-                <input type="checkbox" checked={t.active}
-                       onChange={() => toggleTechniqueActive?.(t.id)} />
-                Active
-              </label>
-            </div>
-          ))}
+
+        {/* Techniques table */}
+        <div className="rev-tech-settings-wrap">
+          <table className="rev-tech-settings-table">
+            <thead>
+              <tr>
+                <th style={{ width: 32, textAlign: 'center' }}>On</th>
+                <th style={{ width: 140 }}>Name</th>
+                <th>Method</th>
+                <th>Why it works</th>
+              </tr>
+            </thead>
+            <tbody>
+              {techniques.map((t) => (
+                <tr key={t.id} className={t.active ? '' : 'rev-tech-row--inactive'}>
+                  <td style={{ textAlign: 'center' }}>
+                    <input type="checkbox" checked={t.active}
+                           onChange={() => toggleTechniqueActive?.(t.id)}
+                           title={t.active ? 'Disable technique' : 'Enable technique'} />
+                  </td>
+                  <td className="rev-tech-name">{t.name}</td>
+                  <td className="rev-tech-cell">{t.method}</td>
+                  <td className="rev-tech-cell">{t.rationale}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="settings-row" style={{ marginTop: 8 }}>
+
+        {/* Actions row */}
+        <div className="settings-row" style={{ marginTop: 12, gap: 8, flexWrap: 'wrap' }}>
           <div>
-            <div className="settings-label">Export Techniques</div>
-            <div className="settings-hint">Download your techniques list as JSON for editing or backup</div>
+            <div className="settings-label">Manage Techniques</div>
+            <div className="settings-hint">Export to JSON → edit to add/rename/reorder → re-import</div>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={exportTechniques}>⬇ Export JSON</button>
-        </div>
-        <div className="settings-row">
-          <div>
-            <div className="settings-label">Import Techniques</div>
-            <div className="settings-hint">
-              Load a customised techniques JSON file
-              {techniquesLastImported && (
-                <span className="sync-timestamp" style={{ marginLeft: 8 }}>
-                  Last imported: {fmtTimestamp(techniquesLastImported)}
-                </span>
-              )}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button className="btn btn-secondary btn-sm" onClick={exportTechniques}>⬇ Export JSON</button>
             <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
               📂 Import JSON
               <input type="file" accept=".json" style={{ display: 'none' }} onChange={(e) => {
@@ -670,7 +678,7 @@ export default function SettingsView({
             </label>
             <button className="btn btn-secondary btn-sm"
                     onClick={() => { if (window.confirm('Reset techniques to defaults?')) resetTechniquesToDefaults?.() }}>
-              Reset
+              ↺ Reset defaults
             </button>
           </div>
         </div>
