@@ -228,8 +228,8 @@ body {
 
 .study-cell { padding: 10px 12px; vertical-align: middle; }
 .study-cell--course { width: 130px; }
-.study-cell--topic { min-width: 180px; font-weight: 500; }
-.study-cell--definition { color: var(--text-muted); font-size: 13px; }
+.study-cell--topic { width: 140px; min-width: 100px; max-width: 160px; font-weight: 500; word-break: break-word; white-space: normal; }
+.study-cell--definition { color: var(--text-muted); font-size: 13px; word-break: break-word; white-space: normal; }
 .study-cell--status { width: 140px; }
 .study-cell--resources { width: 90px; }
 .study-cell--updated { width: 110px; color: var(--text-muted); font-size: 12px; }
@@ -1729,11 +1729,18 @@ body {
   border-radius: var(--radius);
   padding: 10px 14px;
   max-width: 240px;
-  pointer-events: none;
+  pointer-events: auto;   /* allow close button interaction */
   box-shadow: 0 4px 20px rgba(0,0,0,0.45);
   font-size: 13px;
 }
-.cal-tooltip__title { font-weight: 700; margin-bottom: 4px; color: var(--text); }
+.cal-tooltip__close {
+  position: absolute; top: 4px; right: 6px;
+  background: none; border: none; color: var(--text-muted);
+  font-size: 12px; cursor: pointer; padding: 2px 4px;
+  line-height: 1;
+}
+.cal-tooltip__close:hover { color: var(--text); }
+.cal-tooltip__title { font-weight: 700; margin-bottom: 4px; color: var(--text); padding-right: 18px; }
 .cal-tooltip__course {
   display: flex; align-items: center; gap: 5px;
   font-size: 11px; color: var(--text-muted); margin-bottom: 3px;
@@ -1744,6 +1751,67 @@ body {
   border-top: 1px solid var(--border); padding-top: 5px; margin-top: 4px; font-style: italic;
 }
 .cal-tooltip__hint { font-size: 10px; color: var(--accent); margin-top: 5px; }
+
+/* ── Revision technique select ──────────────────────────────────── */
+.rev-select-wrap { display: flex; align-items: center; gap: 4px; }
+.rev-select {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 100%;
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* When a value is chosen, style it like the status badge text */
+.rev-select--set {
+  color: var(--text);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface2));
+  font-weight: 500;
+}
+.rev-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rev-info-btn {
+  background: none; border: none;
+  color: var(--accent); font-size: 12px;
+  cursor: pointer; padding: 0 2px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.rev-info-btn:hover { opacity: 0.75; }
+
+/* ── Column visibility toggle bar ───────────────────────────────── */
+.col-vis-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.col-vis-btn {
+  font-size: 11px; padding: 2px 8px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface2); color: var(--text-muted);
+  cursor: pointer;
+}
+.col-vis-btn--visible { background: var(--accent-muted, var(--surface2)); color: var(--text); border-color: var(--accent); }
+.col-vis-btn:hover { border-color: var(--accent); }
+
+/* ── Revision techniques help table ─────────────────────────────── */
+.rev-techniques-table-wrap { overflow-x: auto; margin-top: 12px; }
+.rev-techniques-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.rev-techniques-table th {
+  text-align: left; padding: 8px 12px;
+  background: var(--surface2); color: var(--text-muted);
+  border-bottom: 1px solid var(--border); font-weight: 600;
+}
+.rev-techniques-table td {
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  vertical-align: top; color: var(--text);
+}
+.rev-tech-name { font-weight: 700; white-space: nowrap; color: var(--accent); }
+.rev-techniques-table tr:last-child td { border-bottom: none; }
 
 /* ── Edit slot modal topic header ────────────────────────────────── */
 .edit-slot-topic {
@@ -1816,4 +1884,7 @@ body {
   .settings-row { flex-direction: column; align-items: flex-start; gap: 8px; }
   .course-settings-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
   .chip-key { display: none; }
+  /* Modal: fit within mobile viewport */
+  .modal-overlay { padding: 8px; }
+  .modal { min-width: 0; max-height: 88dvh; }
 }

@@ -85,27 +85,6 @@ function TimeStepInput({ value, onChange }) {
   )
 }
 
-// ── RevisionSelect — dropdown with hover tooltip ───────────────────────────────
-function RevisionSelect({ topicId, field, value, techniques, onSet }) {
-  const selected = techniques.find((t) => t.id === value)
-  return (
-    <div className="rev-select-wrap">
-      <select className="rev-select" value={value || ''} onClick={(e) => e.stopPropagation()}
-              onChange={(e) => onSet(topicId, field, e.target.value || null)}>
-        <option value="">—</option>
-        {techniques.filter((t) => t.active).map((t) => (
-          <option key={t.id} value={t.id}>{t.name}</option>
-        ))}
-      </select>
-      {selected && (
-        <button className="rev-info-btn"
-                title={`${selected.name}\n\nMethod: ${selected.method}\n\nWhy: ${selected.rationale}`}
-                onClick={(e) => e.stopPropagation()}>ℹ</button>
-      )}
-    </div>
-  )
-}
-
 function DueDateCell({ topic, setTopicDueDate }) {
   const [editing, setEditing] = useState(false)
   const [dateVal, setDateVal] = useState('')
@@ -230,10 +209,6 @@ export default function TopicsView({
   addTopic, deleteTopic,
   clearRating,
   searchQuery,
-  // Revision techniques
-  revisionTechniques = [],
-  getRevisionTechnique,
-  setRevisionTechnique,
 }) {
   const [page, setPage]         = useState(1)
   const [sort, setSort]         = useState({ key: null, dir: 'asc' })
@@ -346,13 +321,9 @@ export default function TopicsView({
       <div className="col-vis-bar">
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Columns:</span>
         {[
-          { key: 'score',        label: 'Score' },
-          { key: 'due',          label: 'Due' },
-          ...(revisionTechniques.length > 0 ? [
-            { key: 'lastRevision', label: 'Last Revision' },
-            { key: 'nextRevision', label: 'Next Revision' },
-          ] : []),
-          { key: 'updated',      label: 'Updated' },
+          { key: 'score',   label: 'Score' },
+          { key: 'due',     label: 'Due' },
+          { key: 'updated', label: 'Updated' },
         ].map(({ key, label }) => (
           <button key={key} className={`col-vis-btn ${cv(key) ? 'col-vis-btn--visible' : ''}`}
                   onClick={() => toggleCol(key)} title={`${cv(key) ? 'Hide' : 'Show'} ${label}`}>
@@ -378,8 +349,6 @@ export default function TopicsView({
                   <SortTh colKey="status"  className="study-cell--status">Status</SortTh>
                   {cv('score')        && <SortTh colKey="score"   style={{ width: 160 }}>Score</SortTh>}
                   {cv('due')          && <SortTh colKey="due"     style={{ width: 170 }}>Due</SortTh>}
-                  {revisionTechniques.length > 0 && cv('lastRevision') && <th style={{ width: 140 }} title="Technique used last time">Last Revision</th>}
-                  {revisionTechniques.length > 0 && cv('nextRevision') && <th style={{ width: 140 }} title="Technique planned for next session">Next Revision</th>}
                   <th className="study-cell--resources">Resources</th>
                   {cv('updated')      && <SortTh colKey="updated" className="study-cell--updated">Updated</SortTh>}
                   <th style={{ width: 36 }}></th>
@@ -440,26 +409,6 @@ export default function TopicsView({
                           )}
                         </td>
                       )}
-                      {revisionTechniques.length > 0 && cv('lastRevision') && (
-                        <td className="study-cell" style={{ width: 140 }}>
-                          <RevisionSelect
-                            topicId={topic.id} field="lastRevTechnique"
-                            value={getRevisionTechnique?.(topic.id, 'lastRevTechnique')}
-                            techniques={revisionTechniques}
-                            onSet={setRevisionTechnique ?? (() => {})}
-                          />
-                        </td>
-                      )}
-                      {revisionTechniques.length > 0 && cv('nextRevision') && (
-                        <td className="study-cell" style={{ width: 140 }}>
-                          <RevisionSelect
-                            topicId={topic.id} field="nextRevTechnique"
-                            value={getRevisionTechnique?.(topic.id, 'nextRevTechnique')}
-                            techniques={revisionTechniques}
-                            onSet={setRevisionTechnique ?? (() => {})}
-                          />
-                        </td>
-                      )}
                       <td className="study-cell study-cell--resources">
                         <ResourceTooltip resources={topic.resources} topicName={topic.name}
                                          onEdit={(e) => { e?.stopPropagation?.(); setEditTarget(topic) }} />
@@ -488,7 +437,7 @@ export default function TopicsView({
                         id={topic.id}
                         notes={topic.notes}
                         onSave={(n) => updateTopicNotes(topic.id, n)}
-                        colSpan={3 + [cv('score'), cv('due'), revisionTechniques.length > 0 && cv('lastRevision'), revisionTechniques.length > 0 && cv('nextRevision'), cv('updated')].filter(Boolean).length + 2}
+                        colSpan={3 + [cv('score'), cv('due'), cv('updated')].filter(Boolean).length + 2}
                         onClose={() => setExpandedId(null)}
                       />
                     ),

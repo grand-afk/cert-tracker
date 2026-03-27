@@ -6,6 +6,38 @@ import EditResourceModal from './EditResourceModal'
 
 const PAGE_SIZE = 20
 
+// ── RevisionSelect ────────────────────────────────────────────────────────────
+function RevisionSelect({ topicId, field, value, techniques, onSet }) {
+  const activeOptions = techniques.filter((t) => t.active)
+  // Include the stored value even if its technique was disabled, so it still shows
+  const storedTech = value ? techniques.find((t) => t.id === value) : null
+  const options = storedTech && !storedTech.active
+    ? [storedTech, ...activeOptions]
+    : activeOptions
+  return (
+    <div className="rev-select-wrap">
+      <select
+        className={`rev-select${value ? ' rev-select--set' : ''}`}
+        value={value ?? ''}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => { e.stopPropagation(); onSet(topicId, field, e.target.value || null) }}
+      >
+        <option value="">—</option>
+        {options.map((t) => (
+          <option key={t.id} value={t.id}>{t.name}</option>
+        ))}
+      </select>
+      {storedTech && (
+        <button
+          className="rev-info-btn"
+          title={`${storedTech.name}\n\nMethod: ${storedTech.method}\n\nWhy: ${storedTech.rationale}`}
+          onClick={(e) => e.stopPropagation()}
+        >ℹ</button>
+      )}
+    </div>
+  )
+}
+
 function NotesRow({ id, notes, onSave, colSpan }) {
   const [val, setVal] = useState(notes ?? '')
   const dirty = val !== (notes ?? '')
@@ -43,6 +75,9 @@ export default function StudyView({
   updateTopicResources,
   updateTopicNotes,
   searchQuery,
+  revisionTechniques = [],
+  getRevisionTechnique,
+  setRevisionTechnique,
 }) {
   const [ratedIds, setRatedIds]     = useState({})
   const [editTarget, setEditTarget] = useState(null)
@@ -187,6 +222,12 @@ export default function StudyView({
                   <SortTh colKey="topic">Topic</SortTh>
                   <SortTh colKey="due" style={{ width: 110 }}>Due</SortTh>
                   <SortTh colKey="rate" style={{ width: 260 }}>Rate</SortTh>
+                  {revisionTechniques.length > 0 && (
+                    <th style={{ width: 120, whiteSpace: 'normal', textAlign: 'center' }} title="Technique used last time">Last<br/>Revision</th>
+                  )}
+                  {revisionTechniques.length > 0 && (
+                    <th style={{ width: 120, whiteSpace: 'normal', textAlign: 'center' }} title="Technique planned for next session">Next<br/>Revision</th>
+                  )}
                   <th className="study-cell--resources">Resources</th>
                 </tr>
               </thead>
@@ -234,6 +275,22 @@ export default function StudyView({
                           )}
                         </div>
                       </td>
+                      {revisionTechniques.length > 0 && (
+                        <td className="study-cell" style={{ width: 120 }}>
+                          <RevisionSelect topicId={topic.id} field="lastRevTechnique"
+                            value={getRevisionTechnique?.(topic.id, 'lastRevTechnique')}
+                            techniques={revisionTechniques}
+                            onSet={setRevisionTechnique ?? (() => {})} />
+                        </td>
+                      )}
+                      {revisionTechniques.length > 0 && (
+                        <td className="study-cell" style={{ width: 120 }}>
+                          <RevisionSelect topicId={topic.id} field="nextRevTechnique"
+                            value={getRevisionTechnique?.(topic.id, 'nextRevTechnique')}
+                            techniques={revisionTechniques}
+                            onSet={setRevisionTechnique ?? (() => {})} />
+                        </td>
+                      )}
                       <td className="study-cell study-cell--resources">
                         <ResourceTooltip
                           resources={topic.resources}
@@ -248,7 +305,7 @@ export default function StudyView({
                         id={topic.id}
                         notes={topic.notes}
                         onSave={(n) => updateTopicNotes(topic.id, n)}
-                        colSpan={5}
+                        colSpan={5 + (revisionTechniques.length > 0 ? 2 : 0)}
                       />
                     ),
                   ]

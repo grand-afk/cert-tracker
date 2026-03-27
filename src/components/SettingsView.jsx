@@ -127,6 +127,9 @@ export default function SettingsView({
   // Sync metadata
   lastSaved, lastExported, lastImported, syncFilePath,
   stampLastExported, stampLastImported, setSyncFilePath,
+  // Revision techniques
+  techniques = [], toggleTechniqueActive, exportTechniques, importTechniques,
+  resetTechniquesToDefaults, techniquesLastImported,
 }) {
   const [importText, setImportText]       = useState('')
   const [importError, setImportError]     = useState('')
@@ -609,6 +612,67 @@ export default function SettingsView({
             📂 Import JSON
             <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleFullImportFile} />
           </label>
+        </div>
+      </div>
+
+      {/* Revision Techniques */}
+      <div className="settings-section">
+        <div className="settings-section-title">Revision Techniques</div>
+        <div className="settings-hint" style={{ padding: '0 16px 12px', color: 'var(--text-muted)', fontSize: 13 }}>
+          Configure the evidence-based study techniques available in the Study view. Toggle techniques on/off to control what appears in the Last/Next Revision dropdowns. Download or upload the list to customise or share between devices.
+        </div>
+        <div style={{ padding: '0 16px 8px' }}>
+          {techniques.map((t) => (
+            <div key={t.id} className="settings-row" style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+              <div>
+                <div className="settings-label" style={{ marginBottom: 2 }}>{t.name}</div>
+                <div className="settings-hint" style={{ fontSize: 11 }}>{t.method.slice(0, 80)}…</div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
+                <input type="checkbox" checked={t.active}
+                       onChange={() => toggleTechniqueActive?.(t.id)} />
+                Active
+              </label>
+            </div>
+          ))}
+        </div>
+        <div className="settings-row" style={{ marginTop: 8 }}>
+          <div>
+            <div className="settings-label">Export Techniques</div>
+            <div className="settings-hint">Download your techniques list as JSON for editing or backup</div>
+          </div>
+          <button className="btn btn-secondary btn-sm" onClick={exportTechniques}>⬇ Export JSON</button>
+        </div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Import Techniques</div>
+            <div className="settings-hint">
+              Load a customised techniques JSON file
+              {techniquesLastImported && (
+                <span className="sync-timestamp" style={{ marginLeft: 8 }}>
+                  Last imported: {fmtTimestamp(techniquesLastImported)}
+                </span>
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
+              📂 Import JSON
+              <input type="file" accept=".json" style={{ display: 'none' }} onChange={(e) => {
+                const file = e.target.files[0]; if (!file) return
+                const reader = new FileReader()
+                reader.onload = (ev) => {
+                  try { importTechniques?.(ev.target.result); flash(setImportSuccess, 'Techniques imported!') }
+                  catch (err) { flash(setImportError, `Import error: ${err.message}`) }
+                }
+                reader.readAsText(file); e.target.value = ''
+              }} />
+            </label>
+            <button className="btn btn-secondary btn-sm"
+                    onClick={() => { if (window.confirm('Reset techniques to defaults?')) resetTechniquesToDefaults?.() }}>
+              Reset
+            </button>
+          </div>
         </div>
       </div>
 

@@ -219,14 +219,15 @@ describe('StudyView', () => {
     it('shows Last Revision and Next Revision columns when techniques are provided', () => {
       render(<StudyView {...defaultProps} revisionTechniques={TECHNIQUES}
                getRevisionTechnique={() => null} setRevisionTechnique={noop} />)
-      expect(screen.getByText('Last Revision')).toBeInTheDocument()
-      expect(screen.getByText('Next Revision')).toBeInTheDocument()
+      // Headers use <br/> so match by title attribute on the <th>
+      expect(document.querySelector('th[title="Technique used last time"]')).toBeInTheDocument()
+      expect(document.querySelector('th[title="Technique planned for next session"]')).toBeInTheDocument()
     })
 
     it('does not show revision columns when no techniques are provided', () => {
       render(<StudyView {...defaultProps} />)
-      expect(screen.queryByText('Last Revision')).not.toBeInTheDocument()
-      expect(screen.queryByText('Next Revision')).not.toBeInTheDocument()
+      expect(document.querySelector('th[title="Technique used last time"]')).not.toBeInTheDocument()
+      expect(document.querySelector('th[title="Technique planned for next session"]')).not.toBeInTheDocument()
     })
 
     it('renders a technique dropdown per row when techniques are provided', () => {

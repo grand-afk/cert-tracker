@@ -318,9 +318,6 @@ export default function App() {
             deleteTopic={deleteTopicH}
             clearRating={clearRatingH}
             searchQuery={searchQuery}
-            revisionTechniques={revisionTechniques}
-            getRevisionTechnique={getRevisionTechnique}
-            setRevisionTechnique={setRevisionTechnique}
           />
         )}
 

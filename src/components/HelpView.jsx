@@ -1,3 +1,5 @@
+import { DEFAULT_TECHNIQUES as TECHNIQUES } from '../hooks/useRevisionTechniques'
+
 export default function HelpView() {
   return (
     <div className="help-view">
@@ -117,6 +119,36 @@ export default function HelpView() {
           <p>
             <strong>Set Your Target:</strong> In Settings, set your exam target date. The progress banner will count down the days and show your overall completion percentage.
           </p>
+        </div>
+      </div>
+
+      {/* Revision Techniques Section */}
+      <div className="help-section">
+        <h2 className="help-section-title">🧠 Revision Techniques</h2>
+        <div className="help-text">
+          <p>
+            Use these evidence-based techniques when studying topics. Select a technique via the <strong>Last Revision</strong> and <strong>Next Revision</strong> columns in the Study view. Enable or disable individual techniques in Settings → Revision Techniques.
+          </p>
+        </div>
+        <div className="rev-techniques-table-wrap">
+          <table className="rev-techniques-table">
+            <thead>
+              <tr>
+                <th>Technique</th>
+                <th>Method</th>
+                <th>Why it works</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TECHNIQUES.map((t) => (
+                <tr key={t.id}>
+                  <td className="rev-tech-name">{t.name}</td>
+                  <td>{t.method}</td>
+                  <td>{t.rationale}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
