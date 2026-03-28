@@ -1,0 +1,115 @@
+import { useState, useCallback } from 'react'
+
+const CERTS_KEY   = 'certTracker_certs'
+const ACTIVE_KEY  = 'certTracker_activeCert'
+
+function genId() {
+  return `cert-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+}
+
+function loadCerts() {
+  try {
+    const raw = localStorage.getItem(CERTS_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return null
+}
+
+function saveCerts(data) {
+  try { localStorage.setItem(CERTS_KEY, JSON.stringify(data)) } catch {}
+}
+
+function loadActiveId() {
+  try { return localStorage.getItem(ACTIVE_KEY) || 'default' } catch { return 'default' }
+}
+
+function saveActiveId(id) {
+  try { localStorage.setItem(ACTIVE_KEY, id) } catch {}
+}
+
+// ── One-time migration: move old un-namespaced keys into the 'default' namespace ──
+export function migrateToNamespace() {
+  const OLD_MAP = {
+    'certTracker_certData':             'certTracker_default_certData',
+    'certTracker_progress':             'certTracker_default_progress',
+    'certTracker_settings':             'certTracker_default_settings',
+    'certTracker_calendar':             'certTracker_default_calendar',
+    'certTracker_revisionTechniques':   'certTracker_default_revisionTechniques',
+    'certTracker_revTechLastImported':  'certTracker_default_revTechLastImported',
+  }
+  let migrated = false
+  Object.entries(OLD_MAP).forEach(([oldKey, newKey]) => {
+    try {
+      const oldVal = localStorage.getItem(oldKey)
+      const newVal = localStorage.getItem(newKey)
+      if (oldVal && !newVal) {
+        localStorage.setItem(newKey, oldVal)
+        migrated = true
+      }
+    } catch {}
+  })
+  // Ensure the certs registry exists after migration
+  if (!localStorage.getItem(CERTS_KEY)) {
+    const defaultCert = { id: 'default', name: 'My Certification', emoji: '🎓', createdAt: new Date().toISOString() }
+    saveCerts([defaultCert])
+  }
+  return migrated
+}
+
+export function useCerts() {
+  const [certs, setCertsState] = useState(() => {
+    const stored = loadCerts()
+    if (stored) return stored
+    // First ever load — ensure default cert entry exists
+    const defaults = [{ id: 'default', name: 'My Certification', emoji: '🎓', createdAt: new Date().toISOString() }]
+    saveCerts(defaults)
+    return defaults
+  })
+
+  const [activeCertId, setActiveCertIdState] = useState(loadActiveId)
+
+  const setCerts = useCallback((data) => {
+    setCertsState(data)
+    saveCerts(data)
+  }, [])
+
+  const switchCert = useCallback((id) => {
+    setActiveCertIdState(id)
+    saveActiveId(id)
+  }, [])
+
+  const addCert = useCallback((name, emoji = '🎓') => {
+    const id = genId()
+    const cert = { id, name, emoji, createdAt: new Date().toISOString() }
+    setCerts((prev) => {
+      const next = [...prev, cert]
+      saveCerts(next)
+      return next
+    })
+    return id
+  }, [setCerts])
+
+  const renameCert = useCallback((id, name, emoji) => {
+    setCerts((prev) => {
+      const next = prev.map((c) => c.id === id ? { ...c, name, ...(emoji ? { emoji } : {}) } : c)
+      saveCerts(next)
+      return next
+    })
+  }, [setCerts])
+
+  const deleteCert = useCallback((id, currentActiveCertId, switchFn) => {
+    setCerts((prev) => {
+      if (prev.length <= 1) return prev  // can't delete last
+      const next = prev.filter((c) => c.id !== id)
+      saveCerts(next)
+      if (currentActiveCertId === id) switchFn(next[0].id)
+      return next
+    })
+  }, [setCerts])
+
+  // Guard: if activeCertId no longer in list (e.g. after delete), fall back
+  const activeCert = certs.find((c) => c.id === activeCertId) ?? certs[0]
+  const safeActiveId = activeCert?.id ?? 'default'
+
+  return { certs, activeCertId: safeActiveId, activeCert, addCert, renameCert, deleteCert, switchCert }
+}

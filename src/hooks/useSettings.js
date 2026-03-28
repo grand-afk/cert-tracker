@@ -1,7 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
 
-const STORAGE_KEY = 'certTracker_settings'
-
 const DEFAULTS = {
   darkMode: true,
   selectedCourses: [],  // empty = show all
@@ -17,28 +15,30 @@ const DEFAULTS = {
   syncFilePath: '',    // user memo — where they keep their sync file
 }
 
-function load() {
+function storageKey(ns) { return `certTracker_${ns}_settings` }
+
+function load(ns) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey(ns))
     if (raw) return { ...DEFAULTS, ...JSON.parse(raw) }
   } catch {}
   return DEFAULTS
 }
 
-function save(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+function save(ns, data) {
+  try { localStorage.setItem(storageKey(ns), JSON.stringify(data)) } catch {}
 }
 
-export function useSettings() {
-  const [settings, setSettingsRaw] = useState(load)
+export function useSettings(namespace = 'default') {
+  const [settings, setSettingsRaw] = useState(() => load(namespace))
 
   const setSettings = useCallback((updater) => {
     setSettingsRaw((prev) => {
       const next = typeof updater === 'function' ? updater(prev) : updater
-      save(next)
+      save(namespace, next)
       return next
     })
-  }, [])
+  }, [namespace])
 
   const { darkMode, selectedCourses, workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins } = settings
 

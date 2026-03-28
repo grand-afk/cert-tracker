@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import ResourceTooltip from './ResourceTooltip'
 import EditResourceModal from './EditResourceModal'
 import AddTopicModal from './AddTopicModal'
+import SyncBar from './SyncBar'
 import { relativeTime, fmtDisplayDate } from '../utils/relativeTime'
 
 const PAGE_SIZE = 15
@@ -209,6 +210,7 @@ export default function TopicsView({
   addTopic, deleteTopic,
   clearRating,
   searchQuery,
+  syncProps,
 }) {
   const [page, setPage]         = useState(1)
   const [sort, setSort]         = useState({ key: null, dir: 'asc' })
@@ -316,6 +318,8 @@ export default function TopicsView({
           <button className="btn btn-secondary btn-sm" onClick={() => setShowAdd(true)}>＋ Add Topic</button>
         </div>
       </div>
+
+      {syncProps && <SyncBar {...syncProps} />}
 
       {/* Column visibility toggles */}
       <div className="col-vis-bar">

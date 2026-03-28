@@ -77,6 +77,74 @@ body {
   font-weight: 400;
 }
 
+/* Cert switcher button */
+.cert-switcher-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  transition: background 0.15s, border-color 0.15s;
+  max-width: 280px;
+}
+.cert-switcher-btn:hover { background: var(--hover); border-color: var(--accent); }
+.cert-switcher-emoji { font-size: 16px; }
+.cert-switcher-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+.cert-switcher-count {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  line-height: 1.4;
+}
+.cert-switcher-arrow { font-size: 10px; opacity: 0.6; }
+
+/* Cert manager modal list items */
+.cert-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  transition: background 0.12s, border-color 0.12s;
+}
+.cert-list-item:hover { background: var(--hover); border-color: var(--accent); }
+.cert-list-item--active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+.btn-icon {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 7px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: background 0.12s;
+}
+.btn-icon:hover { background: var(--hover); color: var(--text); }
+.btn-icon--danger:hover { background: color-mix(in srgb, #EA4335 15%, transparent); color: #EA4335; border-color: #EA4335; }
+
+.btn-sm { padding: 3px 10px; font-size: 12px; }
+
 .topbar-row2 {
   display: flex;
   align-items: center;
@@ -1784,6 +1852,93 @@ body {
   line-height: 1;
 }
 .rev-info-btn:hover { opacity: 0.75; }
+
+/* ── Sync bar ────────────────────────────────────────────────────── */
+.sync-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 5px 10px;
+  margin-bottom: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.sync-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.12s, border-color 0.12s;
+}
+.sync-btn:hover:not(:disabled) { background: var(--hover); border-color: var(--accent); }
+.sync-btn:disabled { opacity: 0.5; cursor: default; }
+.sync-btn--save:hover:not(:disabled) { border-color: #34A853; background: color-mix(in srgb, #34A853 12%, transparent); }
+.sync-btn--load:hover:not(:disabled) { border-color: #4285F4; background: color-mix(in srgb, #4285F4 12%, transparent); }
+.sync-btn--busy { opacity: 0.7; }
+
+.sync-path-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.sync-bar-stamps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.sync-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: help;
+  white-space: nowrap;
+}
+.sync-stamp-icon { font-size: 10px; opacity: 0.7; }
+.sync-stamp--saved   .sync-stamp-icon { color: var(--text-muted); }
+.sync-stamp--exported .sync-stamp-icon { color: #34A853; }
+.sync-stamp--imported .sync-stamp-icon { color: #4285F4; }
+
+.sync-flash {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  animation: syncFlashIn 0.15s ease;
+}
+.sync-flash--ok  { color: #34A853; background: color-mix(in srgb, #34A853 15%, transparent); }
+.sync-flash--err { color: #EA4335; background: color-mix(in srgb, #EA4335 15%, transparent); }
+
+@keyframes syncFlashIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
 
 /* ── Column visibility toggle bar ───────────────────────────────── */
 .col-vis-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }

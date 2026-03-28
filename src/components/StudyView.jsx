@@ -3,6 +3,7 @@ import { daysUntilDue, dueLabel, isDue } from '../utils/sm2'
 import RateButtons from './RateButtons'
 import ResourceTooltip from './ResourceTooltip'
 import EditResourceModal from './EditResourceModal'
+import SyncBar from './SyncBar'
 
 const PAGE_SIZE = 20
 
@@ -98,6 +99,7 @@ export default function StudyView({
   revisionTechniques = [],
   getRevisionTechnique,
   setRevisionTechnique,
+  syncProps,
 }) {
   const [ratedIds, setRatedIds]     = useState({})
   const [editTarget, setEditTarget] = useState(null)
@@ -222,6 +224,8 @@ export default function StudyView({
           </button>
         </div>
       </div>
+
+      {syncProps && <SyncBar {...syncProps} />}
 
       {displayed.length === 0 ? (
         <div className="empty-state">

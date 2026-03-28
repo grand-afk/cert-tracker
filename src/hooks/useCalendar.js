@@ -1,30 +1,30 @@
 import { useState, useCallback } from 'react'
 import { daysUntilDue } from '../utils/sm2'
 
-const STORAGE_KEY = 'certTracker_calendar'
+function storageKey(ns) { return `certTracker_${ns}_calendar` }
 
-function load() {
+function load(ns) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey(ns))
     if (raw) return JSON.parse(raw)
   } catch {}
   return {}
 }
 
-function save(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+function save(ns, data) {
+  try { localStorage.setItem(storageKey(ns), JSON.stringify(data)) } catch {}
 }
 
-export function useCalendar() {
-  const [calendar, setCalendarRaw] = useState(load)
+export function useCalendar(namespace = 'default') {
+  const [calendar, setCalendarRaw] = useState(() => load(namespace))
 
   const setCalendar = useCallback((updater) => {
     setCalendarRaw((prev) => {
       const next = typeof updater === 'function' ? updater(prev) : updater
-      save(next)
+      save(namespace, next)
       return next
     })
-  }, [])
+  }, [namespace])
 
   const getDay = useCallback((date) => {
     const key = date instanceof Date ? date.toISOString().split('T')[0] : date

@@ -21,7 +21,7 @@ describe('useProgress', () => {
 
     it('returns stored status for a known id', () => {
       localStorage.setItem(
-        'certTracker_progress',
+        'certTracker_default_progress',
         JSON.stringify({ 'gke-autopilot': { status: 'in-progress', lastUpdated: '2026-01-01T00:00:00.000Z' } })
       )
       const { result } = renderHook(() => useProgress())
@@ -61,7 +61,7 @@ describe('useProgress', () => {
     it('persists to localStorage after cycling', () => {
       const { result } = renderHook(() => useProgress())
       act(() => { result.current.cycleStatus('topic-1') })
-      const stored = JSON.parse(localStorage.getItem('certTracker_progress'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_progress'))
       expect(stored['topic-1'].status).toBe('in-progress')
     })
   })
@@ -229,7 +229,7 @@ describe('useProgress', () => {
     it('persists SM-2 data to localStorage', () => {
       const { result } = renderHook(() => useProgress())
       act(() => { result.current.rateCard('t1', 4) })
-      const stored = JSON.parse(localStorage.getItem('certTracker_progress'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_progress'))
       expect(stored['t1'].sm2).toBeDefined()
       expect(stored['t1'].sm2.repetitions).toBe(1)
     })
@@ -263,7 +263,7 @@ describe('useProgress', () => {
     it('persists test score to localStorage', () => {
       const { result } = renderHook(() => useProgress())
       act(() => { result.current.setTestScore('topic-y', 72, '2026-02-15') })
-      const stored = JSON.parse(localStorage.getItem('certTracker_progress'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_progress'))
       expect(stored['topic-y'].testScore).toBe(72)
       expect(stored['topic-y'].testDate).toBe('2026-02-15')
     })
@@ -315,7 +315,7 @@ describe('useProgress', () => {
     it('persists revision technique to localStorage', () => {
       const { result } = renderHook(() => useProgress())
       act(() => { result.current.setRevisionTechnique('t2', 'nextRevTechnique', 'dual-coding') })
-      const stored = JSON.parse(localStorage.getItem('certTracker_progress'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_progress'))
       expect(stored['t2'].nextRevTechnique).toBe('dual-coding')
     })
 

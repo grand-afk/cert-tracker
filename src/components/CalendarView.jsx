@@ -243,13 +243,21 @@ const SlotCard = memo(function SlotCard({
         e.dataTransfer.effectAllowed = 'move'
       }}
       onDragEnd={() => { /* dragRef cleared in drop handler */ }}
-      onMouseEnter={(e) => setTooltip({ slot, topic, card, x: e.clientX, y: e.clientY })}
-      onMouseLeave={() => setTooltip(null)}
+      onMouseEnter={(e) => setTooltip({ slot, topic, card, x: e.clientX, y: e.clientY, isMilestone: false })}
+      onMouseLeave={(e) => {
+        // Keep tooltip open if triggered by tap (pointer type touch)
+        if (e.pointerType !== 'touch') setTooltip(null)
+      }}
       onClick={(e) => {
         if (e.target.closest('.cal-slot__resize-top,.cal-slot__resize-bottom,.cal-slot__remove')) return
-        // Single click = select/highlight
+        // Toggle tooltip on tap (mobile) — desktop tooltip already handled by hover
+        if (tooltip?.slot?.id === slot.id) {
+          setTooltip(null)
+        } else {
+          const rect = e.currentTarget.getBoundingClientRect()
+          setTooltip({ slot, topic, card, x: rect.right + 8, y: rect.top, isMilestone: false })
+        }
         setSelectedSlot(isSelected ? null : { dateKey: dk, slotId: slot.id })
-        setTooltip(null)
       }}
       onDoubleClick={(e) => {
         e.stopPropagation()
@@ -731,7 +739,15 @@ export default function CalendarView({
     return (
       <div className="cal-allday-strip">
         {allDay.map((m, i) => (
-          <span key={i} className="cal-allday-badge" style={{ background: m.color + '33', borderLeft: `3px solid ${m.color}`, color: m.color }}>
+          <span key={i} className="cal-allday-badge"
+                style={{ background: m.color + '33', borderLeft: `3px solid ${m.color}`, color: m.color }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (tooltip?.isMilestone && tooltip?.label === m.label && tooltip?.dateKey === dateKey)
+                    setTooltip(null)
+                  else
+                    setTooltip({ isMilestone: true, label: m.label, dateKey, x: e.clientX, y: e.clientY })
+                }}>
             {m.label}
           </span>
         ))}
@@ -783,7 +799,13 @@ export default function CalendarView({
               return (
                 <div key={i} className="cal-milestone-card"
                      style={{ top: topMins * PX, borderLeft: `3px solid ${m.color}` }}
-                     title={`${m.time} — ${m.label}`}>
+                     title={`${m.time} — ${m.label}`}
+                     onClick={(e) => {
+                       e.stopPropagation()
+                       const id = `ms-${key}-${i}`
+                       if (tooltip?.isMilestone && tooltip?.msId === id) setTooltip(null)
+                       else setTooltip({ isMilestone: true, label: `${m.time} — ${m.label}`, dateKey: key, msId: id, x: e.clientX, y: e.clientY })
+                     }}>
                   {m.time} {m.label}
                 </div>
               )
@@ -946,24 +968,39 @@ export default function CalendarView({
   return (
     <div className="calendar-view">
 
-      {/* Hover tooltip */}
+      {/* Hover / tap tooltip */}
       {tooltip && (
-        <div className="cal-tooltip" style={{ left: tooltip.x + 14, top: tooltip.y - 10 }}>
-          <div className="cal-tooltip__title">{tooltip.topic.name}</div>
-          <div className="cal-tooltip__course">
-            <span className="course-badge__dot" style={{ background: tooltip.topic.courseColor }} />
-            {tooltip.topic.courseName}
-          </div>
-          <div className="cal-tooltip__meta">
-            {tooltip.slot.startTime} · {tooltip.slot.durationMins} min
-            {tooltip.card?.lastQuality != null && ` · Last: ${{ 0:'Again',3:'Hard',4:'Good',5:'Easy' }[tooltip.card.lastQuality]}`}
-          </div>
-          {tooltip.topic.notes && (
-            <div className="cal-tooltip__notes">
-              {tooltip.topic.notes.slice(0, 80)}{tooltip.topic.notes.length > 80 ? '…' : ''}
-            </div>
+        <div className="cal-tooltip"
+             style={{
+               left: Math.min(tooltip.x + 14, window.innerWidth - 240),
+               top:  Math.max(10, Math.min(tooltip.y - 10, window.innerHeight - 200)),
+             }}
+             onMouseLeave={() => setTooltip(null)}>
+          <button className="cal-tooltip__close" onClick={() => setTooltip(null)} title="Close">✕</button>
+          {tooltip.isMilestone ? (
+            <>
+              <div className="cal-tooltip__title">{tooltip.label}</div>
+              <div className="cal-tooltip__meta">{tooltip.dateKey}</div>
+            </>
+          ) : (
+            <>
+              <div className="cal-tooltip__title">{tooltip.topic.name}</div>
+              <div className="cal-tooltip__course">
+                <span className="course-badge__dot" style={{ background: tooltip.topic.courseColor }} />
+                {tooltip.topic.courseName}
+              </div>
+              <div className="cal-tooltip__meta">
+                {tooltip.slot.startTime} · {tooltip.slot.durationMins} min
+                {tooltip.card?.lastQuality != null && ` · Last: ${{ 0:'Again',3:'Hard',4:'Good',5:'Easy' }[tooltip.card.lastQuality]}`}
+              </div>
+              {tooltip.topic.notes && (
+                <div className="cal-tooltip__notes">
+                  {tooltip.topic.notes.slice(0, 80)}{tooltip.topic.notes.length > 80 ? '…' : ''}
+                </div>
+              )}
+              <div className="cal-tooltip__hint">Tap again to close · Double-tap to edit</div>
+            </>
           )}
-          <div className="cal-tooltip__hint">Click to select · Double-click to edit · Delete to remove</div>
         </div>
       )}
 

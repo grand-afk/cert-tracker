@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 
-const STORAGE_KEY = 'certTracker_revisionTechniques'
+function storageKey(ns) { return `certTracker_${ns}_revisionTechniques` }
+function lastImportedKey(ns) { return `certTracker_${ns}_revTechLastImported` }
 
 export const DEFAULT_TECHNIQUES = [
   {
@@ -47,36 +48,36 @@ export const DEFAULT_TECHNIQUES = [
   },
 ]
 
-function load() {
+function load(ns) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey(ns))
     if (raw) return JSON.parse(raw)
   } catch {}
   return null
 }
 
-function persist(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+function persist(ns, data) {
+  try { localStorage.setItem(storageKey(ns), JSON.stringify(data)) } catch {}
 }
 
-export function useRevisionTechniques() {
-  const [techniques, setTechniquesRaw] = useState(() => load() || DEFAULT_TECHNIQUES)
+export function useRevisionTechniques(namespace = 'default') {
+  const [techniques, setTechniquesRaw] = useState(() => load(namespace) || DEFAULT_TECHNIQUES)
   const [lastImported, setLastImported] = useState(() => {
-    try { return localStorage.getItem('certTracker_revTechLastImported') || null } catch { return null }
+    try { return localStorage.getItem(lastImportedKey(namespace)) || null } catch { return null }
   })
 
   const setTechniques = useCallback((data) => {
     setTechniquesRaw(data)
-    persist(data)
-  }, [])
+    persist(namespace, data)
+  }, [namespace])
 
   const toggleActive = useCallback((id) => {
     setTechniquesRaw((prev) => {
       const next = prev.map((t) => t.id === id ? { ...t, active: !t.active } : t)
-      persist(next)
+      persist(namespace, next)
       return next
     })
-  }, [])
+  }, [namespace])
 
   const exportTechniques = useCallback(() => {
     const bundle = { _type: 'cert-tracker-techniques', version: 1, exportedAt: new Date().toISOString(), techniques }
@@ -96,8 +97,8 @@ export function useRevisionTechniques() {
     setTechniques(data)
     const ts = new Date().toISOString()
     setLastImported(ts)
-    try { localStorage.setItem('certTracker_revTechLastImported', ts) } catch {}
-  }, [setTechniques])
+    try { localStorage.setItem(lastImportedKey(namespace), ts) } catch {}
+  }, [namespace, setTechniques])
 
   const resetToDefaults = useCallback(() => {
     setTechniques(DEFAULT_TECHNIQUES)

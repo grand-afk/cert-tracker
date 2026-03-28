@@ -1,32 +1,32 @@
 import { useState, useCallback } from 'react'
 import sampleData from '../data/sample.json'
 
-const STORAGE_KEY = 'certTracker_certData'
-
 const EMPTY_RESOURCES = { courseContent: '', video: '', anki: '', testLink: '' }
 
-function load() {
+function storageKey(ns) { return `certTracker_${ns}_certData` }
+
+function load(ns) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey(ns))
     if (raw) return JSON.parse(raw)
   } catch {}
   return sampleData
 }
 
-function save(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+function save(ns, data) {
+  try { localStorage.setItem(storageKey(ns), JSON.stringify(data)) } catch {}
 }
 
-export function useCertData() {
-  const [certData, setCertDataRaw] = useState(load)
+export function useCertData(namespace = 'default') {
+  const [certData, setCertDataRaw] = useState(() => load(namespace))
 
   const setCertData = useCallback((updater) => {
     setCertDataRaw((prev) => {
       const next = typeof updater === 'function' ? updater(prev) : updater
-      save(next)
+      save(namespace, next)
       return next
     })
-  }, [])
+  }, [namespace])
 
   const setCertName   = useCallback((name) => setCertData((d) => ({ ...d, certName: name })), [setCertData])
   const setTargetDate = useCallback((date) => setCertData((d) => ({ ...d, targetDate: date })), [setCertData])

@@ -5,6 +5,7 @@ import { useSettings }             from './hooks/useSettings'
 import { useCalendar }             from './hooks/useCalendar'
 import { useHistory }              from './hooks/useHistory'
 import { useRevisionTechniques }   from './hooks/useRevisionTechniques'
+import { useCerts, migrateToNamespace } from './hooks/useCerts'
 import TopBar           from './components/TopBar'
 import BottomNav        from './components/BottomNav'
 import ProgressBanner   from './components/ProgressBanner'
@@ -14,21 +15,119 @@ import StudyView        from './components/StudyView'
 import CalendarView     from './components/CalendarView'
 import HelpView         from './components/HelpView'
 import SettingsView     from './components/SettingsView'
+import sampleDataEngineer from './data/sample-data-engineer.json'
+import sampleCloudArchitect from './data/sample.json'
 
-function RenameCertModal({ current, onSave, onClose }) {
-  const [val, setVal] = useState(current)
+// Run migration once (moves old un-namespaced keys → 'default' namespace)
+migrateToNamespace()
+
+// ── Add / Manage Cert Modal ───────────────────────────────────────────────────
+function CertManagerModal({ certs, activeCertId, onSwitch, onAdd, onRename, onDelete, onClose }) {
+  const [adding, setAdding] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newEmoji, setNewEmoji] = useState('🎓')
+  const [newTemplate, setNewTemplate] = useState('blank')
+  const [renamingId, setRenamingId] = useState(null)
+  const [renameVal, setRenameVal] = useState('')
+  const [renameEmoji, setRenameEmoji] = useState('')
+
+  function handleAdd() {
+    if (!newName.trim()) return
+    const id = onAdd(newName.trim(), newEmoji, newTemplate)
+    onSwitch(id)
+    onClose()
+  }
+
+  function startRename(cert) {
+    setRenamingId(cert.id)
+    setRenameVal(cert.name)
+    setRenameEmoji(cert.emoji || '🎓')
+  }
+
+  function saveRename() {
+    if (renameVal.trim()) onRename(renamingId, renameVal.trim(), renameEmoji)
+    setRenamingId(null)
+  }
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <div className="modal-title">Rename Certification</div>
-        <div className="form-group">
-          <label className="form-label">Cert Name</label>
-          <input className="form-input" value={val} onChange={(e) => setVal(e.target.value)}
-                 onKeyDown={(e) => { if (e.key === 'Enter') { onSave(val); onClose() } }} autoFocus />
+      <div className="modal" style={{ minWidth: 340 }}>
+        <div className="modal-title">My Certifications</div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          {certs.map((cert) => (
+            <div key={cert.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {renamingId === cert.id ? (
+                <>
+                  <input value={renameEmoji} onChange={(e) => setRenameEmoji(e.target.value)}
+                    style={{ width: 40, textAlign: 'center' }} className="form-input" />
+                  <input value={renameVal} onChange={(e) => setRenameVal(e.target.value)}
+                    className="form-input" style={{ flex: 1 }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveRename(); if (e.key === 'Escape') setRenamingId(null) }}
+                    autoFocus />
+                  <button className="btn btn-primary btn-sm" onClick={saveRename}>Save</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setRenamingId(null)}>Cancel</button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className={`cert-list-item${cert.id === activeCertId ? ' cert-list-item--active' : ''}`}
+                    onClick={() => { onSwitch(cert.id); onClose() }}
+                  >
+                    <span>{cert.emoji || '🎓'}</span>
+                    <span style={{ flex: 1, textAlign: 'left' }}>{cert.name}</span>
+                    {cert.id === activeCertId && <span style={{ fontSize: 11, opacity: 0.6 }}>active</span>}
+                  </button>
+                  <button className="btn-icon" title="Rename" onClick={() => startRename(cert)}>✎</button>
+                  {certs.length > 1 && (
+                    <button className="btn-icon btn-icon--danger" title="Delete"
+                      onClick={() => { if (window.confirm(`Delete "${cert.name}"? This cannot be undone.`)) { onDelete(cert.id, activeCertId, onSwitch); onClose() } }}>
+                      🗑
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
         </div>
-        <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={() => { onSave(val); onClose() }}>Save</button>
+
+        {adding ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Add New Certification</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input value={newEmoji} onChange={(e) => setNewEmoji(e.target.value)}
+                style={{ width: 44, textAlign: 'center' }} className="form-input" placeholder="🎓" />
+              <input value={newName} onChange={(e) => setNewName(e.target.value)}
+                className="form-input" style={{ flex: 1 }} placeholder="Certification name…"
+                onKeyDown={(e) => e.key === 'Enter' && handleAdd()} autoFocus />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 12, opacity: 0.7 }}>Start from:</label>
+              {[
+                { value: 'blank', label: '⬜  Blank' },
+                { value: 'cloud-architect', label: '☁️  GCP Cloud Architect (sample)' },
+                { value: 'data-engineer', label: '📊  GCP Data Engineer (sample)' },
+              ].map(({ value, label }) => (
+                <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                  <input type="radio" name="template" value={value}
+                    checked={newTemplate === value} onChange={() => setNewTemplate(value)} />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+              <button className="btn btn-secondary" onClick={() => setAdding(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleAdd} disabled={!newName.trim()}>Add</button>
+            </div>
+          </div>
+        ) : (
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setAdding(true)}>
+            ＋ Add Certification
+          </button>
+        )}
+
+        <div className="modal-footer" style={{ marginTop: 12 }}>
+          <button className="btn btn-secondary" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
@@ -38,11 +137,8 @@ function RenameCertModal({ current, onSave, onClose }) {
 const VIEWS = ['topics', 'study', 'calendar', 'terminology', 'help', 'settings']
 const STATUSES = ['not-started', 'in-progress', 'complete']
 
-export default function App() {
-  const [view, setView]             = useState('topics')
-  const [renamingCert, setRenamingCert] = useState(false)
-  const [searchQuery, setSearchQuery]   = useState('')
-
+// ── CertWorkspace: all data hooks + views for a single cert namespace ─────────
+function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, deleteCert, switchCert, activeCertId, view, setView, searchQuery, setSearchQuery }) {
   const {
     certData, setCertName, setTargetDate,
     updateTopicResources, updateTermResources,
@@ -52,7 +148,7 @@ export default function App() {
     exportData, importData, resetToSample,
     getAllTopics, restoreCertData,
     setTopicDueDate,
-  } = useCertData()
+  } = useCertData(namespace)
 
   const {
     progress,
@@ -64,7 +160,7 @@ export default function App() {
     exportProgress, importProgress, clearAll,
     restoreProgress,
     getRevisionTechnique, setRevisionTechnique,
-  } = useProgress()
+  } = useProgress(namespace)
 
   const {
     darkMode, toggleDarkMode, selectedCourses, toggleCourse, clearSelectedCourses,
@@ -72,9 +168,9 @@ export default function App() {
     setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
     lastSaved, lastExported, lastImported, syncFilePath,
     stampLastSaved, stampLastExported, stampLastImported, setSyncFilePath,
-  } = useSettings()
+  } = useSettings(namespace)
 
-  const { calendar, exportCSV: exportCalendarCSV, importCSV: importCalendarCSV, restoreCalendar } = useCalendar()
+  const { calendar, exportCSV: exportCalendarCSV, importCSV: importCalendarCSV, restoreCalendar } = useCalendar(namespace)
 
   const { push: historyPush, undo, redo, canUndo, canRedo } = useHistory()
 
@@ -85,7 +181,9 @@ export default function App() {
     importTechniques,
     resetToDefaults: resetTechniquesToDefaults,
     lastImported: techniquesLastImported,
-  } = useRevisionTechniques()
+  } = useRevisionTechniques(namespace)
+
+  const [managingCerts, setManagingCerts] = useState(false)
 
   const allTopics  = useMemo(() => getAllTopics(), [getAllTopics])
   const allTopicIds = useMemo(() => allTopics.map((t) => t.id), [allTopics])
@@ -117,6 +215,15 @@ export default function App() {
     })
     return Object.values(byCoure)
   }, [allTopics])
+
+  // Sync bar props — passed to TopicsView and StudyView
+  const syncProps = useMemo(() => ({
+    certData, progress, calendar,
+    importData, importProgress, restoreCalendar,
+    stampLastExported, stampLastImported,
+    lastSaved, lastExported, lastImported, syncFilePath,
+  }), [certData, progress, calendar, importData, importProgress, restoreCalendar,
+       stampLastExported, stampLastImported, lastSaved, lastExported, lastImported, syncFilePath])
 
   // Clear search when changing views
   useEffect(() => { setSearchQuery('') }, [view])
@@ -213,10 +320,24 @@ export default function App() {
     )
   }, [certData, deleteTerm, restoreCertData, historyPush])
 
-  // Calendar undo/redo: CalendarView calls this with its own before/after snapshots
+  // Calendar undo/redo
   const recordCalendarAction = useCallback((undoFn, redoFn, label = 'Calendar') => {
     historyPush(undoFn, redoFn, label)
   }, [historyPush])
+
+  // addCert handler: wire template data
+  const handleAddCert = useCallback((name, emoji, template) => {
+    const id = addCert(name, emoji)
+    // Seed template data after a tick so the new namespace storage key is registered
+    setTimeout(() => {
+      if (template === 'cloud-architect') {
+        try { localStorage.setItem(`certTracker_${id}_certData`, JSON.stringify(sampleCloudArchitect)) } catch {}
+      } else if (template === 'data-engineer') {
+        try { localStorage.setItem(`certTracker_${id}_certData`, JSON.stringify(sampleDataEngineer)) } catch {}
+      }
+    }, 0)
+    return id
+  }, [addCert])
 
   // ── Global keyboard shortcuts ─────────────────────────────────────────────
   useEffect(() => {
@@ -224,7 +345,6 @@ export default function App() {
       const tag = e.target.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
-      // Ctrl+Z = undo, Ctrl+Y = redo
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); undo(); return }
         if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); redo(); return }
@@ -234,38 +354,28 @@ export default function App() {
       if (e.altKey) return
       if (e.key === 'Escape') { clearSelectedCourses(); setSearchQuery(''); return }
 
-      // / key → focus global search
       if (e.key === '/') {
         e.preventDefault()
         window.dispatchEvent(new CustomEvent('focus-search'))
         return
       }
 
-      // N key → open Add modal on current page
       if (e.key === 'n' || e.key === 'N') {
         window.dispatchEvent(new CustomEvent('add-shortcut'))
         return
       }
 
-      // Calendar view shortcuts — handled by CalendarView's own listeners.
-      // D/W/M: dispatch via custom event so CalendarView can handle view-switching.
-      // S/X: CalendarView's keydown handler handles Schedule/Clear directly; return
-      //   early here to prevent S/X from reaching the course-chip shortcut handler
-      //   (the sample data uses S=Storage which would conflict otherwise).
       if (view === 'calendar') {
         if (/^[dDwWmM]$/.test(e.key)) {
           window.dispatchEvent(new CustomEvent('calendar-key', { detail: e.key.toLowerCase() }))
           return
         }
-        // S, X, T are reserved for Schedule / Clear / Today on this view
         if (/^[sSxXtT]$/.test(e.key)) return
       }
 
-      // Bottom nav: 1-6
       const navIdx = parseInt(e.key, 10)
       if (navIdx >= 1 && navIdx <= VIEWS.length) { setView(VIEWS[navIdx - 1]); return }
 
-      // Course chips: letter keys
       if (/^[a-zA-Z]$/.test(e.key)) {
         if (e.key.toUpperCase() === 'A') { clearSelectedCourses(); return }
         const course = certData.courses.find(
@@ -279,16 +389,19 @@ export default function App() {
   }, [certData.courses, toggleCourse, clearSelectedCourses, view, undo, redo])
 
   return (
-    <div className="app">
+    <>
       <TopBar
         certName={certData.certName}
+        certEmoji={activeCert?.emoji || '🎓'}
+        certs={certs}
+        activeCertId={activeCertId}
+        onManageCerts={() => setManagingCerts(true)}
         courses={certData.courses}
         selectedCourses={selectedCourses}
         toggleCourse={toggleCourse}
         clearSelectedCourses={clearSelectedCourses}
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
-        onEditCertName={() => setRenamingCert(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         currentView={view}
@@ -318,6 +431,7 @@ export default function App() {
             deleteTopic={deleteTopicH}
             clearRating={clearRatingH}
             searchQuery={searchQuery}
+            syncProps={syncProps}
           />
         )}
 
@@ -353,6 +467,7 @@ export default function App() {
             revisionTechniques={revisionTechniques}
             getRevisionTechnique={getRevisionTechnique}
             setRevisionTechnique={setRevisionTechnique}
+            syncProps={syncProps}
           />
         )}
 
@@ -438,13 +553,51 @@ export default function App() {
 
       <BottomNav view={view} setView={setView} />
 
-      {renamingCert && (
-        <RenameCertModal
-          current={certData.certName}
-          onSave={setCertName}
-          onClose={() => setRenamingCert(false)}
+      {managingCerts && (
+        <CertManagerModal
+          certs={certs}
+          activeCertId={activeCertId}
+          onSwitch={switchCert}
+          onAdd={handleAddCert}
+          onRename={renameCert}
+          onDelete={deleteCert}
+          onClose={() => setManagingCerts(false)}
         />
       )}
+    </>
+  )
+}
+
+// ── App shell: cert list + active cert routing ────────────────────────────────
+export default function App() {
+  const { certs, activeCertId, activeCert, addCert, renameCert, deleteCert, switchCert } = useCerts()
+  const [view, setView]               = useState('topics')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Reset view to topics when switching certs
+  const handleSwitchCert = useCallback((id) => {
+    switchCert(id)
+    setView('topics')
+    setSearchQuery('')
+  }, [switchCert])
+
+  return (
+    <div className="app">
+      <CertWorkspace
+        key={activeCertId}
+        namespace={activeCertId}
+        activeCert={activeCert}
+        certs={certs}
+        addCert={addCert}
+        renameCert={renameCert}
+        deleteCert={deleteCert}
+        switchCert={handleSwitchCert}
+        activeCertId={activeCertId}
+        view={view}
+        setView={setView}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
     </div>
   )
 }

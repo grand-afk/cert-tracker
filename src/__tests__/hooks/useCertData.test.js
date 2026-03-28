@@ -16,7 +16,7 @@ describe('useCertData', () => {
 
   it('loads persisted data from localStorage', () => {
     const custom = { certName: 'AWS SAA', courses: [], terminology: [], targetDate: '' }
-    localStorage.setItem('certTracker_certData', JSON.stringify(custom))
+    localStorage.setItem('certTracker_default_certData', JSON.stringify(custom))
     const { result } = renderHook(() => useCertData())
     expect(result.current.certData.certName).toBe('AWS SAA')
   })
@@ -32,7 +32,7 @@ describe('useCertData', () => {
     it('persists the cert name to localStorage', () => {
       const { result } = renderHook(() => useCertData())
       act(() => { result.current.setCertName('Azure Fundamentals') })
-      const stored = JSON.parse(localStorage.getItem('certTracker_certData'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_certData'))
       expect(stored.certName).toBe('Azure Fundamentals')
     })
   })
@@ -224,7 +224,7 @@ describe('useCertData', () => {
       const { result } = renderHook(() => useCertData())
       const courseId = sampleData.courses[0].id
       act(() => { result.current.addTopic(courseId, { id: 'gke-persist', name: 'Persist Topic' }) })
-      const stored = JSON.parse(localStorage.getItem('certTracker_certData'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_certData'))
       const course = stored.courses.find((c) => c.id === courseId)
       expect(course.topics.some((t) => t.id === 'gke-persist')).toBe(true)
     })
@@ -297,7 +297,7 @@ describe('useCertData', () => {
       const courseId = sampleData.courses[0].id
       const topicId  = sampleData.courses[0].topics[0].id
       act(() => { result.current.deleteTopic(courseId, topicId) })
-      const stored = JSON.parse(localStorage.getItem('certTracker_certData'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_certData'))
       const course = stored.courses.find((c) => c.id === courseId)
       expect(course.topics.some((t) => t.id === topicId)).toBe(false)
     })
@@ -334,7 +334,7 @@ describe('useCertData', () => {
       const { result } = renderHook(() => useCertData())
       const courseId = sampleData.courses[0].id
       act(() => { result.current.updateCourse(courseId, { key: 'Z' }) })
-      const stored = JSON.parse(localStorage.getItem('certTracker_certData'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_certData'))
       const course = stored.courses.find((c) => c.id === courseId)
       expect(course.key).toBe('Z')
     })
@@ -367,7 +367,7 @@ describe('useCertData', () => {
     it('persists new term to localStorage', () => {
       const { result } = renderHook(() => useCertData())
       act(() => { result.current.addTerm({ id: 'term-persist', term: 'Persist', definition: '', courses: [] }) })
-      const stored = JSON.parse(localStorage.getItem('certTracker_certData'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_certData'))
       expect(stored.terminology.some((t) => t.id === 'term-persist')).toBe(true)
     })
   })
@@ -408,7 +408,7 @@ describe('useCertData', () => {
       const { result } = renderHook(() => useCertData())
       const termId = sampleData.terminology[0].id
       act(() => { result.current.deleteTerm(termId) })
-      const stored = JSON.parse(localStorage.getItem('certTracker_certData'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_certData'))
       expect(stored.terminology.some((t) => t.id === termId)).toBe(false)
     })
   })

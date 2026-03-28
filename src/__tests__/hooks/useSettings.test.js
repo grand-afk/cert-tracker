@@ -17,7 +17,7 @@ describe('useSettings', () => {
 
   it('loads persisted settings from localStorage', () => {
     localStorage.setItem(
-      'certTracker_settings',
+      'certTracker_default_settings',
       JSON.stringify({ darkMode: false, selectedCourses: ['gke', 'iam'] })
     )
     const { result } = renderHook(() => useSettings())
@@ -35,7 +35,7 @@ describe('useSettings', () => {
     })
 
     it('toggles darkMode from false to true', () => {
-      localStorage.setItem('certTracker_settings', JSON.stringify({ darkMode: false, selectedCourses: [] }))
+      localStorage.setItem('certTracker_default_settings', JSON.stringify({ darkMode: false, selectedCourses: [] }))
       const { result } = renderHook(() => useSettings())
       act(() => { result.current.toggleDarkMode() })
       expect(result.current.darkMode).toBe(true)
@@ -57,7 +57,7 @@ describe('useSettings', () => {
     it('persists darkMode to localStorage', () => {
       const { result } = renderHook(() => useSettings())
       act(() => { result.current.toggleDarkMode() })
-      const stored = JSON.parse(localStorage.getItem('certTracker_settings'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_settings'))
       expect(stored.darkMode).toBe(false)
     })
   })
@@ -87,7 +87,7 @@ describe('useSettings', () => {
     it('persists selectedCourses to localStorage', () => {
       const { result } = renderHook(() => useSettings())
       act(() => { result.current.toggleCourse('networking') })
-      const stored = JSON.parse(localStorage.getItem('certTracker_settings'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_settings'))
       expect(stored.selectedCourses).toContain('networking')
     })
   })

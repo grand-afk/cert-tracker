@@ -56,7 +56,7 @@ describe('useRevisionTechniques', () => {
     it('persists toggle state to localStorage', () => {
       const { result } = renderHook(() => useRevisionTechniques())
       act(() => { result.current.toggleActive('feynman') })
-      const stored = JSON.parse(localStorage.getItem('certTracker_revisionTechniques'))
+      const stored = JSON.parse(localStorage.getItem('certTracker_default_revisionTechniques'))
       const t = stored.find((x) => x.id === 'feynman')
       expect(t.active).toBe(false)
     })

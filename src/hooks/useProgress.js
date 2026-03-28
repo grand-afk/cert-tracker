@@ -1,31 +1,32 @@
 import { useState, useCallback } from 'react'
 import { applySm2 } from '../utils/sm2'
 
-const STORAGE_KEY = 'certTracker_progress'
 const STATUSES = ['not-started', 'in-progress', 'complete']
 
-function load() {
+function storageKey(ns) { return `certTracker_${ns}_progress` }
+
+function load(ns) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey(ns))
     if (raw) return JSON.parse(raw)
   } catch {}
   return {}
 }
 
-function save(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+function save(ns, data) {
+  try { localStorage.setItem(storageKey(ns), JSON.stringify(data)) } catch {}
 }
 
-export function useProgress() {
-  const [progress, setProgressRaw] = useState(load)
+export function useProgress(namespace = 'default') {
+  const [progress, setProgressRaw] = useState(() => load(namespace))
 
   const setProgress = useCallback((updater) => {
     setProgressRaw((prev) => {
       const next = typeof updater === 'function' ? updater(prev) : updater
-      save(next)
+      save(namespace, next)
       return next
     })
-  }, [])
+  }, [namespace])
 
   const getStatus = useCallback((id) => progress[id]?.status ?? 'not-started', [progress])
 
@@ -117,6 +118,22 @@ export function useProgress() {
     })
   }, [setProgress])
 
+  // ── Revision techniques ───────────────────────────────────────────────────
+  const getRevisionTechnique = useCallback((id, field) =>
+    progress[id]?.[field] ?? null,
+  [progress])
+
+  const setRevisionTechnique = useCallback((id, field, techniqueId) => {
+    setProgress((prev) => ({
+      ...prev,
+      [id]: {
+        ...(prev[id] || {}),
+        [field]: techniqueId || null,
+        lastUpdated: new Date().toISOString(),
+      },
+    }))
+  }, [setProgress])
+
   return {
     progress,
     getStatus, cycleStatus, setStatus,
@@ -127,5 +144,6 @@ export function useProgress() {
     getTopicMins, setTopicMins,
     exportProgress, importProgress, clearAll,
     restoreProgress,
+    getRevisionTechnique, setRevisionTechnique,
   }
 }

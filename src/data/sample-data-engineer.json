@@ -1,0 +1,103 @@
+{
+  "certName": "Google Professional Data Engineer",
+  "targetDate": "2026-12-31",
+  "courses": [
+    {
+      "id": "de-ingestion",
+      "key": "I",
+      "name": "Ingestion & Pipelines",
+      "color": "#4285F4",
+      "topics": [
+        { "id": "de-pubsub-basics",        "name": "Pub/Sub Fundamentals",                "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-pubsub-ordering",      "name": "Pub/Sub Message Ordering & Delivery", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-dataflow-basics",      "name": "Dataflow / Apache Beam Basics",       "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-dataflow-windows",     "name": "Dataflow Windowing & Triggers",        "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-dataflow-streaming",   "name": "Streaming Pipelines with Dataflow",   "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-dataflow-templates",   "name": "Flex Templates & Dataflow Flex",      "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-transfer-service",     "name": "Storage Transfer Service",            "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-datastream",           "name": "Datastream (CDC Replication)",        "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-datafusion",           "name": "Cloud Data Fusion",                   "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } }
+      ]
+    },
+    {
+      "id": "de-storage",
+      "key": "S",
+      "name": "Storage & Databases",
+      "color": "#34A853",
+      "topics": [
+        { "id": "de-gcs-basics",           "name": "Cloud Storage Classes & Lifecycle",   "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-bigtable",             "name": "Cloud Bigtable",                      "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-bigtable-schema",      "name": "Bigtable Schema Design & Row Keys",   "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-spanner",              "name": "Cloud Spanner",                       "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-cloud-sql",            "name": "Cloud SQL",                           "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-alloydb",              "name": "AlloyDB for PostgreSQL",              "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-firestore",            "name": "Firestore / Datastore",               "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-memorystore",          "name": "Memorystore (Redis / Valkey)",        "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-storage-selection",    "name": "Choosing the Right Storage Product",  "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } }
+      ]
+    },
+    {
+      "id": "de-analytics",
+      "key": "A",
+      "name": "BigQuery & Analytics",
+      "color": "#FBBC05",
+      "topics": [
+        { "id": "de-bq-architecture",      "name": "BigQuery Architecture & Internals",   "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-bq-schema",            "name": "BQ Schema Design (Nested/Repeated)",  "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-bq-partitioning",      "name": "BQ Partitioning & Clustering",        "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-bq-optimization",      "name": "BQ Query Optimization & Cost Control","resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-bq-streaming",         "name": "BQ Streaming Inserts & Storage API",  "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-bq-omni",              "name": "BigQuery Omni & Multi-cloud",         "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-bq-ml",               "name": "BigQuery ML (BQML)",                  "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-looker-studio",        "name": "Looker Studio Reporting",             "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-dataproc",             "name": "Dataproc (Spark / Hadoop)",           "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-dataproc-serverless",  "name": "Dataproc Serverless",                 "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } }
+      ]
+    },
+    {
+      "id": "de-ml",
+      "key": "M",
+      "name": "ML & Vertex AI",
+      "color": "#9C27B0",
+      "topics": [
+        { "id": "de-vertex-basics",        "name": "Vertex AI Platform Overview",         "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-vertex-training",      "name": "Custom Training & Managed Datasets",  "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-vertex-automl",        "name": "AutoML (Tables, Vision, NLP)",        "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-vertex-pipelines",     "name": "Vertex AI Pipelines (Kubeflow)",      "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-vertex-prediction",    "name": "Online & Batch Prediction",           "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-feature-store",        "name": "Vertex Feature Store",                "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-ml-ops",               "name": "MLOps & Model Monitoring",            "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-gemini-api",           "name": "Gemini API & Generative AI",          "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } }
+      ]
+    },
+    {
+      "id": "de-governance",
+      "key": "G",
+      "name": "Governance & Ops",
+      "color": "#EA4335",
+      "topics": [
+        { "id": "de-data-catalog",         "name": "Data Catalog & Dataplex",             "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-dataplex",             "name": "Dataplex Data Mesh",                  "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-iam-data",             "name": "IAM for Data Services",               "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-vpc-sc",               "name": "VPC Service Controls",                "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-dlp",                  "name": "Cloud DLP (Data Loss Prevention)",    "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-cmek",                 "name": "CMEK & Encryption at Rest",           "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-composer",             "name": "Cloud Composer (Airflow)",            "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-monitoring",           "name": "Cloud Monitoring & Logging for Data", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+        { "id": "de-cost-optimization",    "name": "Cost Optimisation Strategies",        "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } }
+      ]
+    }
+  ],
+  "terminology": [
+    { "id": "de-term-beam-runner",    "name": "Beam Runner",          "definition": "Execution engine that runs an Apache Beam pipeline (e.g. Dataflow runner, Direct runner).", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+    { "id": "de-term-pcollection",    "name": "PCollection",          "definition": "Distributed dataset in Apache Beam; the fundamental data abstraction passed between transforms.", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+    { "id": "de-term-cdc",            "name": "Change Data Capture",  "definition": "Technique for tracking row-level changes in a database so they can be replicated to a target (Datastream uses CDC).", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+    { "id": "de-term-slot",           "name": "BigQuery Slot",        "definition": "Unit of computational capacity for BigQuery queries; on-demand queries draw from a shared pool, reserved pricing guarantees slots.", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+    { "id": "de-term-row-key",        "name": "Bigtable Row Key",     "definition": "Single indexed field that determines sort order and co-location of rows in Bigtable; schema design starts here.", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+    { "id": "de-term-hotspot",        "name": "Hotspotting",          "definition": "Performance problem caused by sequential row keys (e.g. timestamps) routing all traffic to one Bigtable tablet server.", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+    { "id": "de-term-shuffle",        "name": "Shuffle (Dataflow)",   "definition": "Phase where data is redistributed across workers by key; a common performance bottleneck in batch pipelines.", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+    { "id": "de-term-watermark",      "name": "Watermark",            "definition": "Estimate of how far behind real-time a streaming pipeline is; determines when a window can be closed.", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+    { "id": "de-term-late-data",      "name": "Late Data",            "definition": "Events that arrive after the watermark has passed. Beam triggers and allowed lateness control how late data is handled.", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } },
+    { "id": "de-term-federated",      "name": "Federated Query (BQ)", "definition": "BigQuery feature that queries external data sources (GCS, Bigtable, Spanner) without importing them.", "resources": { "courseContent": "", "video": "", "anki": "", "testLink": "" } }
+  ]
+}

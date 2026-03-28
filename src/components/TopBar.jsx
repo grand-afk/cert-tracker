@@ -2,13 +2,16 @@ import { useState, useEffect, useRef } from 'react'
 
 export default function TopBar({
   certName,
+  certEmoji,
+  certs,
+  activeCertId,
+  onManageCerts,
   courses,
   selectedCourses,
   toggleCourse,
   clearSelectedCourses,
   darkMode,
   toggleDarkMode,
-  onEditCertName,
   searchQuery,
   setSearchQuery,
   currentView,
@@ -43,9 +46,13 @@ export default function TopBar({
   return (
     <header className="topbar">
       <div className="topbar-row1">
-        <button className="cert-title-btn" onClick={onEditCertName} title="Click to rename cert">
-          🎓 {certName}
-          <span className="edit-hint">✎</span>
+        <button className="cert-switcher-btn" onClick={onManageCerts} title="Switch or manage certifications">
+          <span className="cert-switcher-emoji">{certEmoji}</span>
+          <span className="cert-switcher-name">{certName}</span>
+          {certs && certs.length > 1 && (
+            <span className="cert-switcher-count">{certs.length}</span>
+          )}
+          <span className="cert-switcher-arrow">▾</span>
         </button>
 
         {searchOpen && (
