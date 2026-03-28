@@ -21,6 +21,13 @@ import sampleCloudArchitect from './data/sample.json'
 // Run migration once (moves old un-namespaced keys → 'default' namespace)
 migrateToNamespace()
 
+// Template definitions used in the Add form
+const CERT_TEMPLATES = [
+  { value: 'blank',          label: 'Blank',                      emoji: '🎓', suggestName: '' },
+  { value: 'cloud-architect', label: 'GCP Cloud Architect (sample)', emoji: '☁️', suggestName: 'GCP Cloud Architect' },
+  { value: 'data-engineer',  label: 'GCP Data Engineer (sample)',  emoji: '📊', suggestName: 'GCP Data Engineer' },
+]
+
 // ── Add / Manage Cert Modal ───────────────────────────────────────────────────
 function CertManagerModal({ certs, activeCertId, onSwitch, onAdd, onRename, onDelete, onClose }) {
   const [adding, setAdding] = useState(false)
@@ -38,6 +45,18 @@ function CertManagerModal({ certs, activeCertId, onSwitch, onAdd, onRename, onDe
     onClose()
   }
 
+  function handleTemplateChange(value) {
+    setNewTemplate(value)
+    const tpl = CERT_TEMPLATES.find((t) => t.value === value)
+    if (tpl) {
+      // Pre-fill name and emoji from template if user hasn't typed yet
+      if (!newName || CERT_TEMPLATES.some((t) => t.suggestName === newName)) {
+        setNewName(tpl.suggestName)
+      }
+      setNewEmoji(tpl.emoji)
+    }
+  }
+
   function startRename(cert) {
     setRenamingId(cert.id)
     setRenameVal(cert.name)
@@ -51,7 +70,7 @@ function CertManagerModal({ certs, activeCertId, onSwitch, onAdd, onRename, onDe
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ minWidth: 340 }}>
+      <div className="modal" style={{ minWidth: 360 }}>
         <div className="modal-title">My Certifications</div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
@@ -60,7 +79,7 @@ function CertManagerModal({ certs, activeCertId, onSwitch, onAdd, onRename, onDe
               {renamingId === cert.id ? (
                 <>
                   <input value={renameEmoji} onChange={(e) => setRenameEmoji(e.target.value)}
-                    style={{ width: 40, textAlign: 'center' }} className="form-input" />
+                    style={{ width: 44, textAlign: 'center' }} className="form-input" />
                   <input value={renameVal} onChange={(e) => setRenameVal(e.target.value)}
                     className="form-input" style={{ flex: 1 }}
                     onKeyDown={(e) => { if (e.key === 'Enter') saveRename(); if (e.key === 'Escape') setRenamingId(null) }}
@@ -73,16 +92,22 @@ function CertManagerModal({ certs, activeCertId, onSwitch, onAdd, onRename, onDe
                   <button
                     className={`cert-list-item${cert.id === activeCertId ? ' cert-list-item--active' : ''}`}
                     onClick={() => { onSwitch(cert.id); onClose() }}
+                    title={cert.id === activeCertId ? 'Currently active' : `Switch to ${cert.name}`}
                   >
                     <span>{cert.emoji || '🎓'}</span>
                     <span style={{ flex: 1, textAlign: 'left' }}>{cert.name}</span>
-                    {cert.id === activeCertId && <span style={{ fontSize: 11, opacity: 0.6 }}>active</span>}
+                    <span className={`cert-status-badge${cert.id === activeCertId ? ' cert-status-badge--active' : ''}`}>
+                      {cert.id === activeCertId ? '● active' : 'switch →'}
+                    </span>
                   </button>
-                  <button className="btn-icon" title="Rename" onClick={() => startRename(cert)}>✎</button>
+                  <button className="btn btn-secondary btn-sm" title="Rename" onClick={() => startRename(cert)}>
+                    Rename
+                  </button>
                   {certs.length > 1 && (
-                    <button className="btn-icon btn-icon--danger" title="Delete"
+                    <button className="btn btn-secondary btn-sm" title="Delete"
+                      style={{ color: '#EA4335', borderColor: '#EA4335' }}
                       onClick={() => { if (window.confirm(`Delete "${cert.name}"? This cannot be undone.`)) { onDelete(cert.id, activeCertId, onSwitch); onClose() } }}>
-                      🗑
+                      Delete
                     </button>
                   )}
                 </>
@@ -94,30 +119,26 @@ function CertManagerModal({ certs, activeCertId, onSwitch, onAdd, onRename, onDe
         {adding ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Add New Certification</div>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 12, opacity: 0.7 }}>Start from:</label>
+              {CERT_TEMPLATES.map(({ value, label }) => (
+                <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                  <input type="radio" name="template" value={value}
+                    checked={newTemplate === value} onChange={() => handleTemplateChange(value)} />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input value={newEmoji} onChange={(e) => setNewEmoji(e.target.value)}
                 style={{ width: 44, textAlign: 'center' }} className="form-input" placeholder="🎓" />
               <input value={newName} onChange={(e) => setNewName(e.target.value)}
                 className="form-input" style={{ flex: 1 }} placeholder="Certification name…"
                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()} autoFocus />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: 12, opacity: 0.7 }}>Start from:</label>
-              {[
-                { value: 'blank', label: '⬜  Blank' },
-                { value: 'cloud-architect', label: '☁️  GCP Cloud Architect (sample)' },
-                { value: 'data-engineer', label: '📊  GCP Data Engineer (sample)' },
-              ].map(({ value, label }) => (
-                <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-                  <input type="radio" name="template" value={value}
-                    checked={newTemplate === value} onChange={() => setNewTemplate(value)} />
-                  {label}
-                </label>
-              ))}
-            </div>
             <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-              <button className="btn btn-secondary" onClick={() => setAdding(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleAdd} disabled={!newName.trim()}>Add</button>
+              <button className="btn btn-secondary" onClick={() => { setAdding(false); setNewName(''); setNewEmoji('🎓'); setNewTemplate('blank') }}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleAdd} disabled={!newName.trim()}>Add Certification</button>
             </div>
           </div>
         ) : (

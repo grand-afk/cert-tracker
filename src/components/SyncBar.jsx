@@ -199,19 +199,19 @@ export default function SyncBar({
       <div className="sync-bar-stamps">
         {savedRel && (
           <span className="sync-stamp sync-stamp--saved" title={`Last local change: ${fmtFull(lastSaved)}`}>
-            <span className="sync-stamp-icon">✎</span>
+            <span className="sync-stamp-label">changed</span>
             {savedRel}
           </span>
         )}
         {exportedRel && (
           <span className="sync-stamp sync-stamp--exported" title={`Last saved to file: ${fmtFull(lastExported)}`}>
-            <span className="sync-stamp-icon">↑</span>
+            <span className="sync-stamp-label">saved</span>
             {exportedRel}
           </span>
         )}
         {importedRel && (
           <span className="sync-stamp sync-stamp--imported" title={`Last loaded from file: ${fmtFull(lastImported)}`}>
-            <span className="sync-stamp-icon">↓</span>
+            <span className="sync-stamp-label">loaded</span>
             {importedRel}
           </span>
         )}

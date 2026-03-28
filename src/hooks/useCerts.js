@@ -49,19 +49,56 @@ export function migrateToNamespace() {
     } catch {}
   })
   // Ensure the certs registry exists after migration
-  if (!localStorage.getItem(CERTS_KEY)) {
-    const defaultCert = { id: 'default', name: 'My Certification', emoji: '🎓', createdAt: new Date().toISOString() }
+  // Also: if it exists but the default cert still has the placeholder name 'My Certification',
+  // auto-sync the real certName from certData so it shows correctly in the switcher.
+  function getStoredCertName() {
+    try {
+      const raw = localStorage.getItem('certTracker_default_certData')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed.certName && parsed.certName !== 'My Certification') return parsed.certName
+      }
+    } catch {}
+    return 'My Certification'
+  }
+
+  const existingCerts = localStorage.getItem(CERTS_KEY)
+  if (!existingCerts) {
+    const defaultCert = { id: 'default', name: getStoredCertName(), emoji: '🎓', createdAt: new Date().toISOString() }
     saveCerts([defaultCert])
+  } else {
+    // Already exists — patch the name if it's still the generic placeholder
+    try {
+      const certs = JSON.parse(existingCerts)
+      const def = certs.find((c) => c.id === 'default')
+      if (def && def.name === 'My Certification') {
+        const realName = getStoredCertName()
+        if (realName !== 'My Certification') {
+          saveCerts(certs.map((c) => c.id === 'default' ? { ...c, name: realName } : c))
+        }
+      }
+    } catch {}
   }
   return migrated
+}
+
+function getDefaultCertName() {
+  try {
+    const raw = localStorage.getItem('certTracker_default_certData')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed.certName) return parsed.certName
+    }
+  } catch {}
+  return 'My Certification'
 }
 
 export function useCerts() {
   const [certs, setCertsState] = useState(() => {
     const stored = loadCerts()
     if (stored) return stored
-    // First ever load — ensure default cert entry exists
-    const defaults = [{ id: 'default', name: 'My Certification', emoji: '🎓', createdAt: new Date().toISOString() }]
+    // First ever load — seed from certData name if available
+    const defaults = [{ id: 'default', name: getDefaultCertName(), emoji: '🎓', createdAt: new Date().toISOString() }]
     saveCerts(defaults)
     return defaults
   })

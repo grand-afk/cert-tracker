@@ -130,6 +130,13 @@ body {
 .cert-list-item:hover { background: var(--hover); border-color: var(--accent); }
 .cert-list-item--active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 
+.cert-status-badge {
+  font-size: 11px;
+  opacity: 0.55;
+  white-space: nowrap;
+}
+.cert-status-badge--active { opacity: 1; color: var(--accent); font-weight: 600; }
+
 .btn-icon {
   background: none;
   border: 1px solid var(--border);
@@ -1920,10 +1927,16 @@ body {
   cursor: help;
   white-space: nowrap;
 }
-.sync-stamp-icon { font-size: 10px; opacity: 0.7; }
-.sync-stamp--saved   .sync-stamp-icon { color: var(--text-muted); }
-.sync-stamp--exported .sync-stamp-icon { color: #34A853; }
-.sync-stamp--imported .sync-stamp-icon { color: #4285F4; }
+.sync-stamp-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.6;
+}
+.sync-stamp--saved   .sync-stamp-label { color: var(--text-muted); }
+.sync-stamp--exported .sync-stamp-label { color: #34A853; opacity: 1; }
+.sync-stamp--imported .sync-stamp-label { color: #4285F4; opacity: 1; }
 
 .sync-flash {
   font-size: 12px;
