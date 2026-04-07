@@ -351,7 +351,6 @@ export default function TopicsView({
   return (
     <div className="study-view">
       <div className="study-header">
-        <h2 className="study-title">📋 Topics</h2>
         <div className="study-header-right">
           <span className="study-count">
             {completeCount}/{filtered.length} complete
