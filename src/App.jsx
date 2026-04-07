@@ -346,17 +346,26 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     historyPush(undoFn, redoFn, label)
   }, [historyPush])
 
-  // addCert handler: wire template data
+  // addCert handler: seed template data SYNCHRONOUSLY before returning the id.
+  // This ensures the data is in localStorage before onSwitch(id) triggers a re-render
+  // of CertWorkspace — so useCertData reads the correct data on its first initialisation,
+  // not the default sample fallback.
   const handleAddCert = useCallback((name, emoji, template) => {
     const id = addCert(name, emoji)
-    // Seed template data after a tick so the new namespace storage key is registered
-    setTimeout(() => {
+    try {
       if (template === 'cloud-architect') {
-        try { localStorage.setItem(`certTracker_${id}_certData`, JSON.stringify(sampleCloudArchitect)) } catch {}
+        // Stamp the user's chosen name so the TopBar shows it, not the template's internal certName
+        const seeded = { ...sampleCloudArchitect, certName: name || sampleCloudArchitect.certName }
+        localStorage.setItem(`certTracker_${id}_certData`, JSON.stringify(seeded))
       } else if (template === 'data-engineer') {
-        try { localStorage.setItem(`certTracker_${id}_certData`, JSON.stringify(sampleDataEngineer)) } catch {}
+        const seeded = { ...sampleDataEngineer, certName: name || sampleDataEngineer.certName }
+        localStorage.setItem(`certTracker_${id}_certData`, JSON.stringify(seeded))
+      } else {
+        // Blank cert: seed a minimal structure so useCertData doesn't fall back to the built-in sample
+        const blank = { certName: name, targetDate: '', courses: [], terminology: [] }
+        localStorage.setItem(`certTracker_${id}_certData`, JSON.stringify(blank))
       }
-    }, 0)
+    } catch {}
     return id
   }, [addCert])
 
