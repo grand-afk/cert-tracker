@@ -1,0 +1,134 @@
+{
+  "bio-paper-1-sub-1": {
+    "status": "in-progress",
+    "lastUpdated": "2026-03-01T00:00:00",
+    "sm2": {
+      "interval": 7,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-03-08",
+      "lastRated": "2026-03-01T00:00:00",
+      "lastQuality": 3
+    }
+  },
+  "bio-paper-1-sub-2": {
+    "status": "in-progress",
+    "lastUpdated": "2026-03-01T00:00:00",
+    "sm2": {
+      "interval": 7,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-03-08",
+      "lastRated": "2026-03-01T00:00:00",
+      "lastQuality": 3
+    }
+  },
+  "bio-paper-2-sub-1": {
+    "status": "in-progress",
+    "lastUpdated": "2026-04-07T00:00:00",
+    "sm2": {
+      "interval": 7,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-04-14",
+      "lastRated": "2026-04-07T00:00:00",
+      "lastQuality": 3
+    }
+  },
+  "bio-paper-2-sub-2": {
+    "status": "in-progress",
+    "lastUpdated": "2026-04-07T00:00:00",
+    "sm2": {
+      "interval": 7,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-04-14",
+      "lastRated": "2026-04-07T00:00:00",
+      "lastQuality": 3
+    }
+  },
+  "bio-paper-2-sub-3": {
+    "status": "in-progress",
+    "lastUpdated": "2026-04-07T00:00:00",
+    "sm2": {
+      "interval": 7,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-04-14",
+      "lastRated": "2026-04-07T00:00:00",
+      "lastQuality": 3
+    }
+  },
+  "geog-physical-sub-2": {
+    "status": "not-started",
+    "lastUpdated": "2026-02-23T00:00:00",
+    "sm2": {
+      "interval": 3,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-02-26",
+      "lastRated": "2026-02-23T00:00:00",
+      "lastQuality": 3
+    }
+  },
+  "geog-physical-sub-3": {
+    "status": "not-started",
+    "lastUpdated": "2026-02-23T00:00:00",
+    "sm2": {
+      "interval": 3,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-02-26",
+      "lastRated": "2026-02-23T00:00:00",
+      "lastQuality": 3
+    }
+  },
+  "lit-paper-3-sub-1": {
+    "status": "in-progress",
+    "lastUpdated": "2026-03-01T00:00:00",
+    "sm2": {
+      "interval": 7,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-03-08",
+      "lastRated": "2026-03-01T00:00:00",
+      "lastQuality": 3
+    }
+  },
+  "lit-paper-4-sub-1": {
+    "status": "in-progress",
+    "lastUpdated": "2026-02-24T00:00:00",
+    "sm2": {
+      "interval": 30,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-03-26",
+      "lastRated": "2026-02-24T00:00:00",
+      "lastQuality": 3
+    }
+  },
+  "maths-algebra-sub-3": {
+    "status": "in-progress",
+    "lastUpdated": "2026-02-24T00:00:00",
+    "sm2": {
+      "interval": 30,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-03-26",
+      "lastRated": "2026-02-24T00:00:00",
+      "lastQuality": 3
+    }
+  },
+  "maths-geometry-sub-1": {
+    "status": "in-progress",
+    "lastUpdated": "2026-02-23T00:00:00",
+    "sm2": {
+      "interval": 7,
+      "repetitions": 2,
+      "easeFactor": 2.1,
+      "nextReview": "2026-03-02",
+      "lastRated": "2026-02-23T00:00:00",
+      "lastQuality": 3
+    }
+  }
+}

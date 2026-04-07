@@ -17,7 +17,8 @@ import HelpView         from './components/HelpView'
 import SettingsView     from './components/SettingsView'
 import sampleDataEngineer from './data/sample-data-engineer.json'
 import sampleCloudArchitect from './data/sample.json'
-import sampleGCSE from './data/sample-gcse.json'
+import sampleGCSE         from './data/sample-gcse.json'
+import sampleGCSEProgress from './data/sample-gcse-progress.json'
 
 // Run migration once (moves old un-namespaced keys → 'default' namespace)
 migrateToNamespace()
@@ -407,9 +408,11 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
       } else if (template === 'gcse') {
         const seeded = { ...sampleGCSE, certName: name || sampleGCSE.certName }
         localStorage.setItem(`certTracker_${id}_certData`, JSON.stringify(seeded))
-        // Also pre-enable subtopics for this template since data has subtopics
-        const settingsKey = `certTracker_${id}_settings`
+        // Pre-seed progress data from spreadsheet (SM-2 cards + statuses)
+        localStorage.setItem(`certTracker_${id}_progress`, JSON.stringify(sampleGCSEProgress))
+        // Pre-enable subtopics since the data is structured with subtopics
         try {
+          const settingsKey = `certTracker_${id}_settings`
           const existing = JSON.parse(localStorage.getItem(settingsKey) || '{}')
           localStorage.setItem(settingsKey, JSON.stringify({ ...existing, subtopicsEnabled: true }))
         } catch {}
