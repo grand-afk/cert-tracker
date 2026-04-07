@@ -17,6 +17,7 @@ import HelpView         from './components/HelpView'
 import SettingsView     from './components/SettingsView'
 import sampleDataEngineer from './data/sample-data-engineer.json'
 import sampleCloudArchitect from './data/sample.json'
+import sampleGCSE from './data/sample-gcse.json'
 
 // Run migration once (moves old un-namespaced keys → 'default' namespace)
 migrateToNamespace()
@@ -26,6 +27,7 @@ const CERT_TEMPLATES = [
   { value: 'blank',          label: 'Blank',                      emoji: '🎓', suggestName: '' },
   { value: 'cloud-architect', label: 'GCP Cloud Architect (sample)', emoji: '☁️', suggestName: 'GCP Cloud Architect' },
   { value: 'data-engineer',  label: 'GCP Data Engineer (sample)',  emoji: '📊', suggestName: 'GCP Data Engineer' },
+  { value: 'gcse',           label: 'GCSE Revision (sample)',      emoji: '📚', suggestName: 'GCSE Revision' },
 ]
 
 // ── Add / Manage Cert Modal ───────────────────────────────────────────────────
@@ -403,6 +405,15 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
       } else if (template === 'data-engineer') {
         const seeded = { ...sampleDataEngineer, certName: name || sampleDataEngineer.certName }
         localStorage.setItem(`certTracker_${id}_certData`, JSON.stringify(seeded))
+      } else if (template === 'gcse') {
+        const seeded = { ...sampleGCSE, certName: name || sampleGCSE.certName }
+        localStorage.setItem(`certTracker_${id}_certData`, JSON.stringify(seeded))
+        // Also pre-enable subtopics for this template since data has subtopics
+        const settingsKey = `certTracker_${id}_settings`
+        try {
+          const existing = JSON.parse(localStorage.getItem(settingsKey) || '{}')
+          localStorage.setItem(settingsKey, JSON.stringify({ ...existing, subtopicsEnabled: true }))
+        } catch {}
       } else {
         // Blank cert: seed a minimal structure so useCertData doesn't fall back to the built-in sample
         const blank = { certName: name, targetDate: '', courses: [], terminology: [] }
