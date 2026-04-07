@@ -316,36 +316,6 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     )
   }, [certData.terminology, updateTermNotes, historyPush])
 
-  // ── Item-aware handlers (work for both topics and subtopics) ─────────────
-  // These are passed to TopicsView/StudyView so they work regardless of subtopicsEnabled.
-  const updateItemResources = useCallback((id, resources) => {
-    const item = allItemsMap[id]
-    if (item?.isSub) {
-      updateSubtopicResources(item.courseId, item.topicId, id, resources)
-    } else {
-      updateTopicResources(id, resources)
-    }
-  }, [allItemsMap, updateSubtopicResources, updateTopicResources])
-
-  const updateItemNotesH = useCallback((id, notes) => {
-    const item = allItemsMap[id]
-    if (item?.isSub) {
-      // No undo/redo support for subtopic notes in v1 — call directly
-      updateSubtopicNotes(item.courseId, item.topicId, id, notes)
-    } else {
-      updateTopicNotesH(id, notes)
-    }
-  }, [allItemsMap, updateSubtopicNotes, updateTopicNotesH])
-
-  const deleteItemH = useCallback((courseId, id) => {
-    const item = allItemsMap[id]
-    if (item?.isSub) {
-      deleteSubtopic(item.courseId, item.topicId, id)
-    } else {
-      deleteTopicH(courseId, id)
-    }
-  }, [allItemsMap, deleteSubtopic, deleteTopicH])
-
   const addTopicH = useCallback((courseId, topicData) => {
     const prevCertData = JSON.parse(JSON.stringify(certData))
     addTopic(courseId, topicData)
@@ -365,6 +335,35 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
       `DeleteTopic`
     )
   }, [certData, deleteTopic, restoreCertData, historyPush])
+
+  // ── Item-aware handlers (work for both topics and subtopics) ─────────────
+  // MUST be placed after deleteTopicH and updateTopicNotesH to avoid const TDZ errors.
+  const updateItemResources = useCallback((id, resources) => {
+    const item = allItemsMap[id]
+    if (item?.isSub) {
+      updateSubtopicResources(item.courseId, item.topicId, id, resources)
+    } else {
+      updateTopicResources(id, resources)
+    }
+  }, [allItemsMap, updateSubtopicResources, updateTopicResources])
+
+  const updateItemNotesH = useCallback((id, notes) => {
+    const item = allItemsMap[id]
+    if (item?.isSub) {
+      updateSubtopicNotes(item.courseId, item.topicId, id, notes)
+    } else {
+      updateTopicNotesH(id, notes)
+    }
+  }, [allItemsMap, updateSubtopicNotes, updateTopicNotesH])
+
+  const deleteItemH = useCallback((courseId, id) => {
+    const item = allItemsMap[id]
+    if (item?.isSub) {
+      deleteSubtopic(item.courseId, item.topicId, id)
+    } else {
+      deleteTopicH(courseId, id)
+    }
+  }, [allItemsMap, deleteSubtopic, deleteTopicH])
 
   const addTermH = useCallback((termData) => {
     const prevCertData = JSON.parse(JSON.stringify(certData))
