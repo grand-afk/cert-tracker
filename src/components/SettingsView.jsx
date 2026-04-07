@@ -130,6 +130,8 @@ export default function SettingsView({
   // Revision techniques
   techniques = [], toggleTechniqueActive, exportTechniques, importTechniques,
   resetTechniquesToDefaults, techniquesLastImported,
+  // Sub-topics
+  subtopicsEnabled, setSubtopicsEnabled,
 }) {
   const [importText, setImportText]       = useState('')
   const [importError, setImportError]     = useState('')
@@ -390,6 +392,32 @@ export default function SettingsView({
             <span className="toggle-slider" />
           </label>
         </div>
+      </div>
+
+      {/* Study Structure */}
+      <div className="settings-section">
+        <div className="settings-section-title">Study Structure</div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-label">Enable Sub-topics</div>
+            <div className="settings-hint">
+              Adds an optional sub-topic level beneath each topic — useful when topics have distinct syllabus points
+              (e.g. Geography Paper 1 → Plate Tectonics, Coastal Landforms…). When enabled, progress and study
+              cards track individual sub-topics. Topics with no sub-topics continue to behave normally.
+            </div>
+          </div>
+          <label className="toggle">
+            <input type="checkbox" checked={!!subtopicsEnabled}
+                   onChange={(e) => setSubtopicsEnabled?.(e.target.checked)} />
+            <span className="toggle-slider" />
+          </label>
+        </div>
+        {subtopicsEnabled && (
+          <div className="settings-hint" style={{ padding: '0 16px 12px', color: 'var(--text-muted)', fontSize: 12 }}>
+            ℹ️ In Topics view, click <strong>＋ Sub</strong> on any topic group header to add sub-topics.
+            Topics that already have sub-topics show their sub-topics as individual trackable rows.
+          </div>
+        )}
       </div>
 
       {/* Courses */}

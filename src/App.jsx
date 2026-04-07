@@ -164,10 +164,12 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     certData, setCertName, setTargetDate,
     updateTopicResources, updateTermResources,
     updateTopicNotes, updateTermNotes,
+    updateSubtopicNotes, updateSubtopicResources,
     addTopic, deleteTopic,
+    addSubtopic, deleteSubtopic,
     addCourse, updateCourse, addTerm, deleteTerm,
     exportData, importData, resetToSample,
-    getAllTopics, restoreCertData,
+    getAllTopics, getAllItems, restoreCertData,
     setTopicDueDate,
   } = useCertData(namespace)
 
@@ -187,6 +189,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     darkMode, toggleDarkMode, selectedCourses, toggleCourse, clearSelectedCourses,
     workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins,
     setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
+    subtopicsEnabled, setSubtopicsEnabled,
     lastSaved, lastExported, lastImported, syncFilePath,
     stampLastSaved, stampLastExported, stampLastImported, setSyncFilePath,
   } = useSettings(namespace)
@@ -207,9 +210,19 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
   const [managingCerts, setManagingCerts] = useState(false)
 
   const allTopics  = useMemo(() => getAllTopics(), [getAllTopics])
-  const allTopicIds = useMemo(() => allTopics.map((t) => t.id), [allTopics])
+  // allItems: flat list used by Topics + Study views. When subtopicsEnabled and a topic
+  // has subtopics, subtopic rows replace their parent topic. Otherwise identical to allTopics.
+  const allItems   = useMemo(() => getAllItems(subtopicsEnabled), [getAllItems, subtopicsEnabled])
+  // Map id → item for fast lookup in smart handlers below
+  const allItemsMap = useMemo(() => {
+    const m = {}
+    allItems.forEach((item) => { m[item.id] = item })
+    return m
+  }, [allItems])
+
+  const allItemIds  = useMemo(() => allItems.map((t) => t.id), [allItems])
   const allTermIds  = useMemo(() => (certData.terminology || []).map((t) => t.id), [certData])
-  const allIds      = useMemo(() => [...allTopicIds, ...allTermIds], [allTopicIds, allTermIds])
+  const allIds      = useMemo(() => [...allItemIds, ...allTermIds], [allItemIds, allTermIds])
   const percentComplete = useMemo(() => computePercent(allIds), [allIds, progress])
 
   // Auto-stamp lastSaved whenever certData, progress, or calendar mutates (skip initial mount)
@@ -300,6 +313,36 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
       `TermNotes ${termId}`
     )
   }, [certData.terminology, updateTermNotes, historyPush])
+
+  // ── Item-aware handlers (work for both topics and subtopics) ─────────────
+  // These are passed to TopicsView/StudyView so they work regardless of subtopicsEnabled.
+  const updateItemResources = useCallback((id, resources) => {
+    const item = allItemsMap[id]
+    if (item?.isSub) {
+      updateSubtopicResources(item.courseId, item.topicId, id, resources)
+    } else {
+      updateTopicResources(id, resources)
+    }
+  }, [allItemsMap, updateSubtopicResources, updateTopicResources])
+
+  const updateItemNotesH = useCallback((id, notes) => {
+    const item = allItemsMap[id]
+    if (item?.isSub) {
+      // No undo/redo support for subtopic notes in v1 — call directly
+      updateSubtopicNotes(item.courseId, item.topicId, id, notes)
+    } else {
+      updateTopicNotesH(id, notes)
+    }
+  }, [allItemsMap, updateSubtopicNotes, updateTopicNotesH])
+
+  const deleteItemH = useCallback((courseId, id) => {
+    const item = allItemsMap[id]
+    if (item?.isSub) {
+      deleteSubtopic(item.courseId, item.topicId, id)
+    } else {
+      deleteTopicH(courseId, id)
+    }
+  }, [allItemsMap, deleteSubtopic, deleteTopicH])
 
   const addTopicH = useCallback((courseId, topicData) => {
     const prevCertData = JSON.parse(JSON.stringify(certData))
@@ -446,19 +489,21 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
       <main className="main-content">
         {view === 'topics' && (
           <TopicsView
-            topics={allTopics}
+            topics={allItems}
             courses={certData.courses}
             selectedCourses={selectedCourses}
             getStatus={getStatus}
             cycleStatus={cycleStatusH}
             getLastUpdated={getLastUpdated}
-            updateTopicResources={updateTopicResources}
-            updateTopicNotes={updateTopicNotesH}
+            updateTopicResources={updateItemResources}
+            updateTopicNotes={updateItemNotesH}
             getTestScore={getTestScore}
             setTestScore={setTestScore}
             setTopicDueDate={setTopicDueDate}
             addTopic={addTopicH}
-            deleteTopic={deleteTopicH}
+            deleteTopic={deleteItemH}
+            subtopicsEnabled={subtopicsEnabled}
+            addSubtopic={addSubtopic}
             clearRating={clearRatingH}
             searchQuery={searchQuery}
             syncProps={syncProps}
@@ -484,15 +529,15 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
         {view === 'study' && (
           <StudyView
-            topics={allTopics}
+            topics={allItems}
             selectedCourses={selectedCourses}
             getStatus={getStatus}
             getSm2Card={getSm2Card}
             rateCard={rateCardH}
             clearRating={clearRatingH}
             getLastUpdated={getLastUpdated}
-            updateTopicResources={updateTopicResources}
-            updateTopicNotes={updateTopicNotesH}
+            updateTopicResources={updateItemResources}
+            updateTopicNotes={updateItemNotesH}
             searchQuery={searchQuery}
             revisionTechniques={revisionTechniques}
             getRevisionTechnique={getRevisionTechnique}
@@ -577,6 +622,8 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             importTechniques={importTechniques}
             resetTechniquesToDefaults={resetTechniquesToDefaults}
             techniquesLastImported={techniquesLastImported}
+            subtopicsEnabled={subtopicsEnabled}
+            setSubtopicsEnabled={setSubtopicsEnabled}
           />
         )}
       </main>

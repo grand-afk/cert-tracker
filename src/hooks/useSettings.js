@@ -8,6 +8,7 @@ const DEFAULTS = {
   defaultTopicMins: 30,
   maxSessionsPerDay: 5,
   defaultBreakMins: 0,
+  subtopicsEnabled: false,  // optional sub-topic level (configurable per cert)
   // Sync metadata
   lastSaved: null,     // ISO string — auto-stamped on any data mutation
   lastExported: null,  // ISO string — stamped on full-data JSON export
@@ -40,7 +41,7 @@ export function useSettings(namespace = 'default') {
     })
   }, [namespace])
 
-  const { darkMode, selectedCourses, workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins } = settings
+  const { darkMode, selectedCourses, workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins, subtopicsEnabled } = settings
 
   useEffect(() => {
     document.documentElement.classList.toggle('light', !darkMode)
@@ -80,6 +81,8 @@ export function useSettings(namespace = 'default') {
 
   const setDefaultBreakMins = useCallback((n) => setSettings((s) => ({ ...s, defaultBreakMins: Math.max(0, n) })), [setSettings])
 
+  const setSubtopicsEnabled = useCallback((val) => setSettings((s) => ({ ...s, subtopicsEnabled: val })), [setSettings])
+
   // Sync timestamps
   const stampLastSaved    = useCallback(() => setSettings((s) => ({ ...s, lastSaved:    new Date().toISOString() })), [setSettings])
   const stampLastExported = useCallback(() => setSettings((s) => ({ ...s, lastExported: new Date().toISOString() })), [setSettings])
@@ -102,6 +105,8 @@ export function useSettings(namespace = 'default') {
     setDefaultTopicMins,
     setMaxSessionsPerDay,
     setDefaultBreakMins,
+    subtopicsEnabled,
+    setSubtopicsEnabled,
     // Sync
     lastSaved:    settings.lastSaved,
     lastExported: settings.lastExported,

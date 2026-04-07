@@ -140,6 +140,79 @@ export function useCertData(namespace = 'default') {
     }))
   }, [setCertData])
 
+  // ── Subtopic CRUD ─────────────────────────────────────────────────────────
+  const addSubtopic = useCallback((courseId, topicId, subtopicData) => {
+    setCertData((d) => ({
+      ...d,
+      courses: d.courses.map((c) =>
+        c.id === courseId
+          ? {
+              ...c,
+              topics: c.topics.map((t) =>
+                t.id === topicId
+                  ? { ...t, subtopics: [...(t.subtopics || []), { resources: EMPTY_RESOURCES, ...subtopicData }] }
+                  : t
+              ),
+            }
+          : c
+      ),
+    }))
+  }, [setCertData])
+
+  const deleteSubtopic = useCallback((courseId, topicId, subtopicId) => {
+    setCertData((d) => ({
+      ...d,
+      courses: d.courses.map((c) =>
+        c.id === courseId
+          ? {
+              ...c,
+              topics: c.topics.map((t) =>
+                t.id === topicId
+                  ? { ...t, subtopics: (t.subtopics || []).filter((st) => st.id !== subtopicId) }
+                  : t
+              ),
+            }
+          : c
+      ),
+    }))
+  }, [setCertData])
+
+  const updateSubtopicNotes = useCallback((courseId, topicId, subtopicId, notes) => {
+    setCertData((d) => ({
+      ...d,
+      courses: d.courses.map((c) =>
+        c.id === courseId
+          ? {
+              ...c,
+              topics: c.topics.map((t) =>
+                t.id === topicId
+                  ? { ...t, subtopics: (t.subtopics || []).map((st) => st.id === subtopicId ? { ...st, notes } : st) }
+                  : t
+              ),
+            }
+          : c
+      ),
+    }))
+  }, [setCertData])
+
+  const updateSubtopicResources = useCallback((courseId, topicId, subtopicId, resources) => {
+    setCertData((d) => ({
+      ...d,
+      courses: d.courses.map((c) =>
+        c.id === courseId
+          ? {
+              ...c,
+              topics: c.topics.map((t) =>
+                t.id === topicId
+                  ? { ...t, subtopics: (t.subtopics || []).map((st) => st.id === subtopicId ? { ...st, resources } : st) }
+                  : t
+              ),
+            }
+          : c
+      ),
+    }))
+  }, [setCertData])
+
   // ── Restore (for undo/redo) ───────────────────────────────────────────────
   const restoreCertData = useCallback((data) => { setCertData(data) }, [setCertData])
 
@@ -167,7 +240,27 @@ export function useCertData(namespace = 'default') {
   // ── Derived helpers ───────────────────────────────────────────────────────
   const getAllTopics = useCallback(() =>
     certData.courses.flatMap((c) =>
-      c.topics.map((t) => ({ ...t, courseId: c.id, courseName: c.name, courseColor: c.color }))
+      c.topics.map((t) => ({ ...t, courseId: c.id, courseName: c.name, courseColor: c.color, subtopics: t.subtopics || [] }))
+    ),
+  [certData])
+
+  // Returns a flat list of items for display. When useSubtopics=true and a topic
+  // has subtopics, the subtopic items are returned in place of the parent topic.
+  // Topics with no subtopics always appear as regular items regardless of the flag.
+  const getAllItems = useCallback((useSubtopics = false) =>
+    certData.courses.flatMap((c) =>
+      c.topics.flatMap((t) => {
+        const base = { ...t, courseId: c.id, courseName: c.name, courseColor: c.color, subtopics: t.subtopics || [] }
+        if (useSubtopics && t.subtopics?.length) {
+          return t.subtopics.map((st) => ({
+            ...st,
+            courseId: c.id, courseName: c.name, courseColor: c.color,
+            topicName: t.name, topicId: t.id, isSub: true,
+            resources: st.resources || EMPTY_RESOURCES,
+          }))
+        }
+        return [base]
+      })
     ),
   [certData])
 
@@ -177,11 +270,14 @@ export function useCertData(namespace = 'default') {
     certData,
     setCertName, setTargetDate,
     updateTopicResources, updateTermResources,
+    updateSubtopicResources,
     addTopic, deleteTopic,
+    addSubtopic, deleteSubtopic,
     addCourse, updateCourse, addTerm, deleteTerm,
     exportData, importData, resetToSample,
-    getAllTopics, getCourseById,
+    getAllTopics, getAllItems, getCourseById,
     updateTopicNotes, updateTermNotes,
+    updateSubtopicNotes,
     setTopicDueDate,
     restoreCertData,
   }

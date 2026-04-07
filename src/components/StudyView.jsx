@@ -281,6 +281,9 @@ export default function StudyView({
                           {topic.name}
                           {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
                         </span>
+                        {topic.isSub && (
+                          <span className="subtopic-parent-label" title="Parent topic">{topic.topicName}</span>
+                        )}
                       </td>
                       <td className="study-cell">
                         <span className={`due-badge ${dueBadgeClass(card)}`}>

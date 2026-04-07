@@ -208,6 +208,7 @@ export default function TopicsView({
   getTestScore, setTestScore,
   setTopicDueDate,
   addTopic, deleteTopic,
+  subtopicsEnabled, addSubtopic,
   clearRating,
   searchQuery,
   syncProps,
@@ -218,6 +219,9 @@ export default function TopicsView({
   const [showAdd, setShowAdd]   = useState(false)
   const [expandedId, setExpandedId] = useState(null)   // double-click expands notes
   const [selectedId, setSelectedId] = useState(null)   // single-click selects row
+  // Subtopic add inline form
+  const [addingSubForTopicId, setAddingSubForTopicId] = useState(null)
+  const [newSubName, setNewSubName] = useState('')
   const tableRef = useRef(null)
 
   // ── Column visibility ──────────────────────────────────────────────────────
@@ -266,9 +270,45 @@ export default function TopicsView({
     })
   }, [filtered, sort, getStatus, getLastUpdated, getTestScore])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  // When subtopicsEnabled, interleave group header rows before each new topic group
+  const displayList = useMemo(() => {
+    if (!subtopicsEnabled) return sorted
+    const result = []
+    const seenTopicId = new Set()
+    for (const item of sorted) {
+      if (item.isSub) {
+        if (!seenTopicId.has(item.topicId)) {
+          seenTopicId.add(item.topicId)
+          result.push({
+            __isGroupHeader: true,
+            id: `__group-${item.topicId}`,
+            topicId: item.topicId,
+            topicName: item.topicName,
+            courseId: item.courseId,
+            courseName: item.courseName,
+            courseColor: item.courseColor,
+          })
+        }
+        result.push(item)
+      } else {
+        // Topic with no subtopics — show as a normal row (no group header)
+        result.push(item)
+      }
+    }
+    return result
+  }, [sorted, subtopicsEnabled])
+
+  const totalPages = Math.max(1, Math.ceil(displayList.length / PAGE_SIZE))
   const safePage   = Math.min(page, totalPages)
-  const pageItems  = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const pageItems  = displayList.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  function handleAddSub(topicId, courseId) {
+    if (!newSubName.trim() || !addSubtopic) return
+    const id = `sub-${topicId}-${Date.now()}`
+    addSubtopic(courseId, topicId, { id, name: newSubName.trim() })
+    setNewSubName('')
+    setAddingSubForTopicId(null)
+  }
 
   function toggleSort(key) {
     setPage(1)
@@ -303,8 +343,10 @@ export default function TopicsView({
     )
   }
 
-  const completeCount    = filtered.filter((t) => getStatus(t.id) === 'complete').length
-  const inProgressCount  = filtered.filter((t) => getStatus(t.id) === 'in-progress').length
+  const completeCount    = filtered.filter((t) => !t.__isGroupHeader && getStatus(t.id) === 'complete').length
+  const inProgressCount  = filtered.filter((t) => !t.__isGroupHeader && getStatus(t.id) === 'in-progress').length
+  // colCount for colspan on group headers / notes rows
+  const colCount = 3 + (cv('score') ? 1 : 0) + (cv('due') ? 1 : 0) + (cv('updated') ? 1 : 0) + 2
 
   return (
     <div className="study-view">
@@ -360,6 +402,54 @@ export default function TopicsView({
               </thead>
               <tbody>
                 {pageItems.map((topic) => {
+                  // ── Group header row (subtopics mode) ──────────────────────
+                  if (topic.__isGroupHeader) {
+                    return [
+                      <tr key={topic.id} className="topic-group-header-row">
+                        <td colSpan={colCount}>
+                          <div className="topic-group-header-content">
+                            <span className="course-badge">
+                              <span className="course-badge__dot" style={{ background: topic.courseColor }} />
+                              {topic.courseName}
+                            </span>
+                            <span className="topic-group-name">{topic.topicName}</span>
+                            {addSubtopic && (
+                              <button
+                                className="btn btn-secondary btn-sm topic-group-add-btn"
+                                onClick={() => { setAddingSubForTopicId(topic.topicId); setNewSubName('') }}
+                                title="Add subtopic"
+                              >
+                                ＋ Sub
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>,
+                      addingSubForTopicId === topic.topicId && (
+                        <tr key={`${topic.id}-add`} className="add-subtopic-row">
+                          <td colSpan={colCount}>
+                            <div className="add-subtopic-form">
+                              <input
+                                className="form-input"
+                                placeholder="Subtopic name…"
+                                value={newSubName}
+                                onChange={(e) => setNewSubName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleAddSub(topic.topicId, topic.courseId)
+                                  if (e.key === 'Escape') setAddingSubForTopicId(null)
+                                }}
+                                autoFocus
+                              />
+                              <button className="btn btn-primary btn-sm" onClick={() => handleAddSub(topic.topicId, topic.courseId)} disabled={!newSubName.trim()}>Add</button>
+                              <button className="btn btn-secondary btn-sm" onClick={() => setAddingSubForTopicId(null)}>Cancel</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ),
+                    ]
+                  }
+
+                  // ── Regular topic / subtopic row ────────────────────────────
                   const status  = getStatus(topic.id)
                   const cfg     = STATUS_CONFIG[status]
                   const lastUpd = getLastUpdated(topic.id)
@@ -368,31 +458,35 @@ export default function TopicsView({
                   return [
                     <tr
                       key={topic.id}
-                      className={`study-row study-row--expandable ${isExpanded ? 'study-row--expanded' : ''} ${isSelected ? 'study-row--selected' : ''}`}
+                      className={`study-row study-row--expandable${topic.isSub ? ' subtopic-row' : ''}${isExpanded ? ' study-row--expanded' : ''}${isSelected ? ' study-row--selected' : ''}`}
                       onClick={(e) => {
-                        // Don't select if clicking an interactive element
                         if (e.target.closest('button,input,select,a,textarea')) return
-                        // Single click = select row
                         setSelectedId(isSelected ? null : topic.id)
                       }}
                       onDoubleClick={(e) => {
                         if (e.target.closest('button,input,select,a,textarea')) return
-                        // Double click = toggle notes expansion
                         setExpandedId(isExpanded ? null : topic.id)
                         setSelectedId(topic.id)
                       }}
                     >
                       <td className="study-cell study-cell--course">
-                        <span className="course-badge">
-                          <span className="course-badge__dot" style={{ background: topic.courseColor }} />
-                          {topic.courseName}
-                        </span>
+                        {topic.isSub ? (
+                          <span className="subtopic-indent-marker">└</span>
+                        ) : (
+                          <span className="course-badge">
+                            <span className="course-badge__dot" style={{ background: topic.courseColor }} />
+                            {topic.courseName}
+                          </span>
+                        )}
                       </td>
                       <td className="study-cell study-cell--topic">
                         <span className="topic-name-wrap">
                           {topic.name}
                           {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
                         </span>
+                        {!topic.isSub && subtopicsEnabled && topic.subtopics?.length === 0 && (
+                          <span className="no-subtopics-hint">(no subs)</span>
+                        )}
                       </td>
                       <td className="study-cell study-cell--status">
                         <button className={`status-badge status-badge--${status}`}
@@ -408,7 +502,7 @@ export default function TopicsView({
                       )}
                       {cv('due') && (
                         <td className="study-cell" style={{ width: 170 }}>
-                          {setTopicDueDate && (
+                          {setTopicDueDate && !topic.isSub && (
                             <DueDateCell topic={topic} setTopicDueDate={setTopicDueDate} />
                           )}
                         </td>
@@ -424,7 +518,7 @@ export default function TopicsView({
                       )}
                       <td className="study-cell" style={{ textAlign: 'right' }}>
                         <button className="icon-btn icon-btn--danger"
-                                title="Delete topic"
+                                title={topic.isSub ? 'Delete subtopic' : 'Delete topic'}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   if (window.confirm(`Delete "${topic.name}"?`)) {
@@ -441,7 +535,7 @@ export default function TopicsView({
                         id={topic.id}
                         notes={topic.notes}
                         onSave={(n) => updateTopicNotes(topic.id, n)}
-                        colSpan={3 + [cv('score'), cv('due'), cv('updated')].filter(Boolean).length + 2}
+                        colSpan={colCount}
                         onClose={() => setExpandedId(null)}
                       />
                     ),

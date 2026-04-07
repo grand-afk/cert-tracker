@@ -2068,6 +2068,75 @@ body {
   .help-shortcut-table td { padding: 6px 8px; }
 }
 
+/* ── Sub-topics ─────────────────────────────────────────────────────── */
+
+/* Group header row — shown once per parent topic when subtopicsEnabled */
+.topic-group-header-row td {
+  padding: 6px 8px;
+  background: var(--bg-alt, #1e2430);
+  border-bottom: 1px solid var(--border);
+}
+.topic-group-header-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.topic-group-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+  flex: 1;
+}
+.topic-group-add-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  opacity: 0.8;
+}
+.topic-group-add-btn:hover { opacity: 1; }
+
+/* Inline "add subtopic" form row */
+.add-subtopic-row td { padding: 6px 16px; background: var(--bg-alt, #1e2430); }
+.add-subtopic-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.add-subtopic-form .form-input {
+  flex: 1;
+  max-width: 320px;
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+/* Subtopic rows — slightly indented */
+.subtopic-row { background: color-mix(in srgb, var(--bg-primary) 96%, var(--accent) 4%); }
+.subtopic-indent-marker {
+  display: inline-block;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding-left: 8px;
+}
+
+/* Hint shown in Study view beneath subtopic name to indicate parent topic */
+.subtopic-parent-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Hint shown when a topic has no subtopics yet */
+.no-subtopics-hint {
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
 /* ── Mobile layout ──────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .topbar-row2 { overflow-x: auto; flex-wrap: nowrap; }
