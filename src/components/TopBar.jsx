@@ -1,5 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 
+function relTime(iso) {
+  if (!iso) return null
+  const s = Math.floor((Date.now() - new Date(iso)) / 1000)
+  if (s < 5)   return 'just now'
+  if (s < 60)  return `${s}s ago`
+  const m = Math.floor(s / 60)
+  if (m < 60)  return `${m}m ago`
+  return `${Math.floor(m / 60)}h ago`
+}
+
 export default function TopBar({
   certName,
   certEmoji,
@@ -19,7 +29,18 @@ export default function TopBar({
   onRedo,
   canUndo,
   canRedo,
+  onSave,
+  onLoad,
+  isSaving,
+  isLoading,
+  driveConnected,
+  lastSaved,
+  lastExported,
+  lastImported,
 }) {
+  const [, setTick] = useState(0)
+  useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 30_000); return () => clearInterval(id) }, [])
+
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef(null)
 
@@ -84,6 +105,30 @@ export default function TopBar({
               🔍
             </button>
           )}
+          {onSave && (
+            <button
+              className="topbar-icon-btn"
+              onClick={onSave}
+              disabled={isSaving || isLoading}
+              title={driveConnected ? 'Save to Google Drive' : 'Save to file'}
+              aria-label="Save"
+              style={{ opacity: (isSaving || isLoading) ? 0.5 : 1, fontSize: 15 }}
+            >
+              {isSaving ? '⏳' : driveConnected ? '☁️' : '💾'}
+            </button>
+          )}
+          {onLoad && (
+            <button
+              className="topbar-icon-btn"
+              onClick={onLoad}
+              disabled={isSaving || isLoading}
+              title={driveConnected ? 'Load from Google Drive' : 'Load from file'}
+              aria-label="Load"
+              style={{ opacity: (isSaving || isLoading) ? 0.5 : 1, fontSize: 15 }}
+            >
+              {isLoading ? '⏳' : '📂'}
+            </button>
+          )}
           <button
             className="topbar-icon-btn"
             onClick={onUndo}
@@ -113,6 +158,14 @@ export default function TopBar({
           </button>
         </div>
       </div>
+      {/* Tiny timestamp strip — shows changed/saved/loaded times */}
+      {(lastSaved || lastExported || lastImported) && (
+        <div className="topbar-stamps">
+          {lastSaved    && <span className="topbar-stamp topbar-stamp--changed"  title="Last local change">changed {relTime(lastSaved)}</span>}
+          {lastExported && <span className="topbar-stamp topbar-stamp--saved"    title="Last saved">{driveConnected ? '☁️' : '💾'} {relTime(lastExported)}</span>}
+          {lastImported && <span className="topbar-stamp topbar-stamp--imported" title="Last loaded">📂 {relTime(lastImported)}</span>}
+        </div>
+      )}
 
       <div className="topbar-row2">
         <button

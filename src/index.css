@@ -1757,6 +1757,19 @@ body {
 .topbar-search-clear:hover { color: var(--text); }
 .topbar-icon-btn--active { background: var(--accent) !important; border-radius: 6px; }
 
+.topbar-stamps {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 16px 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.topbar-stamp { display: flex; align-items: center; gap: 3px; }
+.topbar-stamp--changed { color: var(--text-muted); }
+.topbar-stamp--saved   { color: var(--accent); }
+.topbar-stamp--imported { color: #34A853; }
+
 /* ── Notes row expand ─────────────────────────────────────────────── */
 .study-row--expandable { cursor: pointer; }
 .study-row--expanded td { border-bottom: none !important; }

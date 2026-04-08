@@ -285,6 +285,77 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
   }), [certData, progress, calendar, importData, importProgress, restoreCalendar,
        stampLastExported, stampLastImported, lastSaved, lastExported, lastImported, syncFilePath])
 
+  // ── Unified save/load: Drive-first, file-picker fallback ─────────────────
+  const [topbarSaving, setTopbarSaving] = useState(false)
+  const [topbarLoading, setTopbarLoading] = useState(false)
+
+  const handleTopbarSave = useCallback(async () => {
+    if (driveSync.isReady) {
+      driveSync.saveToDrive()
+      return
+    }
+    // Fallback: file system save (same logic as SyncBar)
+    setTopbarSaving(true)
+    try {
+      const bundle = { _type: 'cert-tracker-full', version: 1, exportedAt: new Date().toISOString(), certData, progress, calendar }
+      const json = JSON.stringify(bundle, null, 2)
+      if (typeof window.showSaveFilePicker === 'function') {
+        try {
+          const handle = await window.showSaveFilePicker({ suggestedName: 'cert-tracker-sync.json', types: [{ description: 'JSON backup', accept: { 'application/json': ['.json'] } }] })
+          const writable = await handle.createWritable()
+          await writable.write(json)
+          await writable.close()
+        } catch (e) {
+          if (e.name === 'AbortError') return
+          const blob = new Blob([json], { type: 'application/json' })
+          const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'cert-tracker-sync.json' })
+          a.click()
+        }
+      } else {
+        const blob = new Blob([json], { type: 'application/json' })
+        const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'cert-tracker-sync.json' })
+        a.click()
+      }
+      stampLastExported?.()
+    } finally { setTopbarSaving(false) }
+  }, [driveSync, certData, progress, calendar, stampLastExported])
+
+  const topbarFileInputRef = useRef(null)
+  const handleTopbarLoad = useCallback(() => {
+    if (driveSync.isReady) {
+      driveSync.loadFromDrive()
+      return
+    }
+    // Fallback: file picker
+    if (typeof window.showOpenFilePicker === 'function') {
+      window.showOpenFilePicker({ types: [{ description: 'JSON backup', accept: { 'application/json': ['.json'] } }], multiple: false })
+        .then(async ([handle]) => {
+          const file = await handle.getFile()
+          const text = await file.text()
+          processTopbarImport(text)
+        })
+        .catch((e) => { if (e.name !== 'AbortError') topbarFileInputRef.current?.click() })
+    } else {
+      topbarFileInputRef.current?.click()
+    }
+  }, [driveSync])
+
+  const processTopbarImport = useCallback((text) => {
+    setTopbarLoading(true)
+    try {
+      const raw = JSON.parse(text)
+      if (raw._type === 'cert-tracker-full') {
+        if (raw.certData)  importData(JSON.stringify(raw.certData))
+        if (raw.progress)  importProgress(raw.progress)
+        if (raw.calendar)  restoreCalendar?.(raw.calendar)
+      } else {
+        importData(text)
+      }
+      stampLastImported?.()
+    } catch (e) { /* silent */ }
+    finally { setTopbarLoading(false) }
+  }, [importData, importProgress, restoreCalendar, stampLastImported])
+
   // Clear search when changing views
   useEffect(() => { setSearchQuery('') }, [view])
 
@@ -499,6 +570,11 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
   return (
     <>
+      {/* Hidden file input for topbar load fallback */}
+      <input ref={topbarFileInputRef} type="file" accept=".json,application/json"
+             style={{ display: 'none' }}
+             onChange={(e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => processTopbarImport(ev.target.result); r.readAsText(f); e.target.value = '' }} />
+
       <TopBar
         certName={activeCert?.name || certData.certName}
         certEmoji={activeCert?.emoji || '🎓'}
@@ -518,6 +594,14 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
         onRedo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
+        onSave={handleTopbarSave}
+        onLoad={handleTopbarLoad}
+        isSaving={topbarSaving || driveSync.syncing}
+        isLoading={topbarLoading || driveSync.syncing}
+        driveConnected={driveSync.isReady}
+        lastSaved={lastSaved}
+        lastExported={lastExported}
+        lastImported={lastImported}
       />
 
       <ProgressBanner percent={percentComplete} targetDate={certData.targetDate} courseMilestones={courseMilestones} />

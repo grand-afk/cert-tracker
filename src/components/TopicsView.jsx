@@ -498,37 +498,81 @@ export default function TopicsView({
                         )}
                       </td>
                       {subtopicsEnabled && (
+                        // TOPIC column:
+                        //  • subtopic row  → shows parent topic name (muted)
+                        //  • parent row    → shows topic name (bold); rename input goes here
                         <td className="study-cell study-cell--topic">
                           {topic.isSub ? (
                             <span className="text-muted" style={{ fontSize: 12 }}>{topic.topicName}</span>
-                          ) : null}
-                        </td>
-                      )}
-                      <td className="study-cell study-cell--topic">
-                        {renamingId === topic.id ? (
-                          <input
-                            className="form-input"
-                            style={{ fontSize: 13, padding: '2px 6px', height: 28 }}
-                            value={renameVal}
-                            autoFocus
-                            onChange={(e) => setRenameVal(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter')  { e.stopPropagation(); commitRename(topic) }
-                              if (e.key === 'Escape') { e.stopPropagation(); setRenamingId(null) }
-                            }}
-                            onBlur={() => commitRename(topic)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        ) : (
-                          <>
+                          ) : renamingId === topic.id ? (
+                            <input
+                              className="form-input"
+                              style={{ fontSize: 13, padding: '2px 6px', height: 28 }}
+                              value={renameVal}
+                              autoFocus
+                              onChange={(e) => setRenameVal(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter')  { e.stopPropagation(); commitRename(topic) }
+                                if (e.key === 'Escape') { e.stopPropagation(); setRenamingId(null) }
+                              }}
+                              onBlur={() => commitRename(topic)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
                             <span className="topic-name-wrap">
                               {topic.name}
                               {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
                             </span>
-                            {!topic.isSub && subtopicsEnabled && topic.subtopics?.length === 0 && (
-                              <span className="no-subtopics-hint">(no subs)</span>
-                            )}
-                          </>
+                          )}
+                        </td>
+                      )}
+                      {/* SUB-TOPIC column (or Topic column when subtopicsEnabled=false):
+                          • subtopic row  → shows subtopic name; rename input goes here
+                          • parent row    → empty when subtopicsEnabled */}
+                      <td className="study-cell study-cell--topic">
+                        {topic.isSub ? (
+                          renamingId === topic.id ? (
+                            <input
+                              className="form-input"
+                              style={{ fontSize: 13, padding: '2px 6px', height: 28 }}
+                              value={renameVal}
+                              autoFocus
+                              onChange={(e) => setRenameVal(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter')  { e.stopPropagation(); commitRename(topic) }
+                                if (e.key === 'Escape') { e.stopPropagation(); setRenamingId(null) }
+                              }}
+                              onBlur={() => commitRename(topic)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <span className="topic-name-wrap">
+                              {topic.name}
+                              {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
+                            </span>
+                          )
+                        ) : subtopicsEnabled ? null : (
+                          // subtopicsEnabled=false: single-column mode — name goes here
+                          renamingId === topic.id ? (
+                            <input
+                              className="form-input"
+                              style={{ fontSize: 13, padding: '2px 6px', height: 28 }}
+                              value={renameVal}
+                              autoFocus
+                              onChange={(e) => setRenameVal(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter')  { e.stopPropagation(); commitRename(topic) }
+                                if (e.key === 'Escape') { e.stopPropagation(); setRenamingId(null) }
+                              }}
+                              onBlur={() => commitRename(topic)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <span className="topic-name-wrap">
+                              {topic.name}
+                              {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
+                            </span>
+                          )
                         )}
                       </td>
                       <td className="study-cell study-cell--status">
