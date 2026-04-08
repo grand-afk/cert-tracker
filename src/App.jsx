@@ -169,8 +169,8 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     updateTopicResources, updateTermResources,
     updateTopicNotes, updateTermNotes,
     updateSubtopicNotes, updateSubtopicResources,
-    addTopic, deleteTopic,
-    addSubtopic, deleteSubtopic,
+    addTopic, renameTopic, deleteTopic,
+    addSubtopic, renameSubtopic, deleteSubtopic,
     addCourse, updateCourse, addTerm, deleteTerm,
     exportData, importData, resetToSample,
     getAllTopics, getAllItems, restoreCertData,
@@ -537,6 +537,8 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             setTestScore={setTestScore}
             setTopicDueDate={setTopicDueDate}
             addTopic={addTopicH}
+            renameTopic={renameTopic}
+            renameSubtopic={renameSubtopic}
             deleteTopic={deleteItemH}
             subtopicsEnabled={subtopicsEnabled}
             addSubtopic={addSubtopic}
@@ -585,7 +587,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
         {view === 'calendar' && (
           <CalendarView
-            allTopics={allTopics}
+            allTopics={subtopicsEnabled ? allItems : allTopics}
             courses={certData.courses}
             getSm2Card={getSm2Card}
             getStatus={getStatus}

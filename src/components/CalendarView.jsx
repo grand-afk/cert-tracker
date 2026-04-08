@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo, useCallback } from 'react'
+import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { useCalendar } from '../hooks/useCalendar'
 import { daysUntilDue } from '../utils/sm2'
 import RateButtons from './RateButtons'
@@ -177,7 +177,11 @@ function AddSlotModal({ allTopics, courses, defaultTopicMins, workStart, onAdd, 
           <select className="form-input" value={selectedTopicId}
                   onChange={(e) => setSelectedTopicId(e.target.value)}>
             <option value="">Select a topic…</option>
-            {filteredTopics.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {filteredTopics.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.isSub ? `  ↳ ${t.name} (${t.topicName})` : t.name}
+              </option>
+            ))}
             <option value="__other__">+ Other (new topic)</option>
           </select>
           {selectedTopicId === '__other__' && (
@@ -965,6 +969,11 @@ export default function CalendarView({
 
   const scopeLabel = viewMode === 'day' ? 'Day' : viewMode === 'week' ? 'Week' : 'Month'
 
+  // Count total scheduled slots across all days
+  const totalScheduled = useMemo(() => {
+    return Object.values(calendar).reduce((acc, day) => acc + (day.slots?.length || 0), 0)
+  }, [calendar])
+
   return (
     <div className="calendar-view">
 
@@ -1003,6 +1012,16 @@ export default function CalendarView({
           )}
         </div>
       )}
+
+      {/* View heading */}
+      <div className="study-header">
+        <h2 className="study-title">📅 Calendar</h2>
+        <div className="study-header-right">
+          {totalScheduled > 0 && (
+            <span className="study-count">{totalScheduled} session{totalScheduled !== 1 ? 's' : ''} scheduled</span>
+          )}
+        </div>
+      </div>
 
       {/* Header */}
       <div className="cal-header">

@@ -156,6 +156,15 @@ export default function StudyView({
   const dueItems  = sorted.filter((t) => isDue(getSm2Card(t.id)))
   const displayed = showDueOnly ? dueItems : sorted
 
+  // Stats for heading: cards rated today, hard (q=3), easy (q=5)
+  const today = new Date().toISOString().split('T')[0]
+  const ratedToday = sorted.filter((t) => {
+    const c = getSm2Card(t.id)
+    return c?.lastRated && c.lastRated.startsWith(today)
+  })
+  const hardToday  = ratedToday.filter((t) => getSm2Card(t.id)?.lastQuality === 3).length
+  const easyToday  = ratedToday.filter((t) => getSm2Card(t.id)?.lastQuality === 5).length
+
   const totalPages = Math.max(1, Math.ceil(displayed.length / PAGE_SIZE))
   const safePage   = Math.min(page, totalPages)
   const pageItems  = displayed.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
@@ -217,6 +226,13 @@ export default function StudyView({
       <div className="study-header">
         <h2 className="study-title">🎓 Study</h2>
         <div className="study-header-right">
+          {ratedToday.length > 0 && (
+            <span className="study-count">
+              {ratedToday.length} studied today
+              {hardToday > 0 && ` · ${hardToday} hard`}
+              {easyToday > 0 && ` · ${easyToday} easy`}
+            </span>
+          )}
           <span className="study-count">{dueItems.length} due</span>
           <button
             className={`btn btn-secondary btn-sm ${showDueOnly ? 'btn-active' : ''}`}

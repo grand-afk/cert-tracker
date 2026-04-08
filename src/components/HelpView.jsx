@@ -3,7 +3,9 @@ import { DEFAULT_TECHNIQUES as TECHNIQUES } from '../hooks/useRevisionTechniques
 export default function HelpView() {
   return (
     <div className="help-view">
-      <h1 className="help-title">❓ Help</h1>
+      <div className="study-header">
+        <h2 className="study-title">❓ Help</h2>
+      </div>
 
       {/* Features Section */}
       <div className="help-section">

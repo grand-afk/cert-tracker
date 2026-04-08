@@ -210,7 +210,7 @@ export default function TopicsView({
   updateTopicNotes,
   getTestScore, setTestScore,
   setTopicDueDate,
-  addTopic, deleteTopic,
+  addTopic, renameTopic, renameSubtopic, deleteTopic,
   subtopicsEnabled, addSubtopic,
   clearRating,
   searchQuery,
@@ -225,6 +225,22 @@ export default function TopicsView({
   // Subtopic add inline form
   const [addingSubForTopicId, setAddingSubForTopicId] = useState(null)
   const [newSubName, setNewSubName] = useState('')
+  // Inline rename state: { id, courseId, topicId (for subs), isSub, value }
+  const [renamingId, setRenamingId] = useState(null)
+  const [renameVal, setRenameVal]   = useState('')
+
+  function startRename(topic) {
+    setRenamingId(topic.id)
+    setRenameVal(topic.name)
+  }
+  function commitRename(topic) {
+    const name = renameVal.trim()
+    if (name && name !== topic.name) {
+      if (topic.isSub) renameSubtopic(topic.courseId, topic.topicId, topic.id, name)
+      else             renameTopic(topic.courseId, topic.id, name)
+    }
+    setRenamingId(null)
+  }
   const tableRef = useRef(null)
 
   // ── Column visibility ──────────────────────────────────────────────────────
@@ -355,6 +371,7 @@ export default function TopicsView({
   return (
     <div className="study-view">
       <div className="study-header">
+        <h2 className="study-title">📚 Topics</h2>
         <div className="study-header-right">
           <span className="study-count">
             {completeCount}/{filtered.length} complete
@@ -488,12 +505,30 @@ export default function TopicsView({
                         </td>
                       )}
                       <td className="study-cell study-cell--topic">
-                        <span className="topic-name-wrap">
-                          {topic.name}
-                          {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
-                        </span>
-                        {!topic.isSub && subtopicsEnabled && topic.subtopics?.length === 0 && (
-                          <span className="no-subtopics-hint">(no subs)</span>
+                        {renamingId === topic.id ? (
+                          <input
+                            className="form-input"
+                            style={{ fontSize: 13, padding: '2px 6px', height: 28 }}
+                            value={renameVal}
+                            autoFocus
+                            onChange={(e) => setRenameVal(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter')  { e.stopPropagation(); commitRename(topic) }
+                              if (e.key === 'Escape') { e.stopPropagation(); setRenamingId(null) }
+                            }}
+                            onBlur={() => commitRename(topic)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <>
+                            <span className="topic-name-wrap">
+                              {topic.name}
+                              {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
+                            </span>
+                            {!topic.isSub && subtopicsEnabled && topic.subtopics?.length === 0 && (
+                              <span className="no-subtopics-hint">(no subs)</span>
+                            )}
+                          </>
                         )}
                       </td>
                       <td className="study-cell study-cell--status">
@@ -524,7 +559,12 @@ export default function TopicsView({
                           {lastUpd ? <span title={new Date(lastUpd).toLocaleString()}>{relativeTime(lastUpd)}</span> : '—'}
                         </td>
                       )}
-                      <td className="study-cell" style={{ textAlign: 'right' }}>
+                      <td className="study-cell" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <button className="icon-btn"
+                                title={topic.isSub ? 'Rename subtopic' : 'Rename topic'}
+                                onClick={(e) => { e.stopPropagation(); startRename(topic) }}>
+                          ✏️
+                        </button>
                         <button className="icon-btn icon-btn--danger"
                                 title={topic.isSub ? 'Delete subtopic' : 'Delete topic'}
                                 onClick={(e) => {

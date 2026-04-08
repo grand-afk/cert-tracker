@@ -1376,11 +1376,13 @@ body {
 }
 
 .help-section-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text);
-  border-bottom: 2px solid var(--accent);
-  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .help-cards {
@@ -1403,17 +1405,17 @@ body {
 .help-card:hover { border-color: var(--accent); }
 
 .help-card-icon {
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .help-card-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
 }
 
 .help-card-text {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
   line-height: 1.5;
 }
@@ -1425,11 +1427,11 @@ body {
 }
 
 .help-subsection-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .help-shortcut-table {

@@ -91,6 +91,35 @@ export function useCertData(namespace = 'default') {
     }))
   }, [setCertData])
 
+  const renameTopic = useCallback((courseId, topicId, name) => {
+    setCertData((d) => ({
+      ...d,
+      courses: d.courses.map((c) =>
+        c.id === courseId
+          ? { ...c, topics: c.topics.map((t) => t.id === topicId ? { ...t, name } : t) }
+          : c
+      ),
+    }))
+  }, [setCertData])
+
+  const renameSubtopic = useCallback((courseId, topicId, subtopicId, name) => {
+    setCertData((d) => ({
+      ...d,
+      courses: d.courses.map((c) =>
+        c.id === courseId
+          ? {
+              ...c,
+              topics: c.topics.map((t) =>
+                t.id === topicId
+                  ? { ...t, subtopics: (t.subtopics || []).map((st) => st.id === subtopicId ? { ...st, name } : st) }
+                  : t
+              ),
+            }
+          : c
+      ),
+    }))
+  }, [setCertData])
+
   const deleteTopic = useCallback((courseId, topicId) => {
     setCertData((d) => ({
       ...d,
@@ -271,8 +300,8 @@ export function useCertData(namespace = 'default') {
     setCertName, setTargetDate,
     updateTopicResources, updateTermResources,
     updateSubtopicResources,
-    addTopic, deleteTopic,
-    addSubtopic, deleteSubtopic,
+    addTopic, renameTopic, deleteTopic,
+    addSubtopic, renameSubtopic, deleteSubtopic,
     addCourse, updateCourse, addTerm, deleteTerm,
     exportData, importData, resetToSample,
     getAllTopics, getAllItems, getCourseById,
