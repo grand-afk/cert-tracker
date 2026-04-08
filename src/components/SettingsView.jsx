@@ -1,5 +1,120 @@
 import { useState, useRef } from 'react'
 
+// ── DriveSyncSection ───────────────────────────────────────────────────────────
+function relTime(iso) {
+  if (!iso) return null
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.round(diff / 60000)
+  if (mins < 1)  return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.round(mins / 60)
+  if (hrs < 24)  return `${hrs}h ago`
+  return `${Math.round(hrs / 24)}d ago`
+}
+
+function DriveSyncSection({ driveSync }) {
+  const {
+    clientId, setClientId,
+    authState, connect, disconnect,
+    driveFileId, syncing, lastSync, syncError,
+    saveToDrive, loadFromDrive, isReady,
+  } = driveSync
+
+  const [showClientId, setShowClientId] = useState(false)
+  const [clientIdDraft, setClientIdDraft] = useState(clientId || '')
+
+  const statusLabel = {
+    idle:     { text: 'Not configured', color: 'var(--text-muted)' },
+    loading:  { text: 'Loading…',       color: 'var(--text-muted)' },
+    unauthed: { text: 'Not connected',  color: '#FB8C00' },
+    authed:   { text: 'Connected',      color: '#43A047' },
+    error:    { text: 'Error',          color: '#EA4335' },
+  }[authState] || { text: authState, color: 'var(--text-muted)' }
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-title">Google Drive Sync</div>
+
+      {/* Client ID config */}
+      <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+          <div>
+            <div className="settings-label">Status</div>
+            <div className="settings-hint" style={{ color: statusLabel.color, fontWeight: 500 }}>{statusLabel.text}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {authState === 'authed' ? (
+              <button className="btn btn-secondary btn-sm" onClick={disconnect}>Disconnect</button>
+            ) : authState === 'unauthed' ? (
+              <button className="btn btn-primary btn-sm" onClick={connect}>Connect to Drive</button>
+            ) : null}
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowClientId(v => !v)}>
+              {showClientId ? 'Hide' : 'Configure'}
+            </button>
+          </div>
+        </div>
+
+        {showClientId && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="settings-hint">
+              Enter your Google Cloud OAuth 2.0 Client ID. Create one at{' '}
+              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer"
+                 style={{ color: 'var(--accent)' }}>console.cloud.google.com</a> — enable the Drive API,
+              create an OAuth Web client, and add <code style={{ fontSize: 11 }}>https://grand-afk.github.io</code> as
+              an Authorized JavaScript origin.
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input className="form-input" style={{ flex: 1, fontSize: 12 }}
+                     placeholder="xxxxxxxx.apps.googleusercontent.com"
+                     value={clientIdDraft}
+                     onChange={e => setClientIdDraft(e.target.value)} />
+              <button className="btn btn-primary btn-sm"
+                      onClick={() => { setClientId(clientIdDraft.trim()); setShowClientId(false) }}
+                      disabled={!clientIdDraft.trim()}>Save</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Save / Load */}
+      {(authState === 'authed' || authState === 'unauthed') && (
+        <div className="settings-row">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="settings-label">Sync this cert</div>
+            <div className="settings-hint">
+              {driveFileId
+                ? `Linked to Drive file · last synced ${relTime(lastSync) || 'never'}`
+                : 'Not yet synced — click Save to create the Drive file'}
+            </div>
+            {syncError && (
+              <div className="settings-hint" style={{ color: '#EA4335', marginTop: 4 }}>{syncError}</div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button className="btn btn-secondary btn-sm"
+                    onClick={loadFromDrive}
+                    disabled={!isReady || syncing || !driveFileId}
+                    title="Pull latest data from Drive">
+              {syncing ? '…' : '⬇ Load'}
+            </button>
+            <button className="btn btn-primary btn-sm"
+                    onClick={saveToDrive}
+                    disabled={!isReady || syncing}
+                    title="Push current data to Drive">
+              {syncing ? '…' : '⬆ Save'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="settings-hint" style={{ padding: '0 16px 12px', color: 'var(--text-muted)', fontSize: 11 }}>
+        Saves certData + progress + calendar as a single JSON file in your Drive.
+        Use Load on another device to restore. Only files created by this app are accessible.
+      </div>
+    </div>
+  )
+}
+
 // ── StepInput — mobile-friendly stepper for numeric settings ──────────────────
 function StepInput({ value, onChange, min, max, step = 1, suffix = '' }) {
   return (
@@ -132,6 +247,8 @@ export default function SettingsView({
   resetTechniquesToDefaults, techniquesLastImported,
   // Sub-topics
   subtopicsEnabled, setSubtopicsEnabled,
+  // Google Drive sync
+  driveSync,
 }) {
   const [importText, setImportText]       = useState('')
   const [importError, setImportError]     = useState('')
@@ -418,6 +535,9 @@ export default function SettingsView({
           </div>
         )}
       </div>
+
+      {/* Google Drive Sync */}
+      {driveSync && <DriveSyncSection driveSync={driveSync} />}
 
       {/* Courses */}
       <div className="settings-section">

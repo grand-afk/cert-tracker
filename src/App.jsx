@@ -6,6 +6,7 @@ import { useCalendar }             from './hooks/useCalendar'
 import { useHistory }              from './hooks/useHistory'
 import { useRevisionTechniques }   from './hooks/useRevisionTechniques'
 import { useCerts, migrateToNamespace } from './hooks/useCerts'
+import { useDriveSync }            from './hooks/useDriveSync'
 import TopBar           from './components/TopBar'
 import BottomNav        from './components/BottomNav'
 import ProgressBanner   from './components/ProgressBanner'
@@ -211,6 +212,28 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
   } = useRevisionTechniques(namespace)
 
   const [managingCerts, setManagingCerts] = useState(false)
+
+  // ── Google Drive sync ──────────────────────────────────────────────────
+  const buildExportBundle = useCallback(() => ({
+    _type:    'cert-tracker-full',
+    version:  1,
+    exportedAt: new Date().toISOString(),
+    certData, progress, calendar,
+  }), [certData, progress, calendar])
+
+  const applyImportBundle = useCallback((bundle) => {
+    if (bundle.certData)  importData(JSON.stringify(bundle.certData))
+    if (bundle.progress)  importProgress(bundle.progress)
+    if (bundle.calendar)  restoreCalendar(bundle.calendar)
+    stampLastImported?.()
+  }, [importData, importProgress, restoreCalendar, stampLastImported])
+
+  const driveSync = useDriveSync({
+    certId:  namespace,
+    certName: activeCert?.name || certData.certName,
+    buildExportBundle,
+    applyImportBundle,
+  })
 
   const allTopics  = useMemo(() => getAllTopics(), [getAllTopics])
   // allItems: flat list used by Topics + Study views. When subtopicsEnabled and a topic
@@ -638,6 +661,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             techniquesLastImported={techniquesLastImported}
             subtopicsEnabled={subtopicsEnabled}
             setSubtopicsEnabled={setSubtopicsEnabled}
+            driveSync={driveSync}
           />
         )}
       </main>
@@ -668,6 +692,27 @@ export default function App() {
   const { certs, activeCertId, activeCert, addCert, renameCert, deleteCert, switchCert } = useCerts()
   const [view, setView]               = useState('topics')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // ── URL routing: sync ?cert=<id> param with active cert ─────────────────
+  // On mount: honour ?cert= param so bookmarked / shared links land directly
+  useEffect(() => {
+    const params   = new URLSearchParams(window.location.search)
+    const certParam = params.get('cert')
+    if (certParam && certParam !== activeCertId && certs.find(c => c.id === certParam)) {
+      switchCert(certParam)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // intentionally run only on mount
+
+  // Keep URL in sync whenever the active cert changes
+  useEffect(() => {
+    if (!activeCertId) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('cert') !== activeCertId) {
+      params.set('cert', activeCertId)
+      window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
+    }
+  }, [activeCertId])
 
   // Reset view to topics when switching certs
   const handleSwitchCert = useCallback((id) => {
