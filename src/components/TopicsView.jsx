@@ -167,6 +167,9 @@ function NotesRow({ id, notes, onSave, colSpan, onClose }) {
   const dirty = val !== (notes ?? '')
   const wrapRef = useRef(null)
 
+  // Sync if notes prop changes externally (e.g. edit made in CalendarView)
+  useEffect(() => { setVal(notes ?? '') }, [notes])
+
   // Close on Escape
   useEffect(() => {
     function onKey(e) {
@@ -459,10 +462,6 @@ export default function TopicsView({
                       key={topic.id}
                       className={`study-row study-row--expandable${topic.isSub ? ' subtopic-row' : ''}${isExpanded ? ' study-row--expanded' : ''}${isSelected ? ' study-row--selected' : ''}`}
                       onClick={(e) => {
-                        if (e.target.closest('button,input,select,a,textarea')) return
-                        setSelectedId(isSelected ? null : topic.id)
-                      }}
-                      onDoubleClick={(e) => {
                         if (e.target.closest('button,input,select,a,textarea')) return
                         setExpandedId(isExpanded ? null : topic.id)
                         setSelectedId(topic.id)

@@ -62,6 +62,9 @@ function RevisionSelect({ topicId, field, value, techniques, onSet }) {
 function NotesRow({ id, notes, onSave, colSpan }) {
   const [val, setVal] = useState(notes ?? '')
   const dirty = val !== (notes ?? '')
+  // Sync if notes prop changes externally (e.g. edit made in CalendarView)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setVal(notes ?? '') }, [notes])
   return (
     <tr className="notes-expand-row">
       <td colSpan={colSpan}>

@@ -106,8 +106,17 @@ export function useCerts() {
   const [activeCertId, setActiveCertIdState] = useState(loadActiveId)
 
   const setCerts = useCallback((data) => {
-    setCertsState(data)
-    saveCerts(data)
+    if (typeof data === 'function') {
+      // Updater function: let React call it and capture the result for persistence
+      setCertsState((prev) => {
+        const next = data(prev)
+        saveCerts(next)
+        return next
+      })
+    } else {
+      setCertsState(data)
+      saveCerts(data)
+    }
   }, [])
 
   const switchCert = useCallback((id) => {
@@ -118,27 +127,18 @@ export function useCerts() {
   const addCert = useCallback((name, emoji = '🎓') => {
     const id = genId()
     const cert = { id, name, emoji, createdAt: new Date().toISOString() }
-    setCerts((prev) => {
-      const next = [...prev, cert]
-      saveCerts(next)
-      return next
-    })
+    setCerts((prev) => [...prev, cert])
     return id
   }, [setCerts])
 
   const renameCert = useCallback((id, name, emoji) => {
-    setCerts((prev) => {
-      const next = prev.map((c) => c.id === id ? { ...c, name, ...(emoji ? { emoji } : {}) } : c)
-      saveCerts(next)
-      return next
-    })
+    setCerts((prev) => prev.map((c) => c.id === id ? { ...c, name, ...(emoji ? { emoji } : {}) } : c))
   }, [setCerts])
 
   const deleteCert = useCallback((id, currentActiveCertId, switchFn) => {
     setCerts((prev) => {
       if (prev.length <= 1) return prev  // can't delete last
       const next = prev.filter((c) => c.id !== id)
-      saveCerts(next)
       if (currentActiveCertId === id) switchFn(next[0].id)
       return next
     })

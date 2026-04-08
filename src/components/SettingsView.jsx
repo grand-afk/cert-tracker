@@ -398,15 +398,14 @@ export default function SettingsView({
       <div className="settings-section">
         <div className="settings-section-title">Study Structure</div>
         <div className="settings-row">
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div className="settings-label">Enable Sub-topics</div>
             <div className="settings-hint">
               Adds an optional sub-topic level beneath each topic — useful when topics have distinct syllabus points
-              (e.g. Geography Paper 1 → Plate Tectonics, Coastal Landforms…). When enabled, progress and study
-              cards track individual sub-topics. Topics with no sub-topics continue to behave normally.
+              (e.g. Paper 1 → Plate Tectonics, Coastal Landforms…). Progress and study cards track individual sub-topics.
             </div>
           </div>
-          <label className="toggle">
+          <label className="toggle" style={{ flexShrink: 0 }}>
             <input type="checkbox" checked={!!subtopicsEnabled}
                    onChange={(e) => setSubtopicsEnabled?.(e.target.checked)} />
             <span className="toggle-slider" />

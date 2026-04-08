@@ -477,7 +477,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
   return (
     <>
       <TopBar
-        certName={certData.certName}
+        certName={activeCert?.name || certData.certName}
         certEmoji={activeCert?.emoji || '🎓'}
         certs={certs}
         activeCertId={activeCertId}
@@ -649,7 +649,11 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
           activeCertId={activeCertId}
           onSwitch={switchCert}
           onAdd={handleAddCert}
-          onRename={renameCert}
+          onRename={(id, name, emoji) => {
+              renameCert(id, name, emoji)
+              // Keep certData.certName in sync so exports use the latest name
+              if (id === activeCertId) setCertName(name)
+            }}
           onDelete={deleteCert}
           onClose={() => setManagingCerts(false)}
         />
