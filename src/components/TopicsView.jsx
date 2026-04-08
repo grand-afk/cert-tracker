@@ -349,7 +349,8 @@ export default function TopicsView({
   const completeCount    = filtered.filter((t) => !t.__isGroupHeader && getStatus(t.id) === 'complete').length
   const inProgressCount  = filtered.filter((t) => !t.__isGroupHeader && getStatus(t.id) === 'in-progress').length
   // colCount for colspan on group headers / notes rows
-  const colCount = 3 + (cv('score') ? 1 : 0) + (cv('due') ? 1 : 0) + (cv('updated') ? 1 : 0) + 2
+  // When subtopicsEnabled an extra TOPIC column is inserted between COURSE and SUB-TOPIC
+  const colCount = 3 + (subtopicsEnabled ? 1 : 0) + (cv('score') ? 1 : 0) + (cv('due') ? 1 : 0) + (cv('updated') ? 1 : 0) + 2
 
   return (
     <div className="study-view">
@@ -393,6 +394,7 @@ export default function TopicsView({
               <thead>
                 <tr>
                   <SortTh colKey="course"  className="study-cell--course">Course</SortTh>
+                  {subtopicsEnabled && <SortTh colKey="topicName" className="study-cell--topic">Topic</SortTh>}
                   <SortTh colKey="topic"   className="study-cell--topic">{subtopicsEnabled ? 'Sub-Topic' : 'Topic'}</SortTh>
                   <SortTh colKey="status"  className="study-cell--status">Status</SortTh>
                   {cv('score')        && <SortTh colKey="score"   style={{ width: 160 }}>Score</SortTh>}
@@ -468,11 +470,23 @@ export default function TopicsView({
                       }}
                     >
                       <td className="study-cell study-cell--course">
-                        <span className="course-badge">
-                          <span className="course-badge__dot" style={{ background: topic.courseColor }} />
-                          {topic.courseName}
-                        </span>
+                        {topic.isSub ? (
+                          // Just the colour dot — topic name is in the Topic column
+                          <span className="course-badge__dot" style={{ background: topic.courseColor, display: 'inline-block', width: 10, height: 10, borderRadius: '50%', marginLeft: 4 }} />
+                        ) : (
+                          <span className="course-badge">
+                            <span className="course-badge__dot" style={{ background: topic.courseColor }} />
+                            {topic.courseName}
+                          </span>
+                        )}
                       </td>
+                      {subtopicsEnabled && (
+                        <td className="study-cell study-cell--topic">
+                          {topic.isSub ? (
+                            <span className="text-muted" style={{ fontSize: 12 }}>{topic.topicName}</span>
+                          ) : null}
+                        </td>
+                      )}
                       <td className="study-cell study-cell--topic">
                         <span className="topic-name-wrap">
                           {topic.name}

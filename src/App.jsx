@@ -556,6 +556,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             getRevisionTechnique={getRevisionTechnique}
             setRevisionTechnique={setRevisionTechnique}
             syncProps={syncProps}
+            subtopicsEnabled={subtopicsEnabled}
           />
         )}
 

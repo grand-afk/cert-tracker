@@ -103,6 +103,7 @@ export default function StudyView({
   getRevisionTechnique,
   setRevisionTechnique,
   syncProps,
+  subtopicsEnabled = false,
 }) {
   const [ratedIds, setRatedIds]     = useState({})
   const [editTarget, setEditTarget] = useState(null)
@@ -246,7 +247,8 @@ export default function StudyView({
               <thead>
                 <tr>
                   <SortTh colKey="course" style={{ width: 130 }}>Course</SortTh>
-                  <SortTh colKey="topic">Topic</SortTh>
+                  {subtopicsEnabled && <SortTh colKey="topicName" style={{ width: 140 }}>Topic</SortTh>}
+                  <SortTh colKey="topic">{subtopicsEnabled ? 'Sub-Topic' : 'Topic'}</SortTh>
                   <SortTh colKey="due" style={{ width: 110 }}>Due</SortTh>
                   <SortTh colKey="rate" style={{ width: 260 }}>Rate</SortTh>
                   {revisionTechniques.length > 0 && (
@@ -279,14 +281,18 @@ export default function StudyView({
                           {topic.courseName}
                         </span>
                       </td>
+                      {subtopicsEnabled && (
+                        <td className="study-cell study-cell--topic">
+                          {topic.isSub && (
+                            <span className="text-muted" style={{ fontSize: 12 }}>{topic.topicName}</span>
+                          )}
+                        </td>
+                      )}
                       <td className="study-cell study-cell--topic">
                         <span className="topic-name-wrap">
                           {topic.name}
                           {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
                         </span>
-                        {topic.isSub && (
-                          <span className="subtopic-parent-label" title="Parent topic">{topic.topicName}</span>
-                        )}
                       </td>
                       <td className="study-cell">
                         <span className={`due-badge ${dueBadgeClass(card)}`}>
@@ -335,7 +341,7 @@ export default function StudyView({
                         id={topic.id}
                         notes={topic.notes}
                         onSave={(n) => updateTopicNotes(topic.id, n)}
-                        colSpan={5 + (revisionTechniques.length > 0 ? 2 : 0)}
+                        colSpan={5 + (subtopicsEnabled ? 1 : 0) + (revisionTechniques.length > 0 ? 2 : 0)}
                       />
                     ),
                   ]
