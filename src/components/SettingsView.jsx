@@ -145,9 +145,14 @@ function DriveSyncSection({ driveSync }) {
           </div>
           <div style={{ display: 'flex', gap: 6, width: '100%' }}>
             <input className="form-input" style={{ flex: 1, fontSize: 12 }}
-                   placeholder="Paste file ID here…"
+                   placeholder="Paste file ID or Drive URL…"
                    value={sharedIdDraft}
-                   onChange={e => setSharedIdDraft(e.target.value)} />
+                   onChange={e => {
+                     const val = e.target.value
+                     // Auto-extract ID from Drive URLs like /d/FILE_ID/view
+                     const match = val.match(/\/d\/([a-zA-Z0-9_-]{10,})/)
+                     setSharedIdDraft(match ? match[1] : val)
+                   }} />
             <button className="btn btn-primary btn-sm"
                     style={{ flexShrink: 0 }}
                     disabled={!sharedIdDraft.trim() || loadingShared}
