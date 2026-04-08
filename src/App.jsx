@@ -800,16 +800,16 @@ export default function App() {
     }
   }, [activeCertId])
 
-  // Block browser Ctrl+S / Cmd+S "Save As" dialog
+  // Ctrl+S → save, Ctrl+L → load  (also blocks browser "Save As" / "Open" dialogs)
   useEffect(() => {
     const handler = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault()
-      }
+      if (!(e.ctrlKey || e.metaKey)) return
+      if (e.key === 's') { e.preventDefault(); handleTopbarSave() }
+      if (e.key === 'l') { e.preventDefault(); handleTopbarLoad() }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [handleTopbarSave, handleTopbarLoad])
 
   // Reset view to topics when switching certs
   const handleSwitchCert = useCallback((id) => {

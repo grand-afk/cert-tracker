@@ -1756,6 +1756,18 @@ body {
 }
 .topbar-search-clear:hover { color: var(--text); }
 .topbar-icon-btn--active { background: var(--accent) !important; border-radius: 6px; }
+.topbar-icon-btn--with-key { display: flex; align-items: center; gap: 2px; }
+.topbar-btn-key {
+  font-size: 9px;
+  font-family: monospace;
+  background: var(--surface2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 3px;
+  line-height: 14px;
+  margin-top: 1px;
+}
 
 .topbar-stamps {
   display: flex;

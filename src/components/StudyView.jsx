@@ -3,7 +3,7 @@ import { daysUntilDue, dueLabel, isDue } from '../utils/sm2'
 import RateButtons from './RateButtons'
 import ResourceTooltip from './ResourceTooltip'
 import EditResourceModal from './EditResourceModal'
-import SyncBar from './SyncBar'
+// SyncBar removed — save/load now lives in TopBar
 
 const PAGE_SIZE = 20
 
@@ -245,7 +245,7 @@ export default function StudyView({
         </div>
       </div>
 
-      {syncProps && <SyncBar {...syncProps} />}
+{/* SyncBar removed — save/load in TopBar */}
 
       {displayed.length === 0 ? (
         <div className="empty-state">

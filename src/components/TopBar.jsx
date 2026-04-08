@@ -97,36 +97,36 @@ export default function TopBar({
         <div className="topbar-icons">
           {currentView !== 'settings' && (
             <button
-              className={`topbar-icon-btn ${searchOpen ? 'topbar-icon-btn--active' : ''}`}
+              className={`topbar-icon-btn topbar-icon-btn--with-key ${searchOpen ? 'topbar-icon-btn--active' : ''}`}
               onClick={toggleSearch}
               title="Search  [/]"
               aria-label="Toggle search"
             >
-              🔍
+              🔍<span className="topbar-btn-key">/</span>
             </button>
           )}
           {onSave && (
             <button
-              className="topbar-icon-btn"
+              className="topbar-icon-btn topbar-icon-btn--with-key"
               onClick={onSave}
               disabled={isSaving || isLoading}
-              title={driveConnected ? 'Save to Google Drive' : 'Save to file'}
+              title={`${driveConnected ? 'Save to Google Drive' : 'Save to file'}  [Ctrl+S]`}
               aria-label="Save"
               style={{ opacity: (isSaving || isLoading) ? 0.5 : 1, fontSize: 15 }}
             >
-              {isSaving ? '⏳' : driveConnected ? '☁️' : '💾'}
+              {isSaving ? '⏳' : driveConnected ? '☁️' : '💾'}<span className="topbar-btn-key">S</span>
             </button>
           )}
           {onLoad && (
             <button
-              className="topbar-icon-btn"
+              className="topbar-icon-btn topbar-icon-btn--with-key"
               onClick={onLoad}
               disabled={isSaving || isLoading}
-              title={driveConnected ? 'Load from Google Drive' : 'Load from file'}
+              title={`${driveConnected ? 'Load from Google Drive' : 'Load from file'}  [Ctrl+L]`}
               aria-label="Load"
               style={{ opacity: (isSaving || isLoading) ? 0.5 : 1, fontSize: 15 }}
             >
-              {isLoading ? '⏳' : '📂'}
+              {isLoading ? '⏳' : '📂'}<span className="topbar-btn-key">L</span>
             </button>
           )}
           <button

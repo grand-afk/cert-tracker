@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import ResourceTooltip from './ResourceTooltip'
 import EditResourceModal from './EditResourceModal'
 import AddTopicModal from './AddTopicModal'
-import SyncBar from './SyncBar'
+// SyncBar removed — save/load now lives in TopBar
 import { relativeTime, fmtDisplayDate } from '../utils/relativeTime'
 
 const PAGE_SIZE = 15
@@ -381,7 +381,7 @@ export default function TopicsView({
         </div>
       </div>
 
-      {syncProps && <SyncBar {...syncProps} />}
+{/* SyncBar removed — save/load in TopBar */}
 
       {/* Column visibility toggles */}
       <div className="col-vis-bar">
