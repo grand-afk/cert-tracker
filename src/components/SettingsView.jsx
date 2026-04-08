@@ -120,27 +120,29 @@ function DriveSyncSection({ driveSync }) {
 
       {/* Share your file ID */}
       {isReady && driveFileId && (
-        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
-          <div className="settings-label">Share with others</div>
-          <div className="settings-hint" style={{ marginBottom: 2 }}>
-            Copy your file ID and share it. Others can paste it below to load your cert data.
+        <div className="settings-row">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="settings-label">Share with others</div>
+            <div className="settings-hint">
+              Send your file ID to someone else — they paste it into their app to load your cert.
+            </div>
+            <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)', marginTop: 4,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {driveFileId}
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 6, width: '100%' }}>
-            <input className="form-input" style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', cursor: 'text' }}
-                   readOnly value={driveFileId} />
-            <button className="btn btn-secondary btn-sm" onClick={copyFileId} style={{ flexShrink: 0 }}>
-              {copied ? '✓ Copied' : 'Copy ID'}
-            </button>
-          </div>
+          <button className="btn btn-secondary btn-sm" onClick={copyFileId} style={{ flexShrink: 0, alignSelf: 'center' }}>
+            {copied ? '✓ Copied' : 'Copy ID'}
+          </button>
         </div>
       )}
 
       {/* Load from shared file */}
       {(authState === 'authed' || authState === 'unauthed') && (
         <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
-          <div className="settings-label">Load from shared file</div>
+          <div className="settings-label">Load from someone else's cert</div>
           <div className="settings-hint" style={{ marginBottom: 2 }}>
-            Paste a file ID shared by someone else to pull their cert data.
+            Got a file ID from another user? Paste it here to pull their cert into this slot.
             Requires a one-time <em>View Drive files</em> permission.
           </div>
           <div style={{ display: 'flex', gap: 6, width: '100%' }}>
