@@ -18,10 +18,21 @@ function DriveSyncSection({ driveSync }) {
     authState, connect, disconnect,
     driveFileId, syncing, lastSync, syncError,
     saveToDrive, loadFromDrive, isReady,
+    sharedFileId, setSharedFileId,
+    loadingShared, sharedError, loadFromSharedFile,
   } = driveSync
 
   const [showClientId, setShowClientId] = useState(false)
   const [clientIdDraft, setClientIdDraft] = useState(clientId || '')
+  const [sharedIdDraft, setSharedIdDraft] = useState(sharedFileId || '')
+  const [copied, setCopied] = useState(false)
+
+  function copyFileId() {
+    navigator.clipboard.writeText(driveFileId).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   const statusLabel = {
     idle:     { text: 'Not configured', color: 'var(--text-muted)' },
@@ -104,6 +115,49 @@ function DriveSyncSection({ driveSync }) {
               {syncing ? '…' : '⬆ Save'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Share your file ID */}
+      {isReady && driveFileId && (
+        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+          <div className="settings-label">Share with others</div>
+          <div className="settings-hint" style={{ marginBottom: 2 }}>
+            Copy your file ID and share it. Others can paste it below to load your cert data.
+          </div>
+          <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+            <input className="form-input" style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', cursor: 'text' }}
+                   readOnly value={driveFileId} />
+            <button className="btn btn-secondary btn-sm" onClick={copyFileId} style={{ flexShrink: 0 }}>
+              {copied ? '✓ Copied' : 'Copy ID'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Load from shared file */}
+      {(authState === 'authed' || authState === 'unauthed') && (
+        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+          <div className="settings-label">Load from shared file</div>
+          <div className="settings-hint" style={{ marginBottom: 2 }}>
+            Paste a file ID shared by someone else to pull their cert data.
+            Requires a one-time <em>View Drive files</em> permission.
+          </div>
+          <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+            <input className="form-input" style={{ flex: 1, fontSize: 12 }}
+                   placeholder="Paste file ID here…"
+                   value={sharedIdDraft}
+                   onChange={e => setSharedIdDraft(e.target.value)} />
+            <button className="btn btn-primary btn-sm"
+                    style={{ flexShrink: 0 }}
+                    disabled={!sharedIdDraft.trim() || loadingShared}
+                    onClick={() => { setSharedFileId(sharedIdDraft.trim()); loadFromSharedFile(sharedIdDraft.trim()) }}>
+              {loadingShared ? '…' : '⬇ Load'}
+            </button>
+          </div>
+          {sharedError && (
+            <div className="settings-hint" style={{ color: '#EA4335' }}>{sharedError}</div>
+          )}
         </div>
       )}
 

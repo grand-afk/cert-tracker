@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
-const GIS_URL     = 'https://accounts.google.com/gsi/client'
+const DRIVE_SCOPE          = 'https://www.googleapis.com/auth/drive.file'
+const DRIVE_READONLY_SCOPE = 'https://www.googleapis.com/auth/drive.readonly'
+const GIS_URL              = 'https://accounts.google.com/gsi/client'
 const DRIVE_API   = 'https://www.googleapis.com/drive/v3'
 const UPLOAD_API  = 'https://www.googleapis.com/upload/drive/v3'
 
@@ -88,15 +89,30 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
   const tokenClientRef = useRef(null)
   // Per-cert Drive file ID
   const [driveFileId, setDriveFileIdState] = useState(() => load(`certTracker_${certId}_driveFileId`, null))
+  // Shared file ID (another user's file ID to load from)
+  const [sharedFileId, setSharedFileIdState] = useState(() => load(`certTracker_${certId}_sharedFileId`, ''))
   // Sync state
-  const [syncing, setSyncing]       = useState(false)
-  const [lastSync, setLastSync]     = useState(() => load(`certTracker_${certId}_driveLastSync`, null))
-  const [syncError, setSyncError]   = useState(null)
+  const [syncing, setSyncing]             = useState(false)
+  const [lastSync, setLastSync]           = useState(() => load(`certTracker_${certId}_driveLastSync`, null))
+  const [syncError, setSyncError]         = useState(null)
+  // Shared-load state (separate so it doesn't block the main sync buttons)
+  const [loadingShared, setLoadingShared] = useState(false)
+  const [sharedError, setSharedError]     = useState(null)
+  // Readonly token (for loading shared files)
+  const readonlyClientRef    = useRef(null)
+  const [readonlyToken, setReadonlyToken] = useState(null)
+  const readonlyExpiresAt    = useRef(0)
 
   const setDriveFileId = useCallback((id) => {
     setDriveFileIdState(id)
     if (id) save(`certTracker_${certId}_driveFileId`, id)
     else    clear(`certTracker_${certId}_driveFileId`)
+  }, [certId])
+
+  const setSharedFileId = useCallback((id) => {
+    setSharedFileIdState(id)
+    if (id) save(`certTracker_${certId}_sharedFileId`, id)
+    else    clear(`certTracker_${certId}_sharedFileId`)
   }, [certId])
 
   // ── Save client ID ─────────────────────────────────────────────────────
@@ -133,10 +149,21 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
     try {
       await loadGIS()
       tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
-        client_id:  clientId,
-        scope:      DRIVE_SCOPE,
-        callback:   handleTokenResponse,
+        client_id:      clientId,
+        scope:          DRIVE_SCOPE,
+        callback:       handleTokenResponse,
         error_callback: (err) => { setAuthState('unauthed'); setSyncError(err.message) },
+      })
+      readonlyClientRef.current = window.google.accounts.oauth2.initTokenClient({
+        client_id:      clientId,
+        scope:          DRIVE_READONLY_SCOPE,
+        callback:       (resp) => {
+          if (!resp.error) {
+            setReadonlyToken(resp.access_token)
+            readonlyExpiresAt.current = Date.now() + (resp.expires_in - 60) * 1000
+          }
+        },
+        error_callback: (err) => { setSharedError(err.message) },
       })
       setAuthState('unauthed')
     } catch (err) {
@@ -219,6 +246,42 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
     } finally { setSyncing(false) }
   }, [getToken, buildExportBundle, certName, certId, driveFileId, setDriveFileId])
 
+  // ── Get readonly token (for shared files) ─────────────────────────────
+  const getReadonlyToken = useCallback(async () => {
+    if (readonlyToken && Date.now() < readonlyExpiresAt.current) return readonlyToken
+    if (!readonlyClientRef.current) throw new Error('Google auth not initialised. Enter your Client ID in Settings → Google Drive.')
+    return new Promise((resolve, reject) => {
+      const prev = readonlyClientRef.current.callback
+      readonlyClientRef.current.callback = (resp) => {
+        readonlyClientRef.current.callback = prev
+        if (resp.error) reject(new Error(resp.error_description || resp.error))
+        else {
+          setReadonlyToken(resp.access_token)
+          readonlyExpiresAt.current = Date.now() + (resp.expires_in - 60) * 1000
+          resolve(resp.access_token)
+        }
+      }
+      readonlyClientRef.current.requestAccessToken({ prompt: '' })
+    })
+  }, [readonlyToken])
+
+  // ── Load from a shared file ID (another user's Drive file) ────────────
+  const loadFromSharedFile = useCallback(async (fileId) => {
+    if (!fileId?.trim()) return
+    setLoadingShared(true); setSharedError(null)
+    try {
+      const token = await getReadonlyToken()
+      const data  = await readFile(token, fileId.trim())
+      if (data._type !== 'cert-tracker-full') throw new Error('Unexpected file format — is this a cert-tracker Drive file?')
+      applyImportBundle(data)
+      const ts = new Date().toISOString()
+      setLastSync(ts)
+      save(`certTracker_${certId}_driveLastSync`, ts)
+    } catch (err) {
+      setSharedError(err.message)
+    } finally { setLoadingShared(false) }
+  }, [getReadonlyToken, applyImportBundle, certId])
+
   // ── Load from Drive ────────────────────────────────────────────────────
   const loadFromDrive = useCallback(async () => {
     setSyncing(true); setSyncError(null)
@@ -255,9 +318,12 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
     clientId, setClientId,
     // Auth
     authState, userEmail, connect, disconnect,
-    // Sync
+    // Personal sync
     driveFileId, syncing, lastSync, syncError,
     saveToDrive, loadFromDrive,
     isReady: authState === 'authed',
+    // Shared load
+    sharedFileId, setSharedFileId,
+    loadingShared, sharedError, loadFromSharedFile,
   }
 }
