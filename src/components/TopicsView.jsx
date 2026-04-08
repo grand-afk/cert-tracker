@@ -393,7 +393,7 @@ export default function TopicsView({
               <thead>
                 <tr>
                   <SortTh colKey="course"  className="study-cell--course">Course</SortTh>
-                  <SortTh colKey="topic"   className="study-cell--topic">Topic</SortTh>
+                  <SortTh colKey="topic"   className="study-cell--topic">{subtopicsEnabled ? 'Sub-Topic' : 'Topic'}</SortTh>
                   <SortTh colKey="status"  className="study-cell--status">Status</SortTh>
                   {cv('score')        && <SortTh colKey="score"   style={{ width: 160 }}>Score</SortTh>}
                   {cv('due')          && <SortTh colKey="due"     style={{ width: 170 }}>Due</SortTh>}
@@ -468,14 +468,10 @@ export default function TopicsView({
                       }}
                     >
                       <td className="study-cell study-cell--course">
-                        {topic.isSub ? (
-                          <span className="subtopic-indent-marker">└</span>
-                        ) : (
-                          <span className="course-badge">
-                            <span className="course-badge__dot" style={{ background: topic.courseColor }} />
-                            {topic.courseName}
-                          </span>
-                        )}
+                        <span className="course-badge">
+                          <span className="course-badge__dot" style={{ background: topic.courseColor }} />
+                          {topic.courseName}
+                        </span>
                       </td>
                       <td className="study-cell study-cell--topic">
                         <span className="topic-name-wrap">
