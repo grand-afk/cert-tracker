@@ -66,7 +66,12 @@ async function createFile(token, name, content) {
 }
 
 async function updateFile(token, fileId, content) {
-  await driveReq('PATCH', `${UPLOAD_API}/files/${fileId}?uploadType=media`, token, content, 'application/json')
+  // Use multipart so we can update both content and metadata (forces modifiedTime bump)
+  const metadata = { modifiedTime: new Date().toISOString() }
+  const form = new FormData()
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
+  form.append('file',     new Blob([content],                  { type: 'application/json' }))
+  await driveReq('PATCH', `${UPLOAD_API}/files/${fileId}?uploadType=multipart`, token, form)
 }
 
 async function readFile(token, fileId) {
