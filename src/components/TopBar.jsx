@@ -37,6 +37,7 @@ export default function TopBar({
   lastSaved,
   lastExported,
   lastImported,
+  onGoToSettings,
 }) {
   const [, setTick] = useState(0)
   useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 30_000); return () => clearInterval(id) }, [])
@@ -149,6 +150,21 @@ export default function TopBar({
           >
             ↪
           </button>
+          {onGoToSettings && (
+            <button
+              className={`topbar-drive-status ${driveConnected ? 'topbar-drive-status--connected' : 'topbar-drive-status--disconnected'}`}
+              onClick={onGoToSettings}
+              title={driveConnected ? 'Google Drive connected — click to manage in Settings' : 'Google Drive not connected — click to configure in Settings'}
+              aria-label={driveConnected ? 'Google Drive connected' : 'Google Drive not connected'}
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor">
+                <path d="M4.5 20.25L8 14h13.5l-3.5 6.25H4.5z" opacity=".5"/>
+                <path d="M14.5 3.75L8 14H1l6.5-10.25h7z" opacity=".7"/>
+                <path d="M21.5 14L18 8l-3.5-4.25L21 8l.5 6z" opacity=".9"/>
+              </svg>
+              <span className="topbar-drive-label">Drive</span>
+            </button>
+          )}
           <button
             className="topbar-icon-btn"
             onClick={toggleDarkMode}
