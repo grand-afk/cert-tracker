@@ -528,6 +528,8 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); undo(); return }
         if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); redo(); return }
+        if (e.key === 's' || e.key === 'S') { e.preventDefault(); handleTopbarSave(); return }
+        if (e.key === 'l' || e.key === 'L') { e.preventDefault(); handleTopbarLoad(); return }
         return
       }
 
@@ -566,7 +568,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [certData.courses, toggleCourse, clearSelectedCourses, view, undo, redo])
+  }, [certData.courses, toggleCourse, clearSelectedCourses, view, undo, redo, handleTopbarSave, handleTopbarLoad])
 
   return (
     <>
@@ -799,17 +801,6 @@ export default function App() {
       window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
     }
   }, [activeCertId])
-
-  // Ctrl+S → save, Ctrl+L → load  (also blocks browser "Save As" / "Open" dialogs)
-  useEffect(() => {
-    const handler = (e) => {
-      if (!(e.ctrlKey || e.metaKey)) return
-      if (e.key === 's') { e.preventDefault(); handleTopbarSave() }
-      if (e.key === 'l') { e.preventDefault(); handleTopbarLoad() }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [handleTopbarSave, handleTopbarLoad])
 
   // Reset view to topics when switching certs
   const handleSwitchCert = useCallback((id) => {
