@@ -274,22 +274,24 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
   }, [certData, progress, calendar]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Derived: topics/subtopics that have a due date set (for CalendarView milestones)
+  // Always use allTopics so parent-level due dates are always present, regardless of subtopicsEnabled
   const topicDueDates = useMemo(
-    () => allItems.filter((t) => t.dueDate),
-    [allItems]
+    () => allTopics.filter((t) => t.dueDate),
+    [allTopics]
   )
 
   // Derived: per-date milestone groups for ProgressBanner ticks
   // Each entry: { date, topics: [{ name, courseName, courseColor }] }
+  // Use allTopics so due dates on parent topics are always visible on the timeline
   const dateMilestones = useMemo(() => {
     const byDate = {}
-    allItems.forEach((t) => {
+    allTopics.forEach((t) => {
       if (!t.dueDate) return
       if (!byDate[t.dueDate]) byDate[t.dueDate] = { date: t.dueDate, topics: [] }
       byDate[t.dueDate].topics.push({ name: t.name, courseName: t.courseName, courseColor: t.courseColor })
     })
     return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date))
-  }, [allItems])
+  }, [allTopics])
 
   // Sync bar props — passed to TopicsView and StudyView
   const syncProps = useMemo(() => ({

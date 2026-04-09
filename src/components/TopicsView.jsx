@@ -301,8 +301,8 @@ export default function TopicsView({
         // Emit the parent group header the first time we see this topicId
         if (!seenGroupId.has(item.topicId)) {
           seenGroupId.add(item.topicId)
-          // Find the parent topic's own due date from sorted list
-          const parent = sorted.find((x) => !x.isSub && x.id === item.topicId)
+          // Use topicDueDate/topicDueTime carried from the parent by getAllItems —
+          // parent topics are not in sorted when subtopicsEnabled so a sorted.find() would return undefined
           result.push({
             __isGroupHeader: true,
             id: `__group-${item.topicId}`,
@@ -311,8 +311,8 @@ export default function TopicsView({
             courseId: item.courseId,
             courseName: item.courseName,
             courseColor: item.courseColor,
-            dueDate: parent?.dueDate ?? null,
-            dueTime: parent?.dueTime ?? null,
+            dueDate: item.topicDueDate ?? null,
+            dueTime: item.topicDueTime ?? null,
           })
         }
         result.push(item)
