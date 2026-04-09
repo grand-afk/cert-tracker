@@ -170,7 +170,26 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
         },
         error_callback: (err) => { setSharedError(err.message) },
       })
-      setAuthState('unauthed')
+      // Try a silent token refresh — succeeds without any popup if the user
+      // has previously consented (Google caches the session in browser cookies).
+      // This restores the 'authed' state after an F5 / page reload.
+      try {
+        await new Promise((resolve, reject) => {
+          const client = tokenClientRef.current
+          const prev = client.callback
+          client.callback = (resp) => {
+            client.callback = prev
+            if (resp.error) reject(new Error(resp.error))
+            else { handleTokenResponse(resp); resolve() }
+          }
+          client.requestAccessToken({ prompt: '' })
+          // If GIS doesn't call back within 3 s assume no cached session
+          setTimeout(() => reject(new Error('silent timeout')), 3000)
+        })
+      } catch {
+        // Silent refresh failed — user will need to click Connect
+        setAuthState('unauthed')
+      }
     } catch (err) {
       setAuthState('error')
       setSyncError(err.message)
