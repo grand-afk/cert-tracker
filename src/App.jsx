@@ -225,10 +225,38 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
   }), [certData, progress, calendar, workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins, subtopicsEnabled])
 
   const applyImportBundle = useCallback((bundle) => {
+    // ── Foreign-cert fast path ────────────────────────────────────────────
+    // When the URL contains a cert ID that isn't registered on this device
+    // (i.e. a shared link from another browser), adopt that ID locally so the
+    // shared URL works permanently — no re-loading required next time.
+    const urlCertId = new URLSearchParams(window.location.search).get('cert')
+    const isForeign = urlCertId && urlCertId !== activeCertId && !certs.find(c => c.id === urlCertId)
+    if (isForeign) {
+      const fid = urlCertId
+      try {
+        // Write bundle data directly into the foreign cert's localStorage namespace
+        if (bundle.certData) localStorage.setItem(`certTracker_${fid}_certData`, JSON.stringify(bundle.certData))
+        if (bundle.progress) localStorage.setItem(`certTracker_${fid}_progress`, JSON.stringify(bundle.progress))
+        if (bundle.calendar) localStorage.setItem(`certTracker_${fid}_calendar`, JSON.stringify(bundle.calendar))
+        // Merge schedule + display settings into the foreign cert's settings key
+        const settingsKey = `certTracker_${fid}_settings`
+        const existing = JSON.parse(localStorage.getItem(settingsKey) || '{}')
+        const merged = { ...existing, ...(bundle.scheduleSettings ?? {}), ...(bundle.displaySettings ?? {}) }
+        localStorage.setItem(settingsKey, JSON.stringify(merged))
+      } catch {}
+      // Register the cert under the original ID and switch to it —
+      // CertWorkspace remounts with the correct namespace and reads from localStorage
+      const certName = bundle.certData?.certName || 'Imported Cert'
+      addCert(certName, '🎓', fid)
+      switchCert(fid)
+      clearForeignCert?.()  // dismiss banner; URL is now correct
+      return
+    }
+
+    // ── Normal import (same device) ───────────────────────────────────────
     if (bundle.certData)  importData(JSON.stringify(bundle.certData))
     if (bundle.progress)  importProgress(bundle.progress)
     if (bundle.calendar)  restoreCalendar(bundle.calendar)
-    // Restore scheduling settings if present
     if (bundle.scheduleSettings) {
       const s = bundle.scheduleSettings
       if (s.workStart        !== undefined) setWorkStart(s.workStart)
@@ -237,21 +265,17 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
       if (s.maxSessionsPerDay !== undefined) setMaxSessionsPerDay(s.maxSessionsPerDay)
       if (s.defaultBreakMins !== undefined) setDefaultBreakMins(s.defaultBreakMins)
     }
-    // Restore display settings if present
     if (bundle.displaySettings) {
       const d = bundle.displaySettings
       if (d.subtopicsEnabled !== undefined) setSubtopicsEnabled(d.subtopicsEnabled)
     }
-    // Sync the cert manager name to the name stored in the loaded JSON
     if (bundle.certData?.certName) renameCert(activeCertId, bundle.certData.certName)
     stampLastImported?.()
-    // If the page was opened via a shared cert link, clear the banner now that
-    // the data is loaded locally — and update the URL to the current cert ID.
     clearForeignCert?.()
   }, [importData, importProgress, restoreCalendar,
       setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
       setSubtopicsEnabled,
-      renameCert, activeCertId, stampLastImported, clearForeignCert])
+      renameCert, activeCertId, certs, addCert, switchCert, stampLastImported, clearForeignCert])
 
   const driveSync = useDriveSync({
     certId:  namespace,

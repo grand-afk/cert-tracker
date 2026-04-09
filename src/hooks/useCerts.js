@@ -124,10 +124,13 @@ export function useCerts() {
     saveActiveId(id)
   }, [])
 
-  const addCert = useCallback((name, emoji = '🎓') => {
-    const id = genId()
+  const addCert = useCallback((name, emoji = '🎓', existingId = null) => {
+    const id = existingId || genId()
     const cert = { id, name, emoji, createdAt: new Date().toISOString() }
-    setCerts((prev) => [...prev, cert])
+    setCerts((prev) => {
+      if (prev.find((c) => c.id === id)) return prev  // already registered — no duplicate
+      return [...prev, cert]
+    })
     return id
   }, [setCerts])
 
