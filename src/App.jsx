@@ -163,7 +163,7 @@ const VIEWS = ['topics', 'study', 'calendar', 'terminology', 'help', 'settings']
 const STATUSES = ['not-started', 'in-progress', 'complete']
 
 // ── CertWorkspace: all data hooks + views for a single cert namespace ─────────
-function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, deleteCert, switchCert, activeCertId, view, setView, searchQuery, setSearchQuery }) {
+function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, deleteCert, switchCert, activeCertId, clearForeignCert, view, setView, searchQuery, setSearchQuery }) {
   const {
     certData, setCertName, setTargetDate,
     updateTopicResources, updateTermResources,
@@ -245,10 +245,13 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     // Sync the cert manager name to the name stored in the loaded JSON
     if (bundle.certData?.certName) renameCert(activeCertId, bundle.certData.certName)
     stampLastImported?.()
+    // If the page was opened via a shared cert link, clear the banner now that
+    // the data is loaded locally — and update the URL to the current cert ID.
+    clearForeignCert?.()
   }, [importData, importProgress, restoreCalendar,
       setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
       setSubtopicsEnabled,
-      renameCert, activeCertId, stampLastImported])
+      renameCert, activeCertId, stampLastImported, clearForeignCert])
 
   const driveSync = useDriveSync({
     certId:  namespace,
@@ -842,14 +845,22 @@ export default function App() {
     setSearchQuery('')
   }, [switchCert])
 
-  // Detect if the URL has a cert ID that doesn't exist on this device (shared link)
-  const foreignCertId = useMemo(() => {
+  // Detect if the URL has a cert ID that doesn't exist on this device (shared link).
+  // Use state so it can be cleared without a page reload after a successful Drive load.
+  const [foreignCertId, setForeignCertId] = useState(() => {
     const params   = new URLSearchParams(window.location.search)
     const urlParam = params.get('cert')
-    return urlParam && !certs.find(c => c.id === urlParam) ? urlParam : null
-  // Only recompute on mount — certs list growing (after Drive load) will clear this naturally
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    return (urlParam && !certs.find(c => c.id === urlParam)) ? urlParam : null
+  })
+
+  // Called by CertWorkspace after a successful Drive import so the banner disappears
+  // and the URL updates to reflect the now-local cert.
+  const clearForeignCert = useCallback(() => {
+    setForeignCertId(null)
+    const params = new URLSearchParams(window.location.search)
+    params.set('cert', activeCertId)
+    window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
+  }, [activeCertId])
 
   return (
     <div className="app">
@@ -862,13 +873,7 @@ export default function App() {
           <button
             className="icon-btn"
             title="Dismiss"
-            onClick={() => {
-              // Clear the foreign cert ID from the URL so this banner doesn't reappear
-              const params = new URLSearchParams(window.location.search)
-              params.set('cert', activeCertId)
-              window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
-              window.location.reload()
-            }}
+            onClick={clearForeignCert}
           >✕</button>
         </div>
       )}
@@ -882,6 +887,7 @@ export default function App() {
         deleteCert={deleteCert}
         switchCert={handleSwitchCert}
         activeCertId={activeCertId}
+        clearForeignCert={clearForeignCert}
         view={view}
         setView={setView}
         searchQuery={searchQuery}
