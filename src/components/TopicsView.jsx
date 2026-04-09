@@ -289,15 +289,18 @@ export default function TopicsView({
     })
   }, [filtered, sort, getStatus, getLastUpdated, getTestScore])
 
-  // When subtopicsEnabled, interleave group header rows before each new topic group
+  // When subtopicsEnabled, all parent topics show as group header rows.
+  // Subtopics appear as data rows beneath their parent's header.
+  // Topics with no subtopics show only a group header (+ Sub button to add one).
   const displayList = useMemo(() => {
     if (!subtopicsEnabled) return sorted
     const result = []
-    const seenTopicId = new Set()
+    const seenGroupId = new Set()
     for (const item of sorted) {
       if (item.isSub) {
-        if (!seenTopicId.has(item.topicId)) {
-          seenTopicId.add(item.topicId)
+        // Emit the parent group header the first time we see this topicId
+        if (!seenGroupId.has(item.topicId)) {
+          seenGroupId.add(item.topicId)
           result.push({
             __isGroupHeader: true,
             id: `__group-${item.topicId}`,
@@ -310,8 +313,19 @@ export default function TopicsView({
         }
         result.push(item)
       } else {
-        // Topic with no subtopics — show as a normal row (no group header)
-        result.push(item)
+        // Parent topic with no subtopics yet — show only as a group header
+        if (!seenGroupId.has(item.id)) {
+          seenGroupId.add(item.id)
+          result.push({
+            __isGroupHeader: true,
+            id: `__group-${item.id}`,
+            topicId: item.id,
+            topicName: item.name,
+            courseId: item.courseId,
+            courseName: item.courseName,
+            courseColor: item.courseColor,
+          })
+        }
       }
     }
     return result
@@ -361,6 +375,9 @@ export default function TopicsView({
       </th>
     )
   }
+
+  // Parent topics (for subtopic modal's parent selector)
+  const parentTopics = useMemo(() => topics.filter((t) => !t.isSub), [topics])
 
   const completeCount    = filtered.filter((t) => !t.__isGroupHeader && getStatus(t.id) === 'complete').length
   const inProgressCount  = filtered.filter((t) => !t.__isGroupHeader && getStatus(t.id) === 'in-progress').length
@@ -425,6 +442,7 @@ export default function TopicsView({
                 {pageItems.map((topic) => {
                   // ── Group header row (subtopics mode) ──────────────────────
                   if (topic.__isGroupHeader) {
+                    const headerObj = { id: topic.topicId, courseId: topic.courseId, name: topic.topicName, isSub: false }
                     return [
                       <tr key={topic.id} className="topic-group-header-row">
                         <td colSpan={colCount}>
@@ -433,16 +451,41 @@ export default function TopicsView({
                               <span className="course-badge__dot" style={{ background: topic.courseColor }} />
                               {topic.courseName}
                             </span>
-                            <span className="topic-group-name">{topic.topicName}</span>
-                            {addSubtopic && (
-                              <button
-                                className="btn btn-secondary btn-sm topic-group-add-btn"
-                                onClick={() => { setAddingSubForTopicId(topic.topicId); setNewSubName('') }}
-                                title="Add subtopic"
-                              >
-                                ＋ Sub
-                              </button>
+                            {renamingId === topic.topicId ? (
+                              <input
+                                className="form-input"
+                                style={{ fontSize: 13, padding: '2px 6px', height: 28, flex: 1, maxWidth: 260 }}
+                                value={renameVal}
+                                autoFocus
+                                onChange={(e) => setRenameVal(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter')  { e.stopPropagation(); commitRename(headerObj) }
+                                  if (e.key === 'Escape') { e.stopPropagation(); setRenamingId(null) }
+                                }}
+                                onBlur={() => commitRename(headerObj)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            ) : (
+                              <span className="topic-group-name">{topic.topicName}</span>
                             )}
+                            <div className="topic-group-actions">
+                              {addSubtopic && (
+                                <button
+                                  className="btn btn-secondary btn-sm topic-group-add-btn"
+                                  onClick={() => { setAddingSubForTopicId(topic.topicId); setNewSubName('') }}
+                                  title="Add subtopic"
+                                >
+                                  ＋ Sub
+                                </button>
+                              )}
+                              <button className="icon-btn" title="Rename topic"
+                                onClick={(e) => { e.stopPropagation(); startRename(headerObj) }}>✏️</button>
+                              <button className="icon-btn icon-btn--danger" title="Delete topic"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (window.confirm(`Delete "${topic.topicName}"?`)) deleteTopic(topic.courseId, topic.topicId)
+                                }}>🗑</button>
+                            </div>
                           </div>
                         </td>
                       </tr>,
@@ -605,8 +648,8 @@ export default function TopicsView({
                       )}
                       <td className="study-cell" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <button className="icon-btn"
-                                title={topic.isSub ? 'Rename subtopic' : 'Rename topic'}
-                                onClick={(e) => { e.stopPropagation(); startRename(topic) }}>
+                                title={topic.isSub ? 'Rename subtopic & edit notes' : 'Rename topic & edit notes'}
+                                onClick={(e) => { e.stopPropagation(); startRename(topic); setExpandedId(topic.id) }}>
                           ✏️
                         </button>
                         <button className="icon-btn icon-btn--danger"
@@ -658,7 +701,14 @@ export default function TopicsView({
                            onClose={() => setEditTarget(null)} />
       )}
       {showAdd && (
-        <AddTopicModal courses={courses} onAdd={addTopic} onClose={() => setShowAdd(false)} />
+        <AddTopicModal
+          courses={courses}
+          onAdd={addTopic}
+          onClose={() => setShowAdd(false)}
+          topics={parentTopics}
+          onAddSub={addSubtopic}
+          subtopicsEnabled={subtopicsEnabled}
+        />
       )}
     </div>
   )

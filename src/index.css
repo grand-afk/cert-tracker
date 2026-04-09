@@ -1769,6 +1769,33 @@ body {
   margin-top: 1px;
 }
 
+/* Drive connection status indicator */
+.topbar-drive-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: opacity 0.15s, background 0.15s;
+  background: transparent;
+}
+.topbar-drive-status--connected {
+  color: #34a853;
+}
+.topbar-drive-status--connected:hover { background: rgba(52,168,83,0.12); }
+.topbar-drive-status--disconnected {
+  color: var(--text-muted);
+  opacity: 0.55;
+  text-decoration: line-through;
+  text-decoration-color: var(--text-muted);
+}
+.topbar-drive-status--disconnected:hover { opacity: 0.8; background: var(--bg-alt); }
+.topbar-drive-label { letter-spacing: 0.02em; }
+
 .topbar-stamps {
   display: flex;
   align-items: center;
@@ -2114,12 +2141,20 @@ body {
   color: var(--text-primary);
   flex: 1;
 }
+/* Actions cluster on the right side of group header */
+.topic-group-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.topic-group-header-row:hover .topic-group-actions { opacity: 1; }
 .topic-group-add-btn {
   font-size: 11px;
   padding: 2px 8px;
-  opacity: 0.8;
 }
-.topic-group-add-btn:hover { opacity: 1; }
 
 /* Inline "add subtopic" form row */
 .add-subtopic-row td { padding: 6px 16px; background: var(--bg-alt, #1e2430); }
