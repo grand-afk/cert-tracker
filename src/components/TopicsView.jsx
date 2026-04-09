@@ -645,7 +645,16 @@ export default function TopicsView({
                       {cv('due') && (
                         <td className="study-cell" style={{ width: 170 }}>
                           {setTopicDueDate && (
-                            <DueDateCell topic={topic} setTopicDueDate={setTopicDueDate} />
+                            <DueDateCell
+                              topic={
+                                // Subtopic with no individual due date: fall back to parent's due date.
+                                // Use topicId so edits save to the parent topic, same as the group header.
+                                topic.isSub && !topic.dueDate
+                                  ? { ...topic, id: topic.topicId, dueDate: topic.topicDueDate ?? null, dueTime: topic.topicDueTime ?? null }
+                                  : topic
+                              }
+                              setTopicDueDate={setTopicDueDate}
+                            />
                           )}
                         </td>
                       )}
