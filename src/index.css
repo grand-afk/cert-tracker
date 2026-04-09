@@ -500,6 +500,10 @@ body {
 .settings-row:last-child { border-bottom: none; }
 .settings-label { font-size: 13px; font-weight: 500; }
 .settings-hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.settings-share-steps { margin: 4px 0 0 0; padding-left: 18px; font-size: 11px; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
+.settings-share-steps li { line-height: 1.5; }
+.settings-drive-link { color: var(--accent); text-decoration: none; }
+.settings-drive-link:hover { text-decoration: underline; }
 
 .settings-input {
   background: var(--surface2);

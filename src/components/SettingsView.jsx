@@ -120,20 +120,31 @@ function DriveSyncSection({ driveSync }) {
 
       {/* Share your file ID */}
       {isReady && driveFileId && (
-        <div className="settings-row">
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+          <div style={{ width: '100%' }}>
             <div className="settings-label">Share with others</div>
-            <div className="settings-hint">
-              Send your file ID to someone else — they paste it into their app to load your cert.
-            </div>
-            <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)', marginTop: 4,
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <ol className="settings-share-steps">
+              <li>
+                <a
+                  href={`https://drive.google.com/file/d/${driveFileId}/view`}
+                  target="_blank" rel="noreferrer"
+                  className="settings-drive-link"
+                >Open your file in Google Drive ↗</a>
+                {' '}then click <strong>Share</strong> and set it to <strong>"Anyone with the link → Viewer"</strong>.
+              </li>
+              <li>Copy your file ID below and send it to the other person.</li>
+              <li>They paste it into <em>Load from someone else's cert</em> in their app.</li>
+            </ol>
+          </div>
+          <div style={{ display: 'flex', gap: 6, width: '100%', alignItems: 'center' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)',
+                          flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {driveFileId}
             </div>
+            <button className="btn btn-secondary btn-sm" onClick={copyFileId} style={{ flexShrink: 0 }}>
+              {copied ? '✓ Copied' : 'Copy ID'}
+            </button>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={copyFileId} style={{ flexShrink: 0, alignSelf: 'center' }}>
-            {copied ? '✓ Copied' : 'Copy ID'}
-          </button>
         </div>
       )}
 
@@ -141,10 +152,11 @@ function DriveSyncSection({ driveSync }) {
       {(authState === 'authed' || authState === 'unauthed') && (
         <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
           <div className="settings-label">Load from someone else's cert</div>
-          <div className="settings-hint" style={{ marginBottom: 2 }}>
-            Got a file ID from another user? Paste it here to pull their cert into this slot.
-            Requires a one-time <em>View Drive files</em> permission.
-          </div>
+          <ol className="settings-share-steps" style={{ marginBottom: 2 }}>
+            <li>Ask the file owner to share their Drive file (<strong>Anyone with the link → Viewer</strong>) and send you their file ID from the <em>Share with others</em> section above.</li>
+            <li>Paste the file ID below and click <strong>Load</strong>. You'll be asked to grant <em>View Drive files</em> permission once.</li>
+            <li>The cert name and all data will be loaded from their file.</li>
+          </ol>
           <div style={{ display: 'flex', gap: 6, width: '100%' }}>
             <input className="form-input" style={{ flex: 1, fontSize: 12 }}
                    placeholder="Paste file ID or Drive URL…"

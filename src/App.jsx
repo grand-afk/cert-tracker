@@ -225,8 +225,10 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     if (bundle.certData)  importData(JSON.stringify(bundle.certData))
     if (bundle.progress)  importProgress(bundle.progress)
     if (bundle.calendar)  restoreCalendar(bundle.calendar)
+    // Sync the cert manager name to the name stored in the loaded JSON
+    if (bundle.certData?.certName) renameCert(activeCertId, bundle.certData.certName)
     stampLastImported?.()
-  }, [importData, importProgress, restoreCalendar, stampLastImported])
+  }, [importData, importProgress, restoreCalendar, renameCert, activeCertId, stampLastImported])
 
   const driveSync = useDriveSync({
     certId:  namespace,
