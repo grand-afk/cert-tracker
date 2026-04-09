@@ -55,22 +55,31 @@ describe('StudyView', () => {
 
   // ── Empty state ───────────────────────────────────────────────────────────
   describe('empty state', () => {
-    it('shows "All caught up!" when no topics are due', () => {
+    it('shows "All caught up!" when there are no topics at all', () => {
+      render(<StudyView {...defaultProps} topics={[]} />)
+      expect(screen.getByText('All caught up!')).toBeInTheDocument()
+    })
+
+    it('shows "All caught up!" when "Due only" filter is on and nothing is due', () => {
       const getSm2Card = () => makeCard(5) // all due in 5 days
       render(<StudyView {...defaultProps} getSm2Card={getSm2Card} />)
+      // Activate the "Due only" filter (default is show-all now)
+      fireEvent.click(screen.getByRole('button', { name: /Due only/i }))
       expect(screen.getByText('All caught up!')).toBeInTheDocument()
     })
 
     it('shows "Show all topics" button in empty state', () => {
       const getSm2Card = () => makeCard(5)
       render(<StudyView {...defaultProps} getSm2Card={getSm2Card} />)
+      fireEvent.click(screen.getByRole('button', { name: /Due only/i }))
       expect(screen.getByText('Show all topics')).toBeInTheDocument()
     })
 
-    it('"Show all topics" button reveals all topics', () => {
+    it('"Show all topics" button turns off the filter', () => {
       const getSm2Card = () => makeCard(5)
       render(<StudyView {...defaultProps} getSm2Card={getSm2Card} />)
-      fireEvent.click(screen.getByText('Show all topics'))
+      fireEvent.click(screen.getByRole('button', { name: /Due only/i })) // activate filter → empty
+      fireEvent.click(screen.getByText('Show all topics'))                 // deactivate → all shown
       expect(screen.getByText('GKE Autopilot')).toBeInTheDocument()
     })
   })
@@ -121,35 +130,53 @@ describe('StudyView', () => {
 
   // ── Show all toggle ───────────────────────────────────────────────────────
   describe('show all toggle', () => {
-    it('renders "Due only" filter button (active/highlighted by default)', () => {
+    it('renders "Due only" filter button (inactive / showing all by default)', () => {
       render(<StudyView {...defaultProps} />)
-      // Default is showDueOnly=true — button label is "Due only"
+      // Button always shows "Due only" regardless of state
       expect(screen.getByRole('button', { name: /Due only/i })).toBeInTheDocument()
     })
 
-    it('toggling off "Due only" filter shows topics not yet due', () => {
-      // Mix: one overdue (null), two not due (future)
+    it('default shows all topics regardless of due date', () => {
       const future = makeCard(10)
       const getSm2Card = (id) => id === 'gke-autopilot' ? null : future
       render(<StudyView {...defaultProps} getSm2Card={getSm2Card} />)
-
-      // Only autopilot is due initially
+      // All shown by default (showDueOnly=false)
       expect(screen.getByText('GKE Autopilot')).toBeInTheDocument()
-      expect(screen.queryByText('GKE Networking')).not.toBeInTheDocument()
-
-      // "Due only" is the button when filter is active
-      fireEvent.click(screen.getByRole('button', { name: /Due only/i }))
-      // Now all are visible
       expect(screen.getByText('GKE Networking')).toBeInTheDocument()
       expect(screen.getByText('VPC Design')).toBeInTheDocument()
     })
 
-    it('changes button label to "Show all (N)" after disabling filter', () => {
-      render(<StudyView {...defaultProps} />)
-      // All topics are due by default (new cards), so "Due only" is shown
+    it('clicking "Due only" hides topics that are not yet due', () => {
+      const future = makeCard(10)
+      const getSm2Card = (id) => id === 'gke-autopilot' ? null : future
+      render(<StudyView {...defaultProps} getSm2Card={getSm2Card} />)
+
+      // Activate "Due only" filter
       fireEvent.click(screen.getByRole('button', { name: /Due only/i }))
-      // After toggling off, button shows total count
-      expect(screen.getByRole('button', { name: /Show all/i })).toBeInTheDocument()
+      // Now only the due topic is visible
+      expect(screen.getByText('GKE Autopilot')).toBeInTheDocument()
+      expect(screen.queryByText('GKE Networking')).not.toBeInTheDocument()
+      expect(screen.queryByText('VPC Design')).not.toBeInTheDocument()
+    })
+
+    it('button label stays "Due only" regardless of filter state', () => {
+      render(<StudyView {...defaultProps} />)
+      // Initial state — button says "Due only"
+      expect(screen.getByRole('button', { name: /Due only/i })).toBeInTheDocument()
+      // After activation — still says "Due only"
+      fireEvent.click(screen.getByRole('button', { name: /Due only/i }))
+      expect(screen.getByRole('button', { name: /Due only/i })).toBeInTheDocument()
+    })
+
+    it('clicking "Due only" twice (on then off) restores all topics', () => {
+      const future = makeCard(10)
+      const getSm2Card = (id) => id === 'gke-autopilot' ? null : future
+      render(<StudyView {...defaultProps} getSm2Card={getSm2Card} />)
+      const btn = screen.getByRole('button', { name: /Due only/i })
+      fireEvent.click(btn) // activate filter
+      expect(screen.queryByText('GKE Networking')).not.toBeInTheDocument()
+      fireEvent.click(btn) // deactivate
+      expect(screen.getByText('GKE Networking')).toBeInTheDocument()
     })
   })
 
@@ -206,6 +233,28 @@ describe('StudyView', () => {
       render(<StudyView {...defaultProps} />)
       const resBtns = screen.getAllByRole('button', { name: /resources/i })
       expect(resBtns.length).toBe(TOPICS.length)
+    })
+  })
+
+  // ── Updated column ────────────────────────────────────────────────────────
+  describe('Updated column', () => {
+    it('renders an Updated column header', () => {
+      render(<StudyView {...defaultProps} />)
+      // SortTh renders <th role="button" title="Sort by Updated"> — check by title
+      expect(document.querySelector('th[title="Sort by Updated"]')).toBeInTheDocument()
+    })
+
+    it('shows "—" when getLastUpdated returns null', () => {
+      render(<StudyView {...defaultProps} getLastUpdated={() => null} />)
+      const dashes = screen.getAllByText('—')
+      expect(dashes.length).toBeGreaterThan(0)
+    })
+
+    it('shows relative time when getLastUpdated returns an ISO string', () => {
+      const iso = new Date(Date.now() - 60_000).toISOString() // ~1 min ago
+      render(<StudyView {...defaultProps} getLastUpdated={() => iso} />)
+      const timeCells = screen.getAllByText(/ago/i)
+      expect(timeCells.length).toBeGreaterThan(0)
     })
   })
 

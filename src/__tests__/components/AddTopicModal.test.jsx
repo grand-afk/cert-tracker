@@ -153,3 +153,85 @@ describe('AddTopicModal', () => {
     })
   })
 })
+
+// ── Subtopic mode (when subtopicsEnabled + topics + onAddSub provided) ───────
+const PARENT_TOPICS = [
+  { id: 'topic-gke-networking', name: 'GKE Networking', courseId: 'gke',        courseName: 'GKE' },
+  { id: 'topic-vpc-design',     name: 'VPC Design',     courseId: 'networking',  courseName: 'Networking' },
+]
+
+describe('AddTopicModal — subtopic mode', () => {
+  function renderWithSubtopics(overrides = {}) {
+    return render(
+      <AddTopicModal
+        courses={COURSES}
+        onAdd={vi.fn()}
+        onClose={vi.fn()}
+        topics={PARENT_TOPICS}
+        onAddSub={vi.fn()}
+        subtopicsEnabled
+        {...overrides}
+      />
+    )
+  }
+
+  it('shows mode toggle buttons when subtopicsEnabled and topics provided', () => {
+    renderWithSubtopics()
+    expect(screen.getByRole('button', { name: 'New Topic' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sub-Topic to existing' })).toBeInTheDocument()
+  })
+
+  it('does not show mode toggle when subtopicsEnabled is false', () => {
+    render(<AddTopicModal courses={COURSES} onAdd={vi.fn()} onClose={vi.fn()} topics={PARENT_TOPICS} onAddSub={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'New Topic' })).not.toBeInTheDocument()
+  })
+
+  it('does not show mode toggle when topics list is empty', () => {
+    render(<AddTopicModal courses={COURSES} onAdd={vi.fn()} onClose={vi.fn()} topics={[]} onAddSub={vi.fn()} subtopicsEnabled />)
+    expect(screen.queryByRole('button', { name: 'New Topic' })).not.toBeInTheDocument()
+  })
+
+  it('switches to subtopic mode when "Sub-Topic to existing" is clicked', () => {
+    renderWithSubtopics()
+    fireEvent.click(screen.getByRole('button', { name: 'Sub-Topic to existing' }))
+    expect(screen.getByRole('button', { name: 'Add Sub-Topic' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Auto-scaling/i)).toBeInTheDocument()
+  })
+
+  it('shows parent topic dropdown in subtopic mode', () => {
+    renderWithSubtopics()
+    fireEvent.click(screen.getByRole('button', { name: 'Sub-Topic to existing' }))
+    // Dropdown should contain parent topic options
+    expect(screen.getByText(/GKE Networking/)).toBeInTheDocument()
+    expect(screen.getByText(/VPC Design/)).toBeInTheDocument()
+  })
+
+  it('calls onAddSub with correct courseId, topicId and name', () => {
+    const onAddSub = vi.fn()
+    renderWithSubtopics({ onAddSub })
+    fireEvent.click(screen.getByRole('button', { name: 'Sub-Topic to existing' }))
+    fireEvent.change(screen.getByPlaceholderText(/Auto-scaling/i), { target: { value: 'My Sub' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add Sub-Topic' }))
+    expect(onAddSub).toHaveBeenCalledTimes(1)
+    const [courseId, topicId, subData] = onAddSub.mock.calls[0]
+    expect(courseId).toBe('gke')         // first topic's courseId
+    expect(topicId).toBe('topic-gke-networking')
+    expect(subData.name).toBe('My Sub')
+    expect(subData.id).toMatch(/^sub-topic-gke-networking-/)
+  })
+
+  it('shows error when Add Sub-Topic is clicked with empty name', () => {
+    renderWithSubtopics()
+    fireEvent.click(screen.getByRole('button', { name: 'Sub-Topic to existing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Sub-Topic' }))
+    expect(screen.getByText('Sub-topic name is required')).toBeInTheDocument()
+  })
+
+  it('switching back to "New Topic" mode shows topic form', () => {
+    renderWithSubtopics()
+    fireEvent.click(screen.getByRole('button', { name: 'Sub-Topic to existing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'New Topic' }))
+    expect(screen.getByPlaceholderText(/GKE Node Pools/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add Topic' })).toBeInTheDocument()
+  })
+})

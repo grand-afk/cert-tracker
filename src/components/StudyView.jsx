@@ -109,7 +109,7 @@ export default function StudyView({
   const [ratedIds, setRatedIds]     = useState({})
   const [editTarget, setEditTarget] = useState(null)
   const [page, setPage]             = useState(1)
-  const [showDueOnly, setShowDueOnly] = useState(true)
+  const [showDueOnly, setShowDueOnly] = useState(false)
   const [sort, setSort]             = useState({ key: 'due', dir: 'asc' })
   const [expandedId, setExpandedId] = useState(null)
 
@@ -209,7 +209,7 @@ export default function StudyView({
     const active = sort.key === colKey
     return (
       <th style={style} className={active ? 'sort-active' : ''}
-          onClick={() => toggleSort(colKey)}
+          onClick={(e) => { e.stopPropagation(); toggleSort(colKey) }}
           title={`Sort by ${children}`}
           role="button"
           tabIndex={0}
@@ -241,11 +241,11 @@ export default function StudyView({
           )}
           <span className="study-count">{dueItems.length} due</span>
           <button
-            className={`btn btn-secondary btn-sm ${showDueOnly ? 'btn-active' : ''}`}
+            className={`btn btn-sm ${showDueOnly ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => { setShowDueOnly((v) => !v); setPage(1) }}
-            title={showDueOnly ? 'Show all  [F]' : 'Show due only  [F]'}
+            title={showDueOnly ? 'Showing due only — click to show all  [F]' : 'Show due only  [F]'}
           >
-            {showDueOnly ? `Due only` : `Show all (${sorted.length})`}
+            Due only
             <span className="btn-key">[F]</span>
           </button>
         </div>

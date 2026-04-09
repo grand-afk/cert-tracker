@@ -604,7 +604,6 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
         lastSaved={lastSaved}
         lastExported={lastExported}
         lastImported={lastImported}
-        onGoToSettings={() => setView('settings')}
       />
 
       <ProgressBanner percent={percentComplete} targetDate={certData.targetDate} courseMilestones={courseMilestones} />

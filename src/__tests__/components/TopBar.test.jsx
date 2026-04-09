@@ -82,11 +82,11 @@ describe('TopBar', () => {
     expect(clearSelectedCourses).toHaveBeenCalledTimes(1)
   })
 
-  it('clicking the cert name button calls onEditCertName', () => {
-    const onEditCertName = vi.fn()
-    render(<TopBar {...defaultProps} onEditCertName={onEditCertName} />)
+  it('clicking the cert name button calls onManageCerts', () => {
+    const onManageCerts = vi.fn()
+    render(<TopBar {...defaultProps} onManageCerts={onManageCerts} />)
     fireEvent.click(screen.getByRole('button', { name: /Google Professional Cloud Architect/ }))
-    expect(onEditCertName).toHaveBeenCalledTimes(1)
+    expect(onManageCerts).toHaveBeenCalledTimes(1)
   })
 
   it('shows ☀️ icon when darkMode is true', () => {

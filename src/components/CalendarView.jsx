@@ -50,6 +50,11 @@ function EditSlotModal({ slot, topic, card, onSave, onRemove, onClose,
         {topic && (
           <div className="edit-slot-topic">
             <span className="course-badge__dot" style={{ background: topic.courseColor, display: 'inline-block', marginRight: 6 }} />
+            {topic.isSub && (
+              <span className="text-muted" style={{ fontSize: 12, marginRight: 6 }}>
+                {topic.topicName} ›
+              </span>
+            )}
             <strong>{topic.name}</strong>
             <span className="text-muted" style={{ marginLeft: 8, fontSize: 12 }}>{topic.courseName}</span>
           </div>
@@ -288,6 +293,9 @@ const SlotCard = memo(function SlotCard({
             <button className="cal-slot__remove"
                     onClick={(e) => { e.stopPropagation(); removeSlot(dk, slot.id) }}>×</button>
           </div>
+          {topic.isSub && (
+            <div className="cal-slot__parent">{topic.topicName}</div>
+          )}
           <div className="cal-slot__topic">{topic.name}</div>
           <div className="cal-slot__course">
             <span className="course-badge__dot" style={{ background: topic.courseColor, filter: 'brightness(0.55)' }} />
@@ -993,6 +1001,11 @@ export default function CalendarView({
             </>
           ) : (
             <>
+              {tooltip.topic.isSub && (
+                <div className="cal-tooltip__parent" style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>
+                  {tooltip.topic.topicName}
+                </div>
+              )}
               <div className="cal-tooltip__title">{tooltip.topic.name}</div>
               <div className="cal-tooltip__course">
                 <span className="course-badge__dot" style={{ background: tooltip.topic.courseColor }} />

@@ -162,7 +162,7 @@ function DueDateCell({ topic, setTopicDueDate }) {
   )
 }
 
-function NotesRow({ id, notes, onSave, colSpan, onClose }) {
+function NotesRow({ id, notes, onSave, colSpan, onClose, autoFocusTextarea = true }) {
   const [val, setVal] = useState(notes ?? '')
   const dirty = val !== (notes ?? '')
   const wrapRef = useRef(null)
@@ -190,7 +190,7 @@ function NotesRow({ id, notes, onSave, colSpan, onClose }) {
             onChange={(e) => setVal(e.target.value)}
             onBlur={() => { if (dirty) onSave(val) }}
             rows={3}
-            autoFocus
+            autoFocus={autoFocusTextarea}
           />
           {dirty && (
             <button className="btn btn-primary btn-sm notes-save-btn" onClick={() => onSave(val)}>
@@ -672,6 +672,7 @@ export default function TopicsView({
                         onSave={(n) => updateTopicNotes(topic.id, n)}
                         colSpan={colCount}
                         onClose={() => setExpandedId(null)}
+                        autoFocusTextarea={renamingId !== topic.id}
                       />
                     ),
                   ]
