@@ -219,9 +219,10 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     version:  1,
     exportedAt: new Date().toISOString(),
     certData, progress, calendar,
-    // Persist scheduling settings so they sync across devices/browsers
+    // Persist scheduling + display settings so they sync across devices/browsers
     scheduleSettings: { workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins },
-  }), [certData, progress, calendar, workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins])
+    displaySettings:  { subtopicsEnabled },
+  }), [certData, progress, calendar, workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins, subtopicsEnabled])
 
   const applyImportBundle = useCallback((bundle) => {
     if (bundle.certData)  importData(JSON.stringify(bundle.certData))
@@ -236,11 +237,17 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
       if (s.maxSessionsPerDay !== undefined) setMaxSessionsPerDay(s.maxSessionsPerDay)
       if (s.defaultBreakMins !== undefined) setDefaultBreakMins(s.defaultBreakMins)
     }
+    // Restore display settings if present
+    if (bundle.displaySettings) {
+      const d = bundle.displaySettings
+      if (d.subtopicsEnabled !== undefined) setSubtopicsEnabled(d.subtopicsEnabled)
+    }
     // Sync the cert manager name to the name stored in the loaded JSON
     if (bundle.certData?.certName) renameCert(activeCertId, bundle.certData.certName)
     stampLastImported?.()
   }, [importData, importProgress, restoreCalendar,
       setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
+      setSubtopicsEnabled,
       renameCert, activeCertId, stampLastImported])
 
   const driveSync = useDriveSync({
@@ -800,9 +807,11 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('')
 
   // ── URL routing: sync ?cert=<id> param with active cert ─────────────────
-  // On mount: honour ?cert= param so bookmarked / shared links land directly
+  // On mount: honour ?cert= param so bookmarked / shared links land directly on this device.
+  // If the cert ID is not known on this device (shared link from another browser), leave the
+  // URL alone — don't silently overwrite it with the local active cert.
   useEffect(() => {
-    const params   = new URLSearchParams(window.location.search)
+    const params    = new URLSearchParams(window.location.search)
     const certParam = params.get('cert')
     if (certParam && certParam !== activeCertId && certs.find(c => c.id === certParam)) {
       switchCert(certParam)
@@ -810,15 +819,21 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // intentionally run only on mount
 
-  // Keep URL in sync whenever the active cert changes
+  // Keep URL in sync whenever the active cert changes —
+  // but only overwrite the URL cert param if it's already one of *our* known certs.
+  // This prevents silently rewriting a "foreign" cert ID that arrived via a shared link.
   useEffect(() => {
     if (!activeCertId) return
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('cert') !== activeCertId) {
+    const params    = new URLSearchParams(window.location.search)
+    const urlParam  = params.get('cert')
+    // If the URL already has a cert ID that isn't in our local list it's a shared/foreign link —
+    // preserve it so the user can see they need to load it from Drive.
+    const isForeign = urlParam && !certs.find(c => c.id === urlParam)
+    if (!isForeign && urlParam !== activeCertId) {
       params.set('cert', activeCertId)
       window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
     }
-  }, [activeCertId])
+  }, [activeCertId, certs])
 
   // Reset view to topics when switching certs
   const handleSwitchCert = useCallback((id) => {
@@ -827,8 +842,36 @@ export default function App() {
     setSearchQuery('')
   }, [switchCert])
 
+  // Detect if the URL has a cert ID that doesn't exist on this device (shared link)
+  const foreignCertId = useMemo(() => {
+    const params   = new URLSearchParams(window.location.search)
+    const urlParam = params.get('cert')
+    return urlParam && !certs.find(c => c.id === urlParam) ? urlParam : null
+  // Only recompute on mount — certs list growing (after Drive load) will clear this naturally
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <div className="app">
+      {foreignCertId && (
+        <div className="foreign-cert-banner">
+          <span>
+            <strong>Shared cert link detected.</strong> This cert isn't saved on this device.
+            Go to <strong>Settings → Load from someone else's cert</strong> and paste the Drive file ID to load it.
+          </span>
+          <button
+            className="icon-btn"
+            title="Dismiss"
+            onClick={() => {
+              // Clear the foreign cert ID from the URL so this banner doesn't reappear
+              const params = new URLSearchParams(window.location.search)
+              params.set('cert', activeCertId)
+              window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
+              window.location.reload()
+            }}
+          >✕</button>
+        </div>
+      )}
       <CertWorkspace
         key={activeCertId}
         namespace={activeCertId}
