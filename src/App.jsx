@@ -234,22 +234,32 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     if (isForeign) {
       const fid = urlCertId
       try {
-        // Write bundle data directly into the foreign cert's localStorage namespace
+        // Write ALL bundle data straight to localStorage under the foreign cert's namespace.
+        // We then do a location.replace() reload so every hook re-initialises from the correct
+        // namespace with no React state-batching race conditions.
         if (bundle.certData) localStorage.setItem(`certTracker_${fid}_certData`, JSON.stringify(bundle.certData))
         if (bundle.progress) localStorage.setItem(`certTracker_${fid}_progress`, JSON.stringify(bundle.progress))
         if (bundle.calendar) localStorage.setItem(`certTracker_${fid}_calendar`, JSON.stringify(bundle.calendar))
-        // Merge schedule + display settings into the foreign cert's settings key
+
+        // Merge schedule + display settings into the foreign cert's settings blob
         const settingsKey = `certTracker_${fid}_settings`
         const existing = JSON.parse(localStorage.getItem(settingsKey) || '{}')
         const merged = { ...existing, ...(bundle.scheduleSettings ?? {}), ...(bundle.displaySettings ?? {}) }
         localStorage.setItem(settingsKey, JSON.stringify(merged))
+
+        // Register the cert in the certs registry and set it as active — both done
+        // directly in localStorage so the reload picks them up immediately.
+        const certName = bundle.certData?.certName || 'Imported Cert'
+        const storedCerts = JSON.parse(localStorage.getItem('certTracker_certs') || '[]')
+        if (!storedCerts.find((c) => c.id === fid)) {
+          storedCerts.push({ id: fid, name: certName, emoji: '🎓', createdAt: new Date().toISOString() })
+          localStorage.setItem('certTracker_certs', JSON.stringify(storedCerts))
+        }
+        localStorage.setItem('certTracker_activeCert', fid)
       } catch {}
-      // Register the cert under the original ID and switch to it —
-      // CertWorkspace remounts with the correct namespace and reads from localStorage
-      const certName = bundle.certData?.certName || 'Imported Cert'
-      addCert(certName, '🎓', fid)
-      switchCert(fid)
-      clearForeignCert?.()  // dismiss banner; URL is now correct
+
+      // Reload to the correct cert URL — every hook will read fresh data from the right namespace
+      window.location.replace(`${window.location.pathname}?cert=${urlCertId}`)
       return
     }
 
