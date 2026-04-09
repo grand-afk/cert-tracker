@@ -219,16 +219,29 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     version:  1,
     exportedAt: new Date().toISOString(),
     certData, progress, calendar,
-  }), [certData, progress, calendar])
+    // Persist scheduling settings so they sync across devices/browsers
+    scheduleSettings: { workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins },
+  }), [certData, progress, calendar, workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins])
 
   const applyImportBundle = useCallback((bundle) => {
     if (bundle.certData)  importData(JSON.stringify(bundle.certData))
     if (bundle.progress)  importProgress(bundle.progress)
     if (bundle.calendar)  restoreCalendar(bundle.calendar)
+    // Restore scheduling settings if present
+    if (bundle.scheduleSettings) {
+      const s = bundle.scheduleSettings
+      if (s.workStart        !== undefined) setWorkStart(s.workStart)
+      if (s.workEnd          !== undefined) setWorkEnd(s.workEnd)
+      if (s.defaultTopicMins !== undefined) setDefaultTopicMins(s.defaultTopicMins)
+      if (s.maxSessionsPerDay !== undefined) setMaxSessionsPerDay(s.maxSessionsPerDay)
+      if (s.defaultBreakMins !== undefined) setDefaultBreakMins(s.defaultBreakMins)
+    }
     // Sync the cert manager name to the name stored in the loaded JSON
     if (bundle.certData?.certName) renameCert(activeCertId, bundle.certData.certName)
     stampLastImported?.()
-  }, [importData, importProgress, restoreCalendar, renameCert, activeCertId, stampLastImported])
+  }, [importData, importProgress, restoreCalendar,
+      setWorkStart, setWorkEnd, setDefaultTopicMins, setMaxSessionsPerDay, setDefaultBreakMins,
+      renameCert, activeCertId, stampLastImported])
 
   const driveSync = useDriveSync({
     certId:  namespace,
@@ -260,23 +273,23 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     stampLastSaved()
   }, [certData, progress, calendar]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Derived: topics that have a due date set (for CalendarView milestones)
+  // Derived: topics/subtopics that have a due date set (for CalendarView milestones)
   const topicDueDates = useMemo(
-    () => allTopics.filter((t) => t.dueDate),
-    [allTopics]
+    () => allItems.filter((t) => t.dueDate),
+    [allItems]
   )
 
-  // Derived: per-course latest due date (for ProgressBanner ticks)
-  const courseMilestones = useMemo(() => {
-    const byCoure = {}
-    allTopics.forEach((t) => {
+  // Derived: per-date milestone groups for ProgressBanner ticks
+  // Each entry: { date, topics: [{ name, courseName, courseColor }] }
+  const dateMilestones = useMemo(() => {
+    const byDate = {}
+    allItems.forEach((t) => {
       if (!t.dueDate) return
-      if (!byCoure[t.courseId] || t.dueDate > byCoure[t.courseId].latestDueDate) {
-        byCoure[t.courseId] = { courseId: t.courseId, courseName: t.courseName, courseColor: t.courseColor, latestDueDate: t.dueDate }
-      }
+      if (!byDate[t.dueDate]) byDate[t.dueDate] = { date: t.dueDate, topics: [] }
+      byDate[t.dueDate].topics.push({ name: t.name, courseName: t.courseName, courseColor: t.courseColor })
     })
-    return Object.values(byCoure)
-  }, [allTopics])
+    return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date))
+  }, [allItems])
 
   // Sync bar props — passed to TopicsView and StudyView
   const syncProps = useMemo(() => ({
@@ -609,7 +622,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
         onGoToSettings={() => setView('settings')}
       />
 
-      <ProgressBanner percent={percentComplete} targetDate={certData.targetDate} courseMilestones={courseMilestones} />
+      <ProgressBanner percent={percentComplete} targetDate={certData.targetDate} dateMilestones={dateMilestones} />
 
       <main className="main-content">
         {view === 'topics' && (

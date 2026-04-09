@@ -65,9 +65,9 @@ async function createFile(token, name, content) {
   return data?.id
 }
 
-async function updateFile(token, fileId, content) {
-  // Use multipart so we can update both content and metadata (forces modifiedTime bump)
-  const metadata = { modifiedTime: new Date().toISOString() }
+async function updateFile(token, fileId, name, content) {
+  // Include name so the Drive filename stays in sync when the cert is renamed
+  const metadata = { name, mimeType: 'application/json', modifiedTime: new Date().toISOString() }
   const form = new FormData()
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
   form.append('file',     new Blob([content],                  { type: 'application/json' }))
@@ -252,7 +252,7 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
       }
 
       if (fileId) {
-        await updateFile(token, fileId, content)
+        await updateFile(token, fileId, fileName, content)
       } else {
         fileId = await createFile(token, fileName, content)
       }

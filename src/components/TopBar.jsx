@@ -45,12 +45,14 @@ export default function TopBar({
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef(null)
 
-  // Focus search when global event fires (/ key)
+  // Focus the input whenever searchOpen becomes true (after React renders it into the DOM)
   useEffect(() => {
-    function onFocusSearch() {
-      setSearchOpen(true)
-      requestAnimationFrame(() => searchRef.current?.focus())
-    }
+    if (searchOpen) searchRef.current?.focus()
+  }, [searchOpen])
+
+  // Open search when global event fires (/ key)
+  useEffect(() => {
+    function onFocusSearch() { setSearchOpen(true) }
     window.addEventListener('focus-search', onFocusSearch)
     return () => window.removeEventListener('focus-search', onFocusSearch)
   }, [])
@@ -61,7 +63,6 @@ export default function TopBar({
       setSearchQuery('')
     } else {
       setSearchOpen(true)
-      requestAnimationFrame(() => searchRef.current?.focus())
     }
   }
 

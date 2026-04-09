@@ -63,11 +63,20 @@ export function useCertData(namespace = 'default') {
       ...d,
       courses: d.courses.map((c) => ({
         ...c,
-        topics: c.topics.map((t) =>
-          t.id === topicId
-            ? { ...t, dueDate: dueDate || null, dueTime: dueTime || null }
-            : t
-        ),
+        topics: c.topics.map((t) => {
+          // Direct match — top-level topic
+          if (t.id === topicId) return { ...t, dueDate: dueDate || null, dueTime: dueTime || null }
+          // Check inside subtopics
+          if (t.subtopics?.some((s) => s.id === topicId)) {
+            return {
+              ...t,
+              subtopics: t.subtopics.map((s) =>
+                s.id === topicId ? { ...s, dueDate: dueDate || null, dueTime: dueTime || null } : s
+              ),
+            }
+          }
+          return t
+        }),
       })),
     }))
   }, [setCertData])

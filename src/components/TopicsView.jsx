@@ -301,6 +301,8 @@ export default function TopicsView({
         // Emit the parent group header the first time we see this topicId
         if (!seenGroupId.has(item.topicId)) {
           seenGroupId.add(item.topicId)
+          // Find the parent topic's own due date from sorted list
+          const parent = sorted.find((x) => !x.isSub && x.id === item.topicId)
           result.push({
             __isGroupHeader: true,
             id: `__group-${item.topicId}`,
@@ -309,6 +311,8 @@ export default function TopicsView({
             courseId: item.courseId,
             courseName: item.courseName,
             courseColor: item.courseColor,
+            dueDate: parent?.dueDate ?? null,
+            dueTime: parent?.dueTime ?? null,
           })
         }
         result.push(item)
@@ -324,6 +328,8 @@ export default function TopicsView({
             courseId: item.courseId,
             courseName: item.courseName,
             courseColor: item.courseColor,
+            dueDate: item.dueDate ?? null,
+            dueTime: item.dueTime ?? null,
           })
         }
       }
@@ -467,6 +473,12 @@ export default function TopicsView({
                               />
                             ) : (
                               <span className="topic-group-name">{topic.topicName}</span>
+                            )}
+                            {setTopicDueDate && cv('due') && (
+                              <DueDateCell
+                                topic={{ id: topic.topicId, dueDate: topic.dueDate, dueTime: topic.dueTime }}
+                                setTopicDueDate={setTopicDueDate}
+                              />
                             )}
                             <div className="topic-group-actions">
                               {addSubtopic && (
@@ -632,7 +644,7 @@ export default function TopicsView({
                       )}
                       {cv('due') && (
                         <td className="study-cell" style={{ width: 170 }}>
-                          {setTopicDueDate && !topic.isSub && (
+                          {setTopicDueDate && (
                             <DueDateCell topic={topic} setTopicDueDate={setTopicDueDate} />
                           )}
                         </td>

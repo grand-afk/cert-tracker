@@ -3,6 +3,12 @@ import { daysUntilDue } from '../utils/sm2'
 
 function storageKey(ns) { return `certTracker_${ns}_calendar` }
 
+// Local-date key — avoids UTC conversion shifting dates for non-UTC timezones
+function localDk(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function toKey(date) { return date instanceof Date ? localDk(date) : date }
+
 function load(ns) {
   try {
     const raw = localStorage.getItem(storageKey(ns))
@@ -27,12 +33,12 @@ export function useCalendar(namespace = 'default') {
   }, [namespace])
 
   const getDay = useCallback((date) => {
-    const key = date instanceof Date ? date.toISOString().split('T')[0] : date
+    const key = toKey(date)
     return calendar[key] || { studyHours: null, slots: [] }
   }, [calendar])
 
   const setStudyHours = useCallback((date, hours) => {
-    const key = date instanceof Date ? date.toISOString().split('T')[0] : date
+    const key = toKey(date)
     setCalendar((prev) => ({
       ...prev,
       [key]: { ...(prev[key] || { slots: [] }), studyHours: hours },
@@ -40,7 +46,7 @@ export function useCalendar(namespace = 'default') {
   }, [setCalendar])
 
   const addSlot = useCallback((date, slot) => {
-    const key = date instanceof Date ? date.toISOString().split('T')[0] : date
+    const key = toKey(date)
     setCalendar((prev) => {
       const day = prev[key] || { studyHours: null, slots: [] }
       // Preserve provided id for undo/redo; otherwise generate a new one
@@ -57,7 +63,7 @@ export function useCalendar(namespace = 'default') {
   }, [setCalendar])
 
   const removeSlot = useCallback((date, slotId) => {
-    const key = date instanceof Date ? date.toISOString().split('T')[0] : date
+    const key = toKey(date)
     setCalendar((prev) => ({
       ...prev,
       [key]: {
@@ -68,15 +74,15 @@ export function useCalendar(namespace = 'default') {
   }, [setCalendar])
 
   const moveSlot = useCallback((fromDate, slotId, toDate, newStartTime) => {
-    const fromKey = fromDate instanceof Date ? fromDate.toISOString().split('T')[0] : fromDate
-    const toKey = toDate instanceof Date ? toDate.toISOString().split('T')[0] : toDate
+    const fromKey = toKey(fromDate)
+    const destKey = toKey(toDate)
     setCalendar((prev) => {
       const fromDay = prev[fromKey] || { studyHours: null, slots: [] }
       const slot = fromDay.slots.find((s) => s.id === slotId)
       if (!slot) return prev
       const updatedSlot = { ...slot, startTime: newStartTime }
       // Same-day drag: just update the start time in place (don't duplicate)
-      if (fromKey === toKey) {
+      if (fromKey === destKey) {
         return {
           ...prev,
           [fromKey]: {
@@ -85,14 +91,14 @@ export function useCalendar(namespace = 'default') {
           },
         }
       }
-      const toDay = prev[toKey] || { studyHours: null, slots: [] }
+      const toDay = prev[destKey] || { studyHours: null, slots: [] }
       return {
         ...prev,
         [fromKey]: {
           ...fromDay,
           slots: fromDay.slots.filter((s) => s.id !== slotId),
         },
-        [toKey]: {
+        [destKey]: {
           ...toDay,
           slots: [...toDay.slots, updatedSlot],
         },
@@ -152,7 +158,7 @@ export function useCalendar(namespace = 'default') {
   }, [setCalendar])
 
   const autoFill = useCallback((dateKey, topics, defaultMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessions, breakMins = 0) => {
-    const key = typeof dateKey === 'string' ? dateKey : dateKey.toISOString().split('T')[0]
+    const key = toKey(dateKey)
     const [wh, wm] = workStart.split(':').map(Number)
     const workStartMins = wh * 60 + wm
     const [eh, em] = (workEnd || '17:00').split(':').map(Number)

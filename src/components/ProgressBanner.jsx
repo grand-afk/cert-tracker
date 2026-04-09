@@ -1,8 +1,8 @@
 import { fmtDisplayDate } from '../utils/relativeTime'
 
-// courseMilestones: [{ courseId, courseName, courseColor, latestDueDate }]
+// dateMilestones: [{ date: 'YYYY-MM-DD', topics: [{ name, courseName, courseColor }] }]
 // Ticks are positioned proportionally on the time axis: today → targetDate
-export default function ProgressBanner({ percent, targetDate, courseMilestones = [] }) {
+export default function ProgressBanner({ percent, targetDate, dateMilestones = [] }) {
   if (!targetDate && percent === null) return null
 
   const today = new Date()
@@ -26,16 +26,16 @@ export default function ProgressBanner({ percent, targetDate, courseMilestones =
 
   const pct = percent ?? 0
 
-  // Only render ticks when we have a target date to position against
+  // Position each date-milestone tick on the today→targetDate axis
   const ticks = targetMs
-    ? courseMilestones
-        .filter((m) => m.latestDueDate)
-        .map((m) => {
-          const dueMs  = new Date(m.latestDueDate).getTime()
-          const todayMs = today.getTime()
-          const pos    = Math.round(((dueMs - todayMs) / (targetMs - todayMs)) * 100)
-          return { ...m, pos }
-        })
+    ? dateMilestones.map((m) => {
+        const dueMs   = new Date(m.date).getTime()
+        const todayMs = today.getTime()
+        const pos     = Math.round(((dueMs - todayMs) / (targetMs - todayMs)) * 100)
+        const topicList = m.topics.map((t) => t.name).join(', ')
+        const color = m.topics[0]?.courseColor ?? 'var(--accent)'
+        return { date: m.date, pos, topicList, color, count: m.topics.length }
+      })
     : []
 
   return (
@@ -45,14 +45,14 @@ export default function ProgressBanner({ percent, targetDate, courseMilestones =
         <div className="progress-bar-fill" style={{ width: `${pct}%` }} />
         {ticks.map((tick) => (
           <div
-            key={tick.courseId}
+            key={tick.date}
             className="progress-milestone-tick"
             style={{
               left: `${Math.max(0, Math.min(100, tick.pos))}%`,
-              background: tick.courseColor,
+              background: tick.color,
               opacity: tick.pos < 0 || tick.pos > 100 ? 0.4 : 1,
             }}
-            title={`${tick.courseName}: last topic due ${fmtDisplayDate(tick.latestDueDate)}`}
+            title={`${fmtDisplayDate(tick.date)}: ${tick.topicList}`}
           />
         ))}
       </div>
