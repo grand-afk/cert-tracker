@@ -131,15 +131,6 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
     else    clear(`certTracker_${certId}_sharedFileId`)
   }, [certId])
 
-  // Persist shared file ID + client ID from URL into localStorage on first visit
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const urlShared = params.get('shared')
-    const urlCid    = params.get('cid')
-    if (urlShared && !load(`certTracker_${certId}_sharedFileId`, '')) setSharedFileId(urlShared)
-    if (urlCid    && !load('certTracker_googleClientId', ''))         setClientId(urlCid)
-  }, [certId, setSharedFileId, setClientId])
-
   // ── Save client ID ─────────────────────────────────────────────────────
   const setClientId = useCallback((id) => {
     setClientIdState(id)
@@ -149,6 +140,15 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
     setAccessToken(null)
     tokenClientRef.current = null
   }, [])
+
+  // Persist shared file ID + client ID from URL into localStorage on first visit
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const urlShared = params.get('shared')
+    const urlCid    = params.get('cid')
+    if (urlShared && !load(`certTracker_${certId}_sharedFileId`, '')) setSharedFileId(urlShared)
+    if (urlCid    && !load('certTracker_googleClientId', ''))         setClientId(urlCid)
+  }, [certId, setSharedFileId, setClientId])
 
   // ── Token refresh callback ─────────────────────────────────────────────
   const handleTokenResponse = useCallback((resp) => {
