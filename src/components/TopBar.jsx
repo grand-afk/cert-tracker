@@ -29,6 +29,10 @@ export default function TopBar({
   onRedo,
   canUndo,
   canRedo,
+  undoCount = 0,
+  redoCount = 0,
+  undoLabel = '',
+  redoLabel = '',
   onSave,
   onLoad,
   isSaving,
@@ -135,24 +139,26 @@ export default function TopBar({
             </button>
           )}
           <button
-            className="topbar-icon-btn"
+            className="topbar-icon-btn topbar-icon-btn--with-key"
             onClick={onUndo}
             disabled={!canUndo}
-            title="Undo  [Ctrl+Z]"
-            aria-label="Undo"
+            title={canUndo ? `Undo${undoLabel ? `: ${undoLabel}` : ''}  [Ctrl+Z]` : 'Nothing to undo'}
+            aria-label={`Undo${undoCount > 1 ? ` (${undoCount})` : ''}`}
             style={{ opacity: canUndo ? 1 : 0.35, fontSize: 16 }}
           >
-            ↩
+            ↩{undoCount > 1 && <span className="topbar-history-count">{undoCount}</span>}
+            <span className="topbar-btn-key">Z</span>
           </button>
           <button
-            className="topbar-icon-btn"
+            className="topbar-icon-btn topbar-icon-btn--with-key"
             onClick={onRedo}
             disabled={!canRedo}
-            title="Redo  [Ctrl+Y]"
-            aria-label="Redo"
+            title={canRedo ? `Redo${redoLabel ? `: ${redoLabel}` : ''}  [Ctrl+Y]` : 'Nothing to redo'}
+            aria-label={`Redo${redoCount > 1 ? ` (${redoCount})` : ''}`}
             style={{ opacity: canRedo ? 1 : 0.35, fontSize: 16 }}
           >
-            ↪
+            ↪{redoCount > 1 && <span className="topbar-history-count">{redoCount}</span>}
+            <span className="topbar-btn-key">Y</span>
           </button>
           {onGoToSettings && (
             <button

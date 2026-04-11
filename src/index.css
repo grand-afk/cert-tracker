@@ -1801,6 +1801,17 @@ body {
   line-height: 14px;
   margin-top: 1px;
 }
+.topbar-history-count {
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0 4px;
+  line-height: 14px;
+  min-width: 14px;
+  text-align: center;
+}
 
 /* Drive connection status indicator */
 .topbar-drive-status {

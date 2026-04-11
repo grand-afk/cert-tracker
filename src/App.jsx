@@ -200,7 +200,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
   const { calendar, exportCSV: exportCalendarCSV, importCSV: importCalendarCSV, restoreCalendar } = useCalendar(namespace)
 
-  const { push: historyPush, undo, redo, canUndo, canRedo } = useHistory()
+  const { push: historyPush, undo, redo, canUndo, canRedo, undoCount, redoCount, undoLabel, redoLabel } = useHistory()
 
   const {
     techniques: revisionTechniques,
@@ -676,6 +676,10 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
         onRedo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
+        undoCount={undoCount}
+        redoCount={redoCount}
+        undoLabel={undoLabel}
+        redoLabel={redoLabel}
         onSave={handleTopbarSave}
         onLoad={handleTopbarLoad}
         isSaving={topbarSaving || driveSync.syncing}
