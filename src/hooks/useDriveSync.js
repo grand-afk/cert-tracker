@@ -287,6 +287,12 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
         setAccessToken(null)
         setAuthState('unauthed')
       }
+      // Stale file ID from another user's session — clear it so the next save
+      // creates a fresh file owned by the current Google account.
+      if (err.message?.includes('write access') || err.message?.includes('403')) {
+        setDriveFileId(null)
+        setSyncError('No write access to that Drive file — click Save again to create your own.')
+      }
     } finally { setSyncing(false) }
   }, [getToken, buildExportBundle, certName, certId, driveFileId, setDriveFileId])
 
