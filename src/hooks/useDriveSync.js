@@ -84,8 +84,12 @@ async function readFile(token, fileId) {
 
 // ── Hook ───────────────────────────────────────────────────────────────────
 export function useDriveSync({ certId, certName, buildExportBundle, applyImportBundle }) {
-  // Client ID is global (same GCP app for all certs)
-  const [clientId, setClientIdState] = useState(() => load('certTracker_googleClientId', ''))
+  // Client ID is global (same GCP app for all certs).
+  // Falls back to ?cid= URL param so share links pre-fill it for new users.
+  const [clientId, setClientIdState] = useState(() =>
+    load('certTracker_googleClientId', '') ||
+    new URLSearchParams(window.location.search).get('cid') || ''
+  )
   // Auth state
   const [authState, setAuthState]     = useState('idle') // idle | loading | unauthed | authed | error
   const [userEmail, setUserEmail]     = useState(() => load('certTracker_googleEmail', ''))
@@ -94,15 +98,22 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
   const tokenClientRef = useRef(null)
   // Per-cert Drive file ID
   const [driveFileId, setDriveFileIdState] = useState(() => load(`certTracker_${certId}_driveFileId`, null))
-  // Shared file ID (another user's file ID to load from)
-  const [sharedFileId, setSharedFileIdState] = useState(() => load(`certTracker_${certId}_sharedFileId`, ''))
+  // Shared file ID (another user's file ID to load from).
+  // Falls back to ?shared= URL param so share links work without manual paste.
+  const [sharedFileId, setSharedFileIdState] = useState(() => {
+    const saved = load(`certTracker_${certId}_sharedFileId`, '')
+    if (saved) return saved
+    return new URLSearchParams(window.location.search).get('shared') || ''
+  })
   // Sync state
   const [syncing, setSyncing]             = useState(false)
   const [lastSync, setLastSync]           = useState(() => load(`certTracker_${certId}_driveLastSync`, null))
   const [syncError, setSyncError]         = useState(null)
   // Shared-load state (separate so it doesn't block the main sync buttons)
-  const [loadingShared, setLoadingShared] = useState(false)
-  const [sharedError, setSharedError]     = useState(null)
+  const [loadingShared, setLoadingShared]   = useState(false)
+  const [sharedError, setSharedError]       = useState(null)
+  // Timestamp of the partner's last save (from bundle.savedAt on the most recent shared load)
+  const [sharedLastSaved, setSharedLastSavedState] = useState(() => load(`certTracker_${certId}_sharedLastSaved`, null))
   // Readonly token (for loading shared files)
   const readonlyClientRef    = useRef(null)
   const [readonlyToken, setReadonlyToken] = useState(null)
@@ -129,6 +140,15 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
     setAccessToken(null)
     tokenClientRef.current = null
   }, [])
+
+  // Persist shared file ID + client ID from URL into localStorage on first visit
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const urlShared = params.get('shared')
+    const urlCid    = params.get('cid')
+    if (urlShared && !load(`certTracker_${certId}_sharedFileId`, '')) setSharedFileId(urlShared)
+    if (urlCid    && !load('certTracker_googleClientId', ''))         setClientId(urlCid)
+  }, [certId, setSharedFileId, setClientId])
 
   // ── Token refresh callback ─────────────────────────────────────────────
   const handleTokenResponse = useCallback((resp) => {
@@ -298,6 +318,12 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
       const data  = await readFile(token, fileId.trim())
       if (data._type !== 'cert-tracker-full') throw new Error('Unexpected file format — is this a cert-tracker Drive file?')
       applyImportBundle(data)
+      // Record when the partner last saved so the UI can show "their last save: X ago"
+      const partnerSavedAt = data.savedAt || data.exportedAt || null
+      if (partnerSavedAt) {
+        setSharedLastSavedState(partnerSavedAt)
+        save(`certTracker_${certId}_sharedLastSaved`, partnerSavedAt)
+      }
       const ts = new Date().toISOString()
       setLastSync(ts)
       save(`certTracker_${certId}_driveLastSync`, ts)
@@ -339,6 +365,7 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
 
   return {
     // Config
+    certId,
     clientId, setClientId,
     // Auth
     authState, userEmail, connect, disconnect,
@@ -346,8 +373,9 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
     driveFileId, syncing, lastSync, syncError,
     saveToDrive, loadFromDrive,
     isReady: authState === 'authed',
-    // Shared load
+    // Shared load (sync partner)
     sharedFileId, setSharedFileId,
+    sharedLastSaved,
     loadingShared, sharedError, loadFromSharedFile,
   }
 }
