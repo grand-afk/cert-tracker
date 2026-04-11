@@ -14,24 +14,46 @@ function relTime(iso) {
 
 function DriveSyncSection({ driveSync }) {
   const {
+    certId,
     clientId, setClientId,
     authState, connect, disconnect,
     driveFileId, syncing, lastSync, syncError,
     saveToDrive, loadFromDrive, isReady,
     sharedFileId, setSharedFileId,
+    sharedLastSaved,
     loadingShared, sharedError, loadFromSharedFile,
   } = driveSync
 
   const [showClientId, setShowClientId] = useState(false)
   const [clientIdDraft, setClientIdDraft] = useState(clientId || '')
-  const [sharedIdDraft, setSharedIdDraft] = useState(sharedFileId || '')
-  const [copied, setCopied] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
+  // Partner setup: show input when no partner saved yet, or when user clicks Change
+  const [editingPartner, setEditingPartner] = useState(!sharedFileId)
+  const [partnerDraft, setPartnerDraft] = useState(sharedFileId || '')
 
-  function copyFileId() {
-    navigator.clipboard.writeText(driveFileId).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+  function copyShareLink() {
+    const base   = window.location.origin + window.location.pathname
+    const params = new URLSearchParams()
+    params.set('cert',   certId)
+    params.set('shared', driveFileId)
+    if (clientId) params.set('cid', clientId)
+    navigator.clipboard.writeText(`${base}?${params.toString()}`).then(() => {
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2500)
     })
+  }
+
+  function extractId(val) {
+    const sharedParam = val.match(/[?&]shared=([a-zA-Z0-9_-]{10,})/)
+    const driveUrl    = val.match(/\/d\/([a-zA-Z0-9_-]{10,})/)
+    return sharedParam ? sharedParam[1] : driveUrl ? driveUrl[1] : val.trim()
+  }
+
+  function savePartner() {
+    const id = extractId(partnerDraft)
+    if (!id) return
+    setSharedFileId(id)
+    setEditingPartner(false)
   }
 
   const statusLabel = {
@@ -87,95 +109,99 @@ function DriveSyncSection({ driveSync }) {
         )}
       </div>
 
-      {/* Save / Load */}
+      {/* ── MY FILE ── */}
       {(authState === 'authed' || authState === 'unauthed') && (
-        <div className="settings-row">
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="settings-label">Sync this cert</div>
-            <div className="settings-hint">
-              {driveFileId
-                ? `Linked to Drive file · last synced ${relTime(lastSync) || 'never'}`
-                : 'Not yet synced — click Save to create the Drive file'}
+        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="settings-label">My file</div>
+              <div className="settings-hint">
+                {driveFileId
+                  ? `Last synced ${relTime(lastSync) || 'never'}`
+                  : 'Not yet saved — click Save to create your Drive file'}
+              </div>
+              {syncError && (
+                <div className="settings-hint" style={{ color: '#EA4335', marginTop: 2 }}>{syncError}</div>
+              )}
             </div>
-            {syncError && (
-              <div className="settings-hint" style={{ color: '#EA4335', marginTop: 4 }}>{syncError}</div>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <button className="btn btn-secondary btn-sm" onClick={loadFromDrive}
+                      disabled={!isReady || syncing || !driveFileId} title="Pull latest from Drive">
+                {syncing ? '…' : '⬇ Load'}
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={saveToDrive}
+                      disabled={!isReady || syncing} title="Push current data to Drive">
+                {syncing ? '…' : '⬆ Save'}
+              </button>
+            </div>
+          </div>
+
+          {/* Share link — only shown once there's a file to share */}
+          {isReady && driveFileId && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+              <div className="settings-hint" style={{ flex: 1 }}>
+                <a href={`https://drive.google.com/file/d/${driveFileId}/view`}
+                   target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
+                  Open in Drive ↗
+                </a>
+                {' '}and set to <strong>"Anyone with link → Viewer"</strong>, then share this link:
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={copyShareLink} style={{ flexShrink: 0 }}>
+                {copiedLink ? '✓ Copied!' : '🔗 Copy share link'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SYNC PARTNER ── */}
+      {(authState === 'authed' || authState === 'unauthed') && (
+        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="settings-label">Sync partner</div>
+              <div className="settings-hint">
+                {sharedFileId && !editingPartner
+                  ? sharedLastSaved
+                    ? `Their last save: ${relTime(sharedLastSaved)}`
+                    : 'Partner set — click Load to get their latest'
+                  : 'Paste a share link from your partner'}
+              </div>
+              {sharedError && (
+                <div className="settings-hint" style={{ color: '#EA4335', marginTop: 2 }}>{sharedError}</div>
+              )}
+            </div>
+            {sharedFileId && !editingPartner && (
+              <button className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}
+                      onClick={() => loadFromSharedFile(sharedFileId)} disabled={loadingShared}>
+                {loadingShared ? '…' : '⬇ Load their latest'}
+              </button>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            <button className="btn btn-secondary btn-sm"
-                    onClick={loadFromDrive}
-                    disabled={!isReady || syncing || !driveFileId}
-                    title="Pull latest data from Drive">
-              {syncing ? '…' : '⬇ Load'}
-            </button>
-            <button className="btn btn-primary btn-sm"
-                    onClick={saveToDrive}
-                    disabled={!isReady || syncing}
-                    title="Push current data to Drive">
-              {syncing ? '…' : '⬆ Save'}
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Share your file ID */}
-      {isReady && driveFileId && (
-        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
-          <div style={{ width: '100%' }}>
-            <div className="settings-label">Share with others</div>
-            <ol className="settings-share-steps">
-              <li>
-                <a
-                  href={`https://drive.google.com/file/d/${driveFileId}/view`}
-                  target="_blank" rel="noreferrer"
-                  className="settings-drive-link"
-                >Open your file in Google Drive ↗</a>
-                {' '}then click <strong>Share</strong> and set it to <strong>"Anyone with the link → Viewer"</strong>.
-              </li>
-              <li>Copy your file ID below and send it to the other person.</li>
-              <li>They paste it into <em>Load from someone else's cert</em> in their app.</li>
-            </ol>
-          </div>
-          <div style={{ display: 'flex', gap: 6, width: '100%', alignItems: 'center' }}>
-            <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)',
-                          flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {driveFileId}
+          {/* Partner input — shown when no partner set or editing */}
+          {(!sharedFileId || editingPartner) ? (
+            <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+              <input className="form-input" style={{ flex: 1, fontSize: 12 }}
+                     placeholder="Paste partner's share link…"
+                     value={partnerDraft}
+                     onChange={e => setPartnerDraft(e.target.value)}
+                     onKeyDown={e => e.key === 'Enter' && savePartner()} />
+              <button className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}
+                      disabled={!partnerDraft.trim()} onClick={savePartner}>
+                Save partner
+              </button>
+              {editingPartner && sharedFileId && (
+                <button className="btn btn-secondary btn-sm" onClick={() => setEditingPartner(false)}>
+                  Cancel
+                </button>
+              )}
             </div>
-            <button className="btn btn-secondary btn-sm" onClick={copyFileId} style={{ flexShrink: 0 }}>
-              {copied ? '✓ Copied' : 'Copy ID'}
+          ) : (
+            <button className="btn btn-secondary btn-sm"
+                    onClick={() => { setPartnerDraft(sharedFileId); setEditingPartner(true) }}>
+              Change partner
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Load from shared file */}
-      {(authState === 'authed' || authState === 'unauthed') && (
-        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
-          <div className="settings-label">Load from someone else's cert</div>
-          <ol className="settings-share-steps" style={{ marginBottom: 2 }}>
-            <li>Ask the file owner to share their Drive file (<strong>Anyone with the link → Viewer</strong>) and send you their file ID from the <em>Share with others</em> section above.</li>
-            <li>Paste the file ID below and click <strong>Load</strong>. You'll be asked to grant <em>View Drive files</em> permission once.</li>
-            <li>The cert name and all data will be loaded from their file.</li>
-          </ol>
-          <div style={{ display: 'flex', gap: 6, width: '100%' }}>
-            <input className="form-input" style={{ flex: 1, fontSize: 12 }}
-                   placeholder="Paste file ID or Drive URL…"
-                   value={sharedIdDraft}
-                   onChange={e => {
-                     const val = e.target.value
-                     // Auto-extract ID from Drive URLs like /d/FILE_ID/view
-                     const match = val.match(/\/d\/([a-zA-Z0-9_-]{10,})/)
-                     setSharedIdDraft(match ? match[1] : val)
-                   }} />
-            <button className="btn btn-primary btn-sm"
-                    style={{ flexShrink: 0 }}
-                    disabled={!sharedIdDraft.trim() || loadingShared}
-                    onClick={() => { setSharedFileId(sharedIdDraft.trim()); loadFromSharedFile(sharedIdDraft.trim()) }}>
-              {loadingShared ? '…' : '⬇ Load'}
-            </button>
-          </div>
-          {sharedError && (
-            <div className="settings-hint" style={{ color: '#EA4335' }}>{sharedError}</div>
           )}
         </div>
       )}
