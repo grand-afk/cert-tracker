@@ -272,8 +272,18 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
       }
 
       if (fileId) {
-        await updateFile(token, fileId, fileName, content)
-      } else {
+        try {
+          await updateFile(token, fileId, fileName, content)
+        } catch (updateErr) {
+          // File found by search belongs to another user — create our own instead
+          if (updateErr.message?.includes('write access') || updateErr.message?.includes('403')) {
+            fileId = null
+          } else {
+            throw updateErr
+          }
+        }
+      }
+      if (!fileId) {
         fileId = await createFile(token, fileName, content)
       }
 
@@ -286,12 +296,6 @@ export function useDriveSync({ certId, certName, buildExportBundle, applyImportB
       if (err.message?.includes('401') || err.message?.includes('invalid_token')) {
         setAccessToken(null)
         setAuthState('unauthed')
-      }
-      // Stale file ID from another user's session — clear it so the next save
-      // creates a fresh file owned by the current Google account.
-      if (err.message?.includes('write access') || err.message?.includes('403')) {
-        setDriveFileId(null)
-        setSyncError('No write access to that Drive file — click Save again to create your own.')
       }
     } finally { setSyncing(false) }
   }, [getToken, buildExportBundle, certName, certId, driveFileId, setDriveFileId])
