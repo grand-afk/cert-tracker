@@ -198,7 +198,13 @@ describe('dueLabel', () => {
     expect(dueLabel({ nextReview: past.toISOString().split('T')[0] })).toBe('4d overdue')
   })
 
-  it('returns "in Xd" for future dates', () => {
+  it('returns "Due" for dates within 3 days', () => {
+    const soon = new Date()
+    soon.setDate(soon.getDate() + 2)
+    expect(dueLabel({ nextReview: soon.toISOString().split('T')[0] })).toBe('Due')
+  })
+
+  it('returns "in Xd" for future dates beyond 3 days', () => {
     const future = new Date()
     future.setDate(future.getDate() + 7)
     expect(dueLabel({ nextReview: future.toISOString().split('T')[0] })).toBe('in 7d')

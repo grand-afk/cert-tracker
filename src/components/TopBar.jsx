@@ -50,11 +50,14 @@ export default function TopBar({
     if (searchOpen) searchRef.current?.focus()
   }, [searchOpen])
 
-  // Open search when global event fires (/ key)
+  // Toggle search when global event fires (/ key) — use a ref so the handler
+  // always captures the latest toggleSearch closure without re-registering.
+  const toggleSearchRef = useRef(null)
+  toggleSearchRef.current = toggleSearch
   useEffect(() => {
-    function onFocusSearch() { setSearchOpen(true) }
-    window.addEventListener('focus-search', onFocusSearch)
-    return () => window.removeEventListener('focus-search', onFocusSearch)
+    function onToggleSearch() { toggleSearchRef.current?.() }
+    window.addEventListener('toggle-search', onToggleSearch)
+    return () => window.removeEventListener('toggle-search', onToggleSearch)
   }, [])
 
   function toggleSearch() {
@@ -205,6 +208,17 @@ export default function TopBar({
             {course.key && <span className="chip-key">{course.key}</span>}
           </button>
         ))}
+
+        {(selectedCourses.length > 0 || searchQuery) && (
+          <button
+            className="course-chip course-chip--clear-filters"
+            onClick={() => { clearSelectedCourses(); setSearchQuery('') }}
+            title="Clear all filters  [Esc]"
+            aria-label="Clear filters"
+          >
+            ✕ Clear <span className="chip-key">Esc</span>
+          </button>
+        )}
       </div>
     </header>
   )

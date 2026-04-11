@@ -196,6 +196,8 @@ body {
 .course-chip:hover { border-color: var(--accent); }
 .course-chip--active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .course-chip__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.course-chip--clear-filters { border-color: var(--text-muted); color: var(--text-muted); opacity: 0.8; }
+.course-chip--clear-filters:hover { border-color: #e05c5c; color: #e05c5c; opacity: 1; }
 
 /* ── Progress banner ──────────────────────────────────────── */
 .progress-banner {

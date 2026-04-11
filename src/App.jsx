@@ -314,7 +314,16 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
   const allItemIds  = useMemo(() => allItems.map((t) => t.id), [allItems])
   const allTermIds  = useMemo(() => (certData.terminology || []).map((t) => t.id), [certData])
   const allIds      = useMemo(() => [...allItemIds, ...allTermIds], [allItemIds, allTermIds])
-  const percentComplete = useMemo(() => computePercent(allIds), [allIds, progress])
+  // When a course chip is active, show progress for only that course's topics.
+  // Always include all terminology in the count (terms aren't tied to one course).
+  const filteredIds = useMemo(() => {
+    if (!selectedCourses.length) return allIds
+    const courseItemIds = allItems
+      .filter((t) => selectedCourses.includes(t.courseId))
+      .map((t) => t.id)
+    return [...courseItemIds, ...allTermIds]
+  }, [selectedCourses, allItems, allTermIds, allIds])
+  const percentComplete = useMemo(() => computePercent(filteredIds), [filteredIds, progress])
 
   // Auto-stamp lastSaved whenever certData, progress, or calendar mutates (skip initial mount)
   const hasHydrated = useRef(false)
@@ -332,16 +341,20 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
   // Derived: per-date milestone groups for ProgressBanner ticks
   // Each entry: { date, topics: [{ name, courseName, courseColor }] }
-  // Use allTopics so due dates on parent topics are always visible on the timeline
+  // Use allTopics so due dates on parent topics are always visible on the timeline.
+  // Filter by selectedCourses so the banner reflects the active course chip.
   const dateMilestones = useMemo(() => {
     const byDate = {}
-    allTopics.forEach((t) => {
+    const topicsToPlot = selectedCourses.length
+      ? allTopics.filter((t) => selectedCourses.includes(t.courseId))
+      : allTopics
+    topicsToPlot.forEach((t) => {
       if (!t.dueDate) return
       if (!byDate[t.dueDate]) byDate[t.dueDate] = { date: t.dueDate, topics: [] }
       byDate[t.dueDate].topics.push({ name: t.name, courseName: t.courseName, courseColor: t.courseColor })
     })
     return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date))
-  }, [allTopics])
+  }, [allTopics, selectedCourses])
 
   // Sync bar props — passed to TopicsView and StudyView
   const syncProps = useMemo(() => ({
@@ -605,7 +618,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
       if (e.key === '/') {
         e.preventDefault()
-        window.dispatchEvent(new CustomEvent('focus-search'))
+        window.dispatchEvent(new CustomEvent('toggle-search'))
         return
       }
 
