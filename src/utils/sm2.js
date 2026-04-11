@@ -99,5 +99,6 @@ export function dueLabel(card) {
   if (days === -Infinity) return 'New'
   if (days <  0) return `${Math.abs(days)}d overdue`
   if (days === 0) return 'Due today'
+  if (days <= 3) return 'Due'
   return `in ${days}d`
 }

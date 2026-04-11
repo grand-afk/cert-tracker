@@ -152,6 +152,11 @@ export default function StudyView({
         bv = getLastUpdated(b.id) ?? ''
         return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
       }
+      if (sort.key === 'lastRated') {
+        av = getSm2Card(a.id)?.lastRated ?? ''
+        bv = getSm2Card(b.id)?.lastRated ?? ''
+        return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      }
       const da = daysUntilDue(getSm2Card(a.id))
       const db = daysUntilDue(getSm2Card(b.id))
       return sort.dir === 'asc' ? da - db : db - da
@@ -273,6 +278,7 @@ export default function StudyView({
                   <SortTh colKey="topic">{subtopicsEnabled ? 'Sub-Topic' : 'Topic'}</SortTh>
                   <SortTh colKey="due" style={{ width: 110 }}>Due</SortTh>
                   <SortTh colKey="rate" style={{ width: 260 }}>Rate</SortTh>
+                  <SortTh colKey="lastRated" style={{ width: 90 }}>Last<br/>Review</SortTh>
                   <SortTh colKey="updated" style={{ width: 90 }}>Updated</SortTh>
                   {revisionTechniques.length > 0 && (
                     <th style={{ width: 120, whiteSpace: 'normal', textAlign: 'center' }} title="Technique used last time">Last<br/>Revision</th>
@@ -335,6 +341,9 @@ export default function StudyView({
                         </div>
                       </td>
                       <td className="study-cell study-cell--updated" style={{ width: 90 }}>
+                        {(() => { const r = getSm2Card(topic.id)?.lastRated; return r ? <span title={new Date(r).toLocaleString()}>{relativeTime(r)}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span> })()}
+                      </td>
+                      <td className="study-cell study-cell--updated" style={{ width: 90 }}>
                         {(() => { const u = getLastUpdated(topic.id); return u ? <span title={new Date(u).toLocaleString()}>{relativeTime(u)}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span> })()}
                       </td>
                       {revisionTechniques.length > 0 && (
@@ -367,7 +376,7 @@ export default function StudyView({
                         id={topic.id}
                         notes={topic.notes}
                         onSave={(n) => updateTopicNotes(topic.id, n)}
-                        colSpan={6 + (subtopicsEnabled ? 1 : 0) + (revisionTechniques.length > 0 ? 2 : 0)}
+                        colSpan={7 + (subtopicsEnabled ? 1 : 0) + (revisionTechniques.length > 0 ? 2 : 0)}
                       />
                     ),
                   ]
