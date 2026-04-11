@@ -218,11 +218,14 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     _type:    'cert-tracker-full',
     version:  1,
     exportedAt: new Date().toISOString(),
-    certData, progress, calendar,
+    // Always use the registry name (activeCert.name) so renaming before saving
+    // is reflected in the Drive file — certData.certName can lag behind.
+    certData: { ...certData, certName: activeCert?.name || certData.certName },
+    progress, calendar,
     // Persist scheduling + display settings so they sync across devices/browsers
     scheduleSettings: { workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins },
     displaySettings:  { subtopicsEnabled },
-  }), [certData, progress, calendar, workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins, subtopicsEnabled])
+  }), [certData, activeCert, progress, calendar, workStart, workEnd, defaultTopicMins, maxSessionsPerDay, defaultBreakMins, subtopicsEnabled])
 
   const applyImportBundle = useCallback((bundle) => {
     // ── Foreign-cert fast path ────────────────────────────────────────────
@@ -258,8 +261,11 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
         localStorage.setItem('certTracker_activeCert', fid)
       } catch {}
 
-      // Reload to the correct cert URL — every hook will read fresh data from the right namespace
-      window.location.replace(`${window.location.pathname}?cert=${urlCertId}`)
+      // Reload to the correct cert URL — every hook will read fresh data from the right namespace.
+      // Preserve ?shared= so the share link keeps working after first-time foreign-cert adoption.
+      const sharedParam = new URLSearchParams(window.location.search).get('shared')
+      const sharedStr   = sharedParam ? `&shared=${encodeURIComponent(sharedParam)}` : ''
+      window.location.replace(`${window.location.pathname}?cert=${urlCertId}${sharedStr}`)
       return
     }
 
