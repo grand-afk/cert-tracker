@@ -86,7 +86,7 @@ function TimeStepInput({ value, onChange }) {
   )
 }
 
-function DueDateCell({ topic, setTopicDueDate }) {
+function DueDateCell({ topic, setTopicDueDate, onDueDateChange }) {
   const [editing, setEditing] = useState(false)
   const [dateVal, setDateVal] = useState('')
   const [timeVal, setTimeVal] = useState('')
@@ -100,11 +100,15 @@ function DueDateCell({ topic, setTopicDueDate }) {
     setEditing(true)
   }
   function save() {
-    setTopicDueDate(topic.id, dateVal || null, timeVal || null)
+    const newDate = dateVal || null
+    const newTime = timeVal || null
+    setTopicDueDate(topic.id, newDate, newTime)
+    onDueDateChange?.(topic.id, newDate, newTime, dueDate ?? null, dueTime ?? null)
     setEditing(false)
   }
   function clear() {
     setTopicDueDate(topic.id, null, null)
+    onDueDateChange?.(topic.id, null, null, dueDate ?? null, dueTime ?? null)
     setEditing(false)
   }
 
@@ -210,6 +214,7 @@ export default function TopicsView({
   updateTopicNotes,
   getTestScore, setTestScore,
   setTopicDueDate,
+  onDueDateChange,
   addTopic, renameTopic, renameSubtopic, deleteTopic,
   subtopicsEnabled, addSubtopic,
   clearRating,
@@ -476,8 +481,9 @@ export default function TopicsView({
                             )}
                             {setTopicDueDate && cv('due') && (
                               <DueDateCell
-                                topic={{ id: topic.topicId, dueDate: topic.dueDate, dueTime: topic.dueTime }}
+                                topic={{ id: topic.topicId, dueDate: topic.dueDate ?? null, dueTime: topic.dueTime ?? null }}
                                 setTopicDueDate={setTopicDueDate}
+                                onDueDateChange={onDueDateChange}
                               />
                             )}
                             <div className="topic-group-actions">
@@ -654,6 +660,7 @@ export default function TopicsView({
                                   : topic
                               }
                               setTopicDueDate={setTopicDueDate}
+                              onDueDateChange={onDueDateChange}
                             />
                           )}
                         </td>
