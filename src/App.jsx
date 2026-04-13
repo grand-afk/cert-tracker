@@ -587,6 +587,10 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     const item = allItemsMap[id]
     if (!item) return
 
+    // Snapshot before for undo
+    const prevCertData = certData
+    const prevProgress = progress
+
     // Apply mutations
     if (item.isSub) {
       if (name !== item.name) renameSubtopic(item.courseId, item.topicId, id, name)
@@ -604,10 +608,16 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
       setTestScore(id, testScore, testDate || new Date().toISOString().slice(0, 10))
     }
 
+    historyPush(
+      () => { restoreCertData(prevCertData); restoreProgress(prevProgress) },
+      () => editSubtopicH(id, { name, status: newStatus, dueDate, dueTime, resources, notes, testScore, testDate }),
+      'Edit topic'
+    )
+
     setEditingSubtopicId(null)
-  }, [allItemsMap, renameSubtopic, updateSubtopicNotes, updateSubtopicResources,
+  }, [allItemsMap, certData, progress, renameSubtopic, updateSubtopicNotes, updateSubtopicResources,
       renameTopic, updateTopicNotes, updateTopicResources, setTopicDueDate, getStatus, setStatus,
-      setTestScore])
+      setTestScore, historyPush, restoreCertData, restoreProgress])
 
   // addCert handler: seed template data SYNCHRONOUSLY before returning the id.
   // This ensures the data is in localStorage before onSwitch(id) triggers a re-render

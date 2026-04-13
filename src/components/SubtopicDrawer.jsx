@@ -36,7 +36,7 @@ export default function SubtopicDrawer({
   const [resources, setResources]   = useState({ courseContent: '', video: '', anki: '', testLink: '' })
   const [notes, setNotes]           = useState('')
   const [testScore, setTestScore]   = useState('')
-  const [studyOpen, setStudyOpen]   = useState(false)
+  const [studyOpen, setStudyOpen]   = useState(true)
   const [currentQuality, setCurrentQuality] = useState(null)
 
   const nameInputRef = useRef(null)
@@ -58,7 +58,7 @@ export default function SubtopicDrawer({
     setNotes(item.notes ?? '')
     const ts = getTestScore(subtopicId)
     setTestScore(ts ? String(ts.score) : '')
-    setStudyOpen(context === 'study')
+    setStudyOpen(true)
     setCurrentQuality(getSm2Card(subtopicId)?.lastQuality ?? null)
   }, [subtopicId]) // eslint-disable-line react-hooks/exhaustive-deps
 
