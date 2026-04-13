@@ -544,9 +544,7 @@ export default function TopicsView({
                       className={`study-row study-row--expandable${topic.isSub ? ' subtopic-row' : ''}${isExpanded ? ' study-row--expanded' : ''}${isSelected ? ' study-row--selected' : ''}`}
                       onClick={(e) => {
                         if (e.target.closest('button,input,select,a,textarea')) return
-                        if (!topic.isSub) {
-                          setExpandedId(isExpanded ? null : topic.id)
-                        }
+                        onEditSubtopic?.(topic.id)
                         setSelectedId(topic.id)
                       }}
                     >
@@ -622,26 +620,15 @@ export default function TopicsView({
                           )
                         ) : subtopicsEnabled ? null : (
                           // subtopicsEnabled=false: single-column mode — name goes here
-                          renamingId === topic.id ? (
-                            <input
-                              className="form-input"
-                              style={{ fontSize: 13, padding: '2px 6px', height: 28 }}
-                              value={renameVal}
-                              autoFocus
-                              onChange={(e) => setRenameVal(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter')  { e.stopPropagation(); commitRename(topic) }
-                                if (e.key === 'Escape') { e.stopPropagation(); setRenamingId(null) }
-                              }}
-                              onBlur={() => commitRename(topic)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            <span className="topic-name-wrap">
+                          <span className="topic-name-wrap">
+                            <button
+                              className="subtopic-name-btn"
+                              onClick={(e) => { e.stopPropagation(); onEditSubtopic?.(topic.id) }}
+                            >
                               {topic.name}
-                              {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
-                            </span>
-                          )
+                            </button>
+                            {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
+                          </span>
                         )}
                       </td>
                       <td className="study-cell study-cell--status">
@@ -684,15 +671,8 @@ export default function TopicsView({
                       )}
                       <td className="study-cell" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <button className="icon-btn"
-                                title={topic.isSub ? 'Edit subtopic' : 'Rename topic & edit notes'}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  if (topic.isSub) {
-                                    onEditSubtopic?.(topic.id)
-                                  } else {
-                                    startRename(topic); setExpandedId(topic.id)
-                                  }
-                                }}>
+                                title="Edit"
+                                onClick={(e) => { e.stopPropagation(); onEditSubtopic?.(topic.id) }}>
                           ✏️
                         </button>
                         <button className="icon-btn icon-btn--danger"
@@ -707,17 +687,6 @@ export default function TopicsView({
                         </button>
                       </td>
                     </tr>,
-                    isExpanded && (
-                      <NotesRow
-                        key={`${topic.id}-notes`}
-                        id={topic.id}
-                        notes={topic.notes}
-                        onSave={(n) => updateTopicNotes(topic.id, n)}
-                        colSpan={colCount}
-                        onClose={() => setExpandedId(null)}
-                        autoFocusTextarea={renamingId !== topic.id}
-                      />
-                    ),
                   ]
                 })}
               </tbody>

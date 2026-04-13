@@ -5,6 +5,9 @@ export default defineConfig({
   base: '/cert-tracker/',
   plugins: [react()],
   cacheDir: '/tmp/vite-cert-cache',
+  server: {
+    port: 5173,
+  },
   test: {
     environment: 'jsdom',
     globals: true,

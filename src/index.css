@@ -2419,6 +2419,45 @@ body {
   text-underline-offset: 2px;
 }
 .subtopic-name-btn:hover { color: var(--accent, #4285F4); }
-@media (max-width: 500px) {
-  .drawer { width: 100vw; }
+/* ── Rate button active state ────────────────────────────────── */
+.drawer-rate-btn {
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.drawer-rate-btn:hover { border-color: var(--text-muted); }
+
+/* ── Mobile: drawer full-width ───────────────────────────────── */
+@media (max-width: 768px) {
+  .drawer {
+    width: 100vw;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    top: 40px; /* below topbar */
+  }
+}
+
+/* ── Mobile: topbar icons scroll horizontally ────────────────── */
+@media (max-width: 600px) {
+  .topbar-row1 {
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .topbar-row1::-webkit-scrollbar { display: none; }
+  .topbar-icons {
+    flex-shrink: 0;
+  }
+  .cert-switcher-btn {
+    flex-shrink: 0;
+    max-width: 140px;
+  }
+  .cert-switcher-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100px;
+  }
 }

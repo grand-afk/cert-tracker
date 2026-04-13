@@ -37,6 +37,7 @@ export default function SubtopicDrawer({
   const [notes, setNotes]           = useState('')
   const [testScore, setTestScore]   = useState('')
   const [studyOpen, setStudyOpen]   = useState(false)
+  const [currentQuality, setCurrentQuality] = useState(null)
 
   const nameInputRef = useRef(null)
 
@@ -51,13 +52,14 @@ export default function SubtopicDrawer({
     setName(item.name ?? '')
     setEditingName(false)
     setStatus(getStatus(subtopicId))
-    setDueDate(item.dueDate ?? '')
-    setDueTime(item.dueTime ?? '')
+    setDueDate(item.dueDate ?? item.topicDueDate ?? '')
+    setDueTime(item.dueTime ?? item.topicDueTime ?? '')
     setResources({ courseContent: '', video: '', anki: '', testLink: '', ...item.resources })
     setNotes(item.notes ?? '')
     const ts = getTestScore(subtopicId)
     setTestScore(ts ? String(ts.score) : '')
     setStudyOpen(context === 'study')
+    setCurrentQuality(getSm2Card(subtopicId)?.lastQuality ?? null)
   }, [subtopicId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Escape key closes drawer
@@ -103,15 +105,16 @@ export default function SubtopicDrawer({
 
   function handleRateCard(id, q) {
     rateCard(id, q)
+    setCurrentQuality(q)
   }
 
   const card = getSm2Card(subtopicId)
 
   const QUALITY_LABELS = [
-    { q: 0, label: 'Again' },
-    { q: 3, label: 'Hard' },
-    { q: 4, label: 'Good' },
-    { q: 5, label: 'Easy' },
+    { q: 0, label: 'Again',  color: '#EA4335' },
+    { q: 3, label: 'Hard',   color: '#FBBC05' },
+    { q: 4, label: 'Good',   color: '#34A853' },
+    { q: 5, label: 'Easy',   color: '#4285F4' },
   ]
 
   return (
@@ -200,45 +203,6 @@ export default function SubtopicDrawer({
             </div>
           </div>
 
-          {/* Resources */}
-          <div>
-            <div className="drawer-section-label">Resources</div>
-            <div className="drawer-resources">
-              {[
-                { key: 'courseContent', label: 'Course Content' },
-                { key: 'video',         label: 'Video' },
-                { key: 'anki',          label: 'Anki' },
-                { key: 'testLink',      label: 'Test Link' },
-              ].map(({ key, label }) => (
-                <div key={key} className="drawer-field">
-                  <label>{label}</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder={`https://…`}
-                    value={resources[key] ?? ''}
-                    onChange={(e) =>
-                      setResources((r) => ({ ...r, [key]: e.target.value }))
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="drawer-field">
-            <label className="drawer-section-label">Notes</label>
-            <textarea
-              className="form-input"
-              placeholder="Add study notes…"
-              rows={4}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              style={{ resize: 'vertical' }}
-            />
-          </div>
-
           {/* Study accordion */}
           <div>
             <button
@@ -294,10 +258,11 @@ export default function SubtopicDrawer({
                 <div>
                   <div className="drawer-section-label" style={{ marginBottom: 6 }}>Rate</div>
                   <div className="drawer-rate-row">
-                    {QUALITY_LABELS.map(({ q, label }) => (
+                    {QUALITY_LABELS.map(({ q, label, color }) => (
                       <button
                         key={q}
-                        className="btn btn-secondary btn-sm"
+                        className={`btn btn-sm drawer-rate-btn${currentQuality === q ? ' drawer-rate-btn--active' : ''}`}
+                        style={currentQuality === q ? { background: color, borderColor: color, color: '#fff' } : {}}
                         onClick={() => handleRateCard(subtopicId, q)}
                       >
                         {label}
@@ -307,6 +272,45 @@ export default function SubtopicDrawer({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Resources */}
+          <div>
+            <div className="drawer-section-label">Resources</div>
+            <div className="drawer-resources">
+              {[
+                { key: 'courseContent', label: 'Course Content' },
+                { key: 'video',         label: 'Video' },
+                { key: 'anki',          label: 'Anki' },
+                { key: 'testLink',      label: 'Test Link' },
+              ].map(({ key, label }) => (
+                <div key={key} className="drawer-field">
+                  <label>{label}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder={`https://…`}
+                    value={resources[key] ?? ''}
+                    onChange={(e) =>
+                      setResources((r) => ({ ...r, [key]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="drawer-field">
+            <label className="drawer-section-label">Notes</label>
+            <textarea
+              className="form-input"
+              placeholder="Add study notes…"
+              rows={4}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              style={{ resize: 'vertical' }}
+            />
           </div>
         </div>
 

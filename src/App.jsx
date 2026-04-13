@@ -828,6 +828,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             calendar={calendar}
             restoreCalendar={restoreCalendar}
             topicDueDates={topicDueDates}
+            onEditSubtopic={setEditingSubtopicId}
           />
         )}
 

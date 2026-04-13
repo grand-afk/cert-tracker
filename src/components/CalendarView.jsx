@@ -220,6 +220,7 @@ const SlotCard = memo(function SlotCard({
   focusedSlot, setFocusedSlot,
   selectedSlot, setSelectedSlot,
   setResizing, setTooltip, setEditingSlot, removeSlot, dragRef,
+  onEditSubtopic,
 }) {
   const topic = allTopics.find((t) => t.id === slot.topicId)
   if (!topic) return null
@@ -272,7 +273,8 @@ const SlotCard = memo(function SlotCard({
         e.stopPropagation()
         if (e.target.closest('.cal-slot__resize-top,.cal-slot__resize-bottom,.cal-slot__remove')) return
         setTooltip(null)
-        setEditingSlot({ dateKey: dk, slot })
+        if (onEditSubtopic) onEditSubtopic(slot.topicId)
+        else setEditingSlot({ dateKey: dk, slot })
       }}
     >
       <div className="cal-slot__resize-top"
@@ -333,6 +335,7 @@ export default function CalendarView({
   calendar: calendarProp,
   restoreCalendar,
   topicDueDates = [],  // [{id, name, courseId, courseName, courseColor, dueDate, dueTime}]
+  onEditSubtopic,
 }) {
   const {
     calendar,
@@ -360,6 +363,7 @@ export default function CalendarView({
     focusedSlot, setFocusedSlot,
     selectedSlot, setSelectedSlot,
     setResizing, setTooltip, setEditingSlot, removeSlot, dragRef,
+    onEditSubtopic,
   }
 
   // ─── Keyboard events ─────────────────────────────────────────────────────
@@ -926,7 +930,7 @@ export default function CalendarView({
                            className={`cal-month-chip${!matches ? ' cal-slot--dimmed' : ''}`}
                            title={topic.name}
                            style={{ borderLeft: `3px solid ${topic.courseColor}`, background: `${topic.courseColor}28` }}
-                           onClick={(e) => { e.stopPropagation(); setEditingSlot({ dateKey: key, slot }) }}>
+                           onClick={(e) => { e.stopPropagation(); onEditSubtopic?.(slot.topicId) }}>
                         {topic.name.substring(0, 14)}
                       </div>
                     )
@@ -956,7 +960,7 @@ export default function CalendarView({
                   return (
                     <div key={slot.id} className="cal-month-detail-slot"
                          style={{ cursor: 'pointer' }}
-                         onClick={() => setEditingSlot({ dateKey: key, slot })}>
+                         onClick={() => onEditSubtopic?.(slot.topicId)}>
                       <span className="course-badge__dot"
                             style={{ background: topic.courseColor, display: 'inline-block', marginRight: 4 }} />
                       <span>{slot.startTime} — {topic.name}</span>
