@@ -11,6 +11,7 @@ import TopBar           from './components/TopBar'
 import BottomNav        from './components/BottomNav'
 import ProgressBanner   from './components/ProgressBanner'
 import TopicsView       from './components/TopicsView'
+import SubtopicDrawer   from './components/SubtopicDrawer'
 import TerminologyView  from './components/TerminologyView'
 import StudyView        from './components/StudyView'
 import CalendarView     from './components/CalendarView'
@@ -212,6 +213,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
   } = useRevisionTechniques(namespace)
 
   const [managingCerts, setManagingCerts] = useState(false)
+  const [editingSubtopicId, setEditingSubtopicId] = useState(null)
 
   // ── Google Drive sync ──────────────────────────────────────────────────
   const buildExportBundle = useCallback(() => ({
@@ -580,6 +582,33 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     historyPush(undoFn, redoFn, label)
   }, [historyPush])
 
+  // ── SubtopicDrawer save handler ───────────────────────────────────────────
+  const editSubtopicH = useCallback((id, { name, status: newStatus, dueDate, dueTime, resources, notes, testScore, testDate }) => {
+    const item = allItemsMap[id]
+    if (!item) return
+
+    // Apply mutations
+    if (item.isSub) {
+      if (name !== item.name) renameSubtopic(item.courseId, item.topicId, id, name)
+      if (notes !== (item.notes ?? '')) updateSubtopicNotes(item.courseId, item.topicId, id, notes)
+      if (JSON.stringify(resources) !== JSON.stringify(item.resources)) updateSubtopicResources(item.courseId, item.topicId, id, resources)
+    } else {
+      if (name !== item.name) renameTopic(item.courseId, id, name)
+      if (notes !== (item.notes ?? '')) updateTopicNotes(id, notes)
+      if (JSON.stringify(resources) !== JSON.stringify(item.resources)) updateTopicResources(id, resources)
+    }
+    if ((dueDate || null) !== (item.dueDate || null) || (dueTime || null) !== (item.dueTime || null))
+      setTopicDueDate(id, dueDate || null, dueTime || null)
+    if (newStatus !== getStatus(id)) setStatus(id, newStatus)
+    if (testScore !== null && testScore !== undefined) {
+      setTestScore(id, testScore, testDate || new Date().toISOString().slice(0, 10))
+    }
+
+    setEditingSubtopicId(null)
+  }, [allItemsMap, renameSubtopic, updateSubtopicNotes, updateSubtopicResources,
+      renameTopic, updateTopicNotes, updateTopicResources, setTopicDueDate, getStatus, setStatus,
+      setTestScore])
+
   // addCert handler: seed template data SYNCHRONOUSLY before returning the id.
   // This ensures the data is in localStorage before onSwitch(id) triggers a re-render
   // of CertWorkspace — so useCertData reads the correct data on its first initialisation,
@@ -629,7 +658,10 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
       }
 
       if (e.altKey) return
-      if (e.key === 'Escape') { clearSelectedCourses(); setSearchQuery(''); return }
+      if (e.key === 'Escape') {
+        if (editingSubtopicId) { setEditingSubtopicId(null); return }
+        clearSelectedCourses(); setSearchQuery(''); return
+      }
 
       if (e.key === '/') {
         e.preventDefault()
@@ -663,7 +695,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [certData.courses, toggleCourse, clearSelectedCourses, view, undo, redo, handleTopbarSave, handleTopbarLoad])
+  }, [certData.courses, toggleCourse, clearSelectedCourses, view, undo, redo, handleTopbarSave, handleTopbarLoad, editingSubtopicId])
 
   return (
     <>
@@ -731,6 +763,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             clearRating={clearRatingH}
             searchQuery={searchQuery}
             syncProps={syncProps}
+            onEditSubtopic={setEditingSubtopicId}
           />
         )}
 
@@ -768,6 +801,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             setRevisionTechnique={setRevisionTechnique}
             syncProps={syncProps}
             subtopicsEnabled={subtopicsEnabled}
+            onEditSubtopic={setEditingSubtopicId}
           />
         )}
 
@@ -869,6 +903,20 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             }}
           onDelete={deleteCert}
           onClose={() => setManagingCerts(false)}
+        />
+      )}
+
+      {editingSubtopicId && allItemsMap[editingSubtopicId] && (
+        <SubtopicDrawer
+          subtopicId={editingSubtopicId}
+          item={allItemsMap[editingSubtopicId]}
+          context={view === 'study' ? 'study' : 'topics'}
+          getStatus={getStatus}
+          getSm2Card={getSm2Card}
+          rateCard={rateCardH}
+          getTestScore={getTestScore}
+          onSave={editSubtopicH}
+          onClose={() => setEditingSubtopicId(null)}
         />
       )}
     </>

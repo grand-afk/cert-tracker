@@ -105,6 +105,7 @@ export default function StudyView({
   setRevisionTechnique,
   syncProps,
   subtopicsEnabled = false,
+  onEditSubtopic,
 }) {
   const [ratedIds, setRatedIds]     = useState({})
   const [editTarget, setEditTarget] = useState(null)
@@ -319,7 +320,12 @@ export default function StudyView({
                       )}
                       <td className="study-cell study-cell--topic">
                         <span className="topic-name-wrap">
-                          {topic.name}
+                          <button
+                            className="subtopic-name-btn"
+                            onClick={(e) => { e.stopPropagation(); onEditSubtopic?.(topic.id) }}
+                          >
+                            {topic.name}
+                          </button>
                           {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
                         </span>
                       </td>

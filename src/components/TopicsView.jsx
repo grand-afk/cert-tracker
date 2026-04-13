@@ -220,6 +220,7 @@ export default function TopicsView({
   clearRating,
   searchQuery,
   syncProps,
+  onEditSubtopic,
 }) {
   const [page, setPage]         = useState(1)
   const [sort, setSort]         = useState({ key: null, dir: 'asc' })
@@ -543,7 +544,9 @@ export default function TopicsView({
                       className={`study-row study-row--expandable${topic.isSub ? ' subtopic-row' : ''}${isExpanded ? ' study-row--expanded' : ''}${isSelected ? ' study-row--selected' : ''}`}
                       onClick={(e) => {
                         if (e.target.closest('button,input,select,a,textarea')) return
-                        setExpandedId(isExpanded ? null : topic.id)
+                        if (!topic.isSub) {
+                          setExpandedId(isExpanded ? null : topic.id)
+                        }
                         setSelectedId(topic.id)
                       }}
                     >
@@ -608,7 +611,12 @@ export default function TopicsView({
                             />
                           ) : (
                             <span className="topic-name-wrap">
-                              {topic.name}
+                              <button
+                                className="subtopic-name-btn"
+                                onClick={(e) => { e.stopPropagation(); onEditSubtopic?.(topic.id) }}
+                              >
+                                {topic.name}
+                              </button>
                               {topic.notes && <span className="notes-indicator" title="Has notes">📝</span>}
                             </span>
                           )
@@ -676,8 +684,15 @@ export default function TopicsView({
                       )}
                       <td className="study-cell" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <button className="icon-btn"
-                                title={topic.isSub ? 'Rename subtopic & edit notes' : 'Rename topic & edit notes'}
-                                onClick={(e) => { e.stopPropagation(); startRename(topic); setExpandedId(topic.id) }}>
+                                title={topic.isSub ? 'Edit subtopic' : 'Rename topic & edit notes'}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (topic.isSub) {
+                                    onEditSubtopic?.(topic.id)
+                                  } else {
+                                    startRename(topic); setExpandedId(topic.id)
+                                  }
+                                }}>
                           ✏️
                         </button>
                         <button className="icon-btn icon-btn--danger"
