@@ -200,7 +200,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
   const { calendar, exportCSV: exportCalendarCSV, importCSV: importCalendarCSV, restoreCalendar } = useCalendar(namespace)
 
-  const { push: historyPush, undo, redo, canUndo, canRedo } = useHistory()
+  const { push: historyPush, undo, redo, canUndo, canRedo, undoCount, redoCount, undoLabel, redoLabel } = useHistory()
 
   const {
     techniques: revisionTechniques,
@@ -531,6 +531,21 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     }
   }, [allItemsMap, updateSubtopicNotes, updateTopicNotesH])
 
+  // History-aware due date setter — works for both topics and subtopics.
+  // Captures the previous date/time so Ctrl+Z can restore it, and prevents
+  // certData snapshot undos (addTopic etc.) from silently wiping due date changes.
+  const setTopicDueDateH = useCallback((topicId, dueDate, dueTime) => {
+    const item = allItems.find((t) => t.id === topicId) || allTopics.find((t) => t.id === topicId)
+    const prevDate = item?.dueDate ?? null
+    const prevTime = item?.dueTime ?? null
+    setTopicDueDate(topicId, dueDate, dueTime)
+    historyPush(
+      () => setTopicDueDate(topicId, prevDate, prevTime),
+      () => setTopicDueDate(topicId, dueDate, dueTime),
+      'Due date'
+    )
+  }, [allItems, allTopics, setTopicDueDate, historyPush])
+
   const deleteItemH = useCallback((courseId, id) => {
     const item = allItemsMap[id]
     if (item?.isSub) {
@@ -676,6 +691,10 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
         onRedo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
+        undoCount={undoCount}
+        redoCount={redoCount}
+        undoLabel={undoLabel}
+        redoLabel={redoLabel}
         onSave={handleTopbarSave}
         onLoad={handleTopbarLoad}
         isSaving={topbarSaving || driveSync.syncing}
@@ -702,7 +721,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             updateTopicNotes={updateItemNotesH}
             getTestScore={getTestScore}
             setTestScore={setTestScore}
-            setTopicDueDate={setTopicDueDate}
+            setTopicDueDate={setTopicDueDateH}
             addTopic={addTopicH}
             renameTopic={renameTopic}
             renameSubtopic={renameSubtopic}

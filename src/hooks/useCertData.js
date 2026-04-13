@@ -295,6 +295,8 @@ export function useCertData(namespace = 'default') {
             courseId: c.id, courseName: c.name, courseColor: c.color,
             topicName: t.name, topicId: t.id, isSub: true,
             resources: st.resources || EMPTY_RESOURCES,
+            topicDueDate: t.dueDate ?? null,
+            topicDueTime: t.dueTime ?? null,
           }))
         }
         return [base]
