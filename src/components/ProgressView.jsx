@@ -75,6 +75,7 @@ export default function ProgressView({
   dashFilters = {},
   setDashFilters,
   onEditSubtopic,
+  getRevisionTechnique,
 }) {
   // ── Chart data ─────────────────────────────────────────────────────────────
   const byCourse = useMemo(() => {
@@ -126,19 +127,19 @@ export default function ProgressView({
 
   const recentlyStudied = useMemo(() => {
     return filteredItems
-      .map((t) => { const card = getSm2Card(t.id); if (!card?.lastRated) return null; return { ...t, lastRated: card.lastRated, lastQuality: card.lastQuality ?? null } })
+      .map((t) => { const card = getSm2Card(t.id); if (!card?.lastRated) return null; return { ...t, lastRated: card.lastRated, lastQuality: card.lastQuality ?? null, lastRevTechnique: getRevisionTechnique?.(t.id, 'lastRevTechnique') ?? null } })
       .filter(Boolean)
       .sort((a, b) => b.lastRated.localeCompare(a.lastRated))
       .slice(0, 5)
-  }, [filteredItems, getSm2Card])
+  }, [filteredItems, getSm2Card, getRevisionTechnique])
 
   const upNext = useMemo(() => {
     return filteredItems
-      .map((t) => { const card = getSm2Card(t.id); if (!card?.nextReview) return null; return { ...t, nextReview: card.nextReview, isOverdue: daysUntilDue(card) < 0, dueLabel: dueLabel(card) } })
+      .map((t) => { const card = getSm2Card(t.id); if (!card?.nextReview) return null; return { ...t, nextReview: card.nextReview, isOverdue: daysUntilDue(card) < 0, dueLabel: dueLabel(card), nextRevTechnique: getRevisionTechnique?.(t.id, 'nextRevTechnique') ?? null } })
       .filter(Boolean)
       .sort((a, b) => a.nextReview.localeCompare(b.nextReview))
       .slice(0, 5)
-  }, [filteredItems, getSm2Card])
+  }, [filteredItems, getSm2Card, getRevisionTechnique])
 
   // ── Active keys for charts ─────────────────────────────────────────────────
   const activeCourseKey = selectedCourses.length === 1 ? selectedCourses[0] : null
@@ -229,7 +230,7 @@ export default function ProgressView({
             <p className="text-muted" style={{ fontSize: 13 }}>No reviews yet{activeBadges.length ? ' for these filters' : ''}.</p>
           ) : (
             <table className="progress-table">
-              <thead><tr><th>Topic</th><th>Course</th><th>Last Review</th><th>Rating</th></tr></thead>
+              <thead><tr><th>Topic</th><th>Course</th><th>Last Review</th><th>Rating</th><th>Last Revision</th></tr></thead>
               <tbody>
                 {recentlyStudied.map((t) => {
                   const ratingMeta = RATING_META.find((r) => r.quality === t.lastQuality)
@@ -239,6 +240,7 @@ export default function ProgressView({
                       <td><span className="course-badge"><span className="course-badge__dot" style={{ background: t.courseColor }} />{t.courseName}</span></td>
                       <td>{relTime(t.lastRated)}</td>
                       <td><span style={{ color: ratingMeta?.color }}>{ratingMeta?.label ?? '—'}</span></td>
+                      <td>{t.lastRevTechnique || <span style={{color:'var(--text-muted)'}}>—</span>}</td>
                     </tr>
                   )
                 })}
@@ -253,7 +255,7 @@ export default function ProgressView({
             <p className="text-muted" style={{ fontSize: 13 }}>No upcoming reviews{activeBadges.length ? ' for these filters' : ''}.</p>
           ) : (
             <table className="progress-table">
-              <thead><tr><th>Topic</th><th>Course</th><th>Next Review</th><th>Due</th></tr></thead>
+              <thead><tr><th>Topic</th><th>Course</th><th>Next Review</th><th>Due</th><th>Next Revision</th></tr></thead>
               <tbody>
                 {upNext.map((t) => (
                   <tr key={t.id} className="progress-table-row" onClick={() => onEditSubtopic?.(t.id)} style={{ cursor: 'pointer' }}>
@@ -261,6 +263,7 @@ export default function ProgressView({
                     <td><span className="course-badge"><span className="course-badge__dot" style={{ background: t.courseColor }} />{t.courseName}</span></td>
                     <td>{t.nextReview}</td>
                     <td><span className={t.isOverdue ? 'due-badge due-badge--overdue' : 'due-badge'}>{t.dueLabel}</span></td>
+                    <td>{t.nextRevTechnique || <span style={{color:'var(--text-muted)'}}>—</span>}</td>
                   </tr>
                 ))}
               </tbody>

@@ -220,7 +220,7 @@ const SlotCard = memo(function SlotCard({
   focusedSlot, setFocusedSlot,
   selectedSlot, setSelectedSlot,
   setResizing, setTooltip, setEditingSlot, removeSlot, dragRef,
-  onEditSubtopic,
+  onEditSubtopic, onEditSubtopicWithSlot, makeSlotSaveCb,
 }) {
   const topic = allTopics.find((t) => t.id === slot.topicId)
   if (!topic) return null
@@ -273,7 +273,8 @@ const SlotCard = memo(function SlotCard({
         e.stopPropagation()
         if (e.target.closest('.cal-slot__resize-top,.cal-slot__resize-bottom,.cal-slot__remove')) return
         setTooltip(null)
-        if (onEditSubtopic) onEditSubtopic(slot.topicId)
+        if (onEditSubtopicWithSlot) onEditSubtopicWithSlot(slot.topicId, { dateKey: dk, slotId: slot.id, startTime: slot.startTime, durationMins: slot.durationMins }, makeSlotSaveCb?.(dk, slot.id))
+        else if (onEditSubtopic) onEditSubtopic(slot.topicId)
         else setEditingSlot({ dateKey: dk, slot })
       }}
     >
@@ -336,6 +337,9 @@ export default function CalendarView({
   restoreCalendar,
   topicDueDates = [],  // [{id, name, courseId, courseName, courseColor, dueDate, dueTime}]
   onEditSubtopic,
+  onEditSubtopicWithSlot,
+  selectedCourses,
+  dashFilters = {},
 }) {
   const {
     calendar,
@@ -357,13 +361,20 @@ export default function CalendarView({
   const dragRef                         = useRef(null)
   const breakMins                       = defaultBreakMins ?? 0
 
+  // Factory passed to SlotCard so it can build the slot-save callback without
+  // needing direct access to updateSlotTime / updateSlotDuration
+  const makeSlotSaveCb = useCallback((dateKey, slotId) => ({ startTime, durationMins }) => {
+    updateSlotTime(dateKey, slotId, startTime)
+    updateSlotDuration(dateKey, slotId, durationMins)
+  }, [updateSlotTime, updateSlotDuration])
+
   // Shared props passed to every SlotCard
   const slotProps = {
     allTopics, getSm2Card, rateCard, clearRating, searchQuery,
     focusedSlot, setFocusedSlot,
     selectedSlot, setSelectedSlot,
     setResizing, setTooltip, setEditingSlot, removeSlot, dragRef,
-    onEditSubtopic,
+    onEditSubtopic, onEditSubtopicWithSlot, makeSlotSaveCb,
   }
 
   // ─── Keyboard events ─────────────────────────────────────────────────────
@@ -594,12 +605,40 @@ export default function CalendarView({
     const days = getDaysInScope(scope)
     const before = JSON.parse(JSON.stringify(calendar))
 
+    // Apply dashFilters and selectedCourses to narrow which topics get scheduled
+    const QUALITY_MAP = { again: 0, hard: 3, good: 4, easy: 5 }
+    const filtersActive = Object.keys(dashFilters).length > 0 || (selectedCourses?.length > 0)
+    const topicsToSchedule = filtersActive
+      ? allTopics.filter((t) => {
+          if (selectedCourses?.length > 0 && !selectedCourses.includes(t.courseId)) return false
+          if (dashFilters.status && getStatus(t.id) !== dashFilters.status) return false
+          if (dashFilters.rating) {
+            const q = getSm2Card(t.id)?.lastQuality ?? null
+            const match = dashFilters.rating === 'not-rated' ? q == null : q === QUALITY_MAP[dashFilters.rating]
+            if (!match) return false
+          }
+          if (dashFilters.due) {
+            const card = getSm2Card(t.id)
+            if (dashFilters.due === 'none' && card?.nextReview) return false
+            if (dashFilters.due !== 'none') {
+              if (!card?.nextReview) return false
+              const dtu = daysUntilDue(card)
+              if (dashFilters.due === 'overdue' && dtu >= 0) return false
+              if (dashFilters.due === 'today' && dtu !== 0) return false
+              if (dashFilters.due === 'week' && (dtu <= 0 || dtu > 7)) return false
+              if (dashFilters.due === 'later' && dtu <= 7) return false
+            }
+          }
+          return true
+        })
+      : allTopics
+
     if (scope === 'day') {
-      autoFill(days[0], allTopics, defaultTopicMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessionsPerDay, breakMins)
+      autoFill(days[0], topicsToSchedule, defaultTopicMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessionsPerDay, breakMins)
       if (recordAction) {
         recordAction(
           () => restoreCalendar(before),
-          () => autoFill(days[0], allTopics, defaultTopicMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessionsPerDay, breakMins),
+          () => autoFill(days[0], topicsToSchedule, defaultTopicMins, getTopicMins, getSm2Card, workStart, workEnd, maxSessionsPerDay, breakMins),
           `Schedule day`
         )
       }
@@ -611,7 +650,7 @@ export default function CalendarView({
     const workEndMins   = timeToMinutes(workEnd)
 
     const byCourse = {}
-    allTopics.forEach((t) => {
+    topicsToSchedule.forEach((t) => {
       if (!byCourse[t.courseId]) byCourse[t.courseId] = []
       byCourse[t.courseId].push(t)
     })
@@ -930,7 +969,7 @@ export default function CalendarView({
                            className={`cal-month-chip${!matches ? ' cal-slot--dimmed' : ''}`}
                            title={topic.name}
                            style={{ borderLeft: `3px solid ${topic.courseColor}`, background: `${topic.courseColor}28` }}
-                           onClick={(e) => { e.stopPropagation(); onEditSubtopic?.(slot.topicId) }}>
+                           onClick={(e) => { e.stopPropagation(); if (onEditSubtopicWithSlot) onEditSubtopicWithSlot(slot.topicId, { dateKey: key, slotId: slot.id, startTime: slot.startTime, durationMins: slot.durationMins }, ({ startTime, durationMins }) => { updateSlotTime(key, slot.id, startTime); updateSlotDuration(key, slot.id, durationMins) }); else onEditSubtopic?.(slot.topicId) }}>
                         {topic.name.substring(0, 14)}
                       </div>
                     )
@@ -960,7 +999,7 @@ export default function CalendarView({
                   return (
                     <div key={slot.id} className="cal-month-detail-slot"
                          style={{ cursor: 'pointer' }}
-                         onClick={() => onEditSubtopic?.(slot.topicId)}>
+                         onClick={() => { if (onEditSubtopicWithSlot) onEditSubtopicWithSlot(slot.topicId, { dateKey: key, slotId: slot.id, startTime: slot.startTime, durationMins: slot.durationMins }, ({ startTime, durationMins }) => { updateSlotTime(key, slot.id, startTime); updateSlotDuration(key, slot.id, durationMins) }); else onEditSubtopic?.(slot.topicId) }}>
                       <span className="course-badge__dot"
                             style={{ background: topic.courseColor, display: 'inline-block', marginRight: 4 }} />
                       <span>{slot.startTime} — {topic.name}</span>

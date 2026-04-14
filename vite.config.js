@@ -7,6 +7,7 @@ export default defineConfig({
   cacheDir: '/tmp/vite-cert-cache',
   server: {
     port: 5173,
+    strictPort: true,
   },
   test: {
     environment: 'jsdom',

@@ -24,6 +24,8 @@ export default function SubtopicDrawer({
   getTestScore,
   onSave,
   onClose,
+  slotContext = null,
+  onSlotSave = null,
 }) {
   const [visible, setVisible] = useState(false)
 
@@ -38,6 +40,8 @@ export default function SubtopicDrawer({
   const [testScore, setTestScore]   = useState('')
   const [studyOpen, setStudyOpen]   = useState(true)
   const [currentQuality, setCurrentQuality] = useState(null)
+  const [slotStart, setSlotStart]   = useState(slotContext?.startTime ?? '')
+  const [slotDuration, setSlotDuration] = useState(slotContext?.durationMins ?? 60)
 
   const nameInputRef = useRef(null)
 
@@ -60,6 +64,8 @@ export default function SubtopicDrawer({
     setTestScore(ts ? String(ts.score) : '')
     setStudyOpen(true)
     setCurrentQuality(getSm2Card(subtopicId)?.lastQuality ?? null)
+    setSlotStart(slotContext?.startTime ?? '')
+    setSlotDuration(slotContext?.durationMins ?? 60)
   }, [subtopicId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Escape key closes drawer
@@ -101,6 +107,9 @@ export default function SubtopicDrawer({
       testScore: scoreNum !== null && !isNaN(scoreNum) ? scoreNum : ts?.score ?? null,
       testDate: ts?.date ?? new Date().toISOString().slice(0, 10),
     })
+    if (slotContext && onSlotSave) {
+      onSlotSave({ startTime: slotStart, durationMins: slotDuration })
+    }
   }
 
   function handleRateCard(id, q) {
@@ -148,6 +157,25 @@ export default function SubtopicDrawer({
 
         {/* Body */}
         <div className="drawer-body">
+          {/* Slot schedule section — shown when opened from a calendar slot */}
+          {slotContext && (
+            <div className="drawer-slot-section">
+              <div className="drawer-section-label">Scheduled Session</div>
+              <div className="drawer-2col">
+                <div className="drawer-field">
+                  <label>Start Time</label>
+                  <input type="time" className="form-input"
+                    value={slotStart} onChange={(e) => setSlotStart(e.target.value)} />
+                </div>
+                <div className="drawer-field">
+                  <label>Duration (mins)</label>
+                  <input type="number" min={15} max={480} step={15} className="form-input"
+                    value={slotDuration} onChange={(e) => setSlotDuration(Number(e.target.value))} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Name */}
           <div>
             {editingName ? (
