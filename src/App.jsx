@@ -17,6 +17,7 @@ import StudyView        from './components/StudyView'
 import CalendarView     from './components/CalendarView'
 import HelpView         from './components/HelpView'
 import SettingsView     from './components/SettingsView'
+import ProgressView     from './components/ProgressView'
 import sampleDataEngineer from './data/sample-data-engineer.json'
 import sampleCloudArchitect from './data/sample.json'
 import sampleGCSE         from './data/sample-gcse.json'
@@ -160,7 +161,7 @@ function CertManagerModal({ certs, activeCertId, onSwitch, onAdd, onRename, onDe
   )
 }
 
-const VIEWS = ['topics', 'study', 'calendar', 'terminology', 'help', 'settings']
+const VIEWS = ['topics', 'progress', 'study', 'calendar', 'terminology', 'help', 'settings']
 const STATUSES = ['not-started', 'in-progress', 'complete']
 
 // ── CertWorkspace: all data hooks + views for a single cert namespace ─────────
@@ -214,6 +215,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
   const [managingCerts, setManagingCerts] = useState(false)
   const [editingSubtopicId, setEditingSubtopicId] = useState(null)
+  const [dashFilter, setDashFilter] = useState(null)
 
   // ── Google Drive sync ──────────────────────────────────────────────────
   const buildExportBundle = useCallback(() => ({
@@ -439,7 +441,10 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
   }, [importData, importProgress, restoreCalendar, stampLastImported])
 
   // Clear search when changing views
-  useEffect(() => { setSearchQuery('') }, [view])
+  useEffect(() => {
+    setSearchQuery('')
+    if (!['topics', 'progress', 'study'].includes(view)) setDashFilter(null)
+  }, [view])
 
   // ── History-aware action wrappers ─────────────────────────────────────────
   const cycleStatusH = useCallback((id) => {
@@ -774,6 +779,23 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             searchQuery={searchQuery}
             syncProps={syncProps}
             onEditSubtopic={setEditingSubtopicId}
+            dashFilter={dashFilter}
+          />
+        )}
+
+        {view === 'progress' && (
+          <ProgressView
+            allItems={allItems}
+            courses={certData.courses}
+            getStatus={getStatus}
+            getSm2Card={getSm2Card}
+            selectedCourses={selectedCourses}
+            toggleCourse={toggleCourse}
+            clearSelectedCourses={clearSelectedCourses}
+            dashFilter={dashFilter}
+            setDashFilter={setDashFilter}
+            setView={setView}
+            onEditSubtopic={setEditingSubtopicId}
           />
         )}
 
@@ -812,6 +834,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             syncProps={syncProps}
             subtopicsEnabled={subtopicsEnabled}
             onEditSubtopic={setEditingSubtopicId}
+            dashFilter={dashFilter}
           />
         )}
 
