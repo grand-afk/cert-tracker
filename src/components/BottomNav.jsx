@@ -1,10 +1,11 @@
 const TABS = [
   { id: 'topics',      icon: '📋', label: 'Topics',   key: '1' },
-  { id: 'study',       icon: '🎓', label: 'Study',    key: '2' },
-  { id: 'calendar',    icon: '📅', label: 'Calendar', key: '3' },
-  { id: 'terminology', icon: '📖', label: 'Terms',    key: '4' },
-  { id: 'help',        icon: '❓', label: 'Help',     key: '5' },
-  { id: 'settings',    icon: '⚙️', label: 'Settings', key: '6' },
+  { id: 'progress',    icon: '📊', label: 'Progress', key: '2' },
+  { id: 'study',       icon: '🎓', label: 'Study',    key: '3' },
+  { id: 'calendar',    icon: '📅', label: 'Calendar', key: '4' },
+  { id: 'terminology', icon: '📖', label: 'Terms',    key: '5' },
+  { id: 'help',        icon: '❓', label: 'Help',     key: '6' },
+  { id: 'settings',    icon: '⚙️', label: 'Settings', key: '7' },
 ]
 
 export default function BottomNav({ view, setView }) {

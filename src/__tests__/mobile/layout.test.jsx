@@ -61,10 +61,11 @@ const noop = vi.fn()
 
 // ── BottomNav — mobile ────────────────────────────────────────────────────────
 describe('BottomNav — mobile viewport', () => {
-  it('renders all six tabs at 375px width', () => {
+  it('renders all seven tabs at 375px width', () => {
     setViewport(MOBILE_WIDTH)
     render(<BottomNav view="topics" setView={noop} />)
     expect(screen.getByText('Topics')).toBeInTheDocument()
+    expect(screen.getByText('Progress')).toBeInTheDocument()
     expect(screen.getByText('Study')).toBeInTheDocument()
     expect(screen.getByText('Calendar')).toBeInTheDocument()
     expect(screen.getByText('Terms')).toBeInTheDocument()
@@ -83,7 +84,7 @@ describe('BottomNav — mobile viewport', () => {
     const { container } = render(<BottomNav view="topics" setView={noop} />)
     // The .nav-btn__key elements exist in DOM; CSS hides them at ≤600px
     const keyHints = container.querySelectorAll('.nav-btn__key')
-    expect(keyHints.length).toBe(6)
+    expect(keyHints.length).toBe(7)
   })
 
   it('renders correctly at tablet width (768px)', () => {

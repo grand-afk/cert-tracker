@@ -3,9 +3,10 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import BottomNav from '../../components/BottomNav'
 
 describe('BottomNav', () => {
-  it('renders all six tabs', () => {
+  it('renders all seven tabs', () => {
     render(<BottomNav view="topics" setView={vi.fn()} />)
     expect(screen.getByText('Topics')).toBeInTheDocument()
+    expect(screen.getByText('Progress')).toBeInTheDocument()
     expect(screen.getByText('Study')).toBeInTheDocument()
     expect(screen.getByText('Calendar')).toBeInTheDocument()
     expect(screen.getByText('Terms')).toBeInTheDocument()
@@ -98,18 +99,18 @@ describe('BottomNav', () => {
   it('renders icons for each tab', () => {
     const { container } = render(<BottomNav view="topics" setView={vi.fn()} />)
     const icons = container.querySelectorAll('.nav-btn__icon')
-    expect(icons).toHaveLength(6)
+    expect(icons).toHaveLength(7)
   })
 
   it('renders keyboard key hints for each tab', () => {
     const { container } = render(<BottomNav view="topics" setView={vi.fn()} />)
     const keys = container.querySelectorAll('.nav-btn__key')
-    expect(keys).toHaveLength(6)
+    expect(keys).toHaveLength(7)
   })
 
-  it('keyboard key hints show 1 through 6', () => {
+  it('keyboard key hints show 1 through 7', () => {
     const { container } = render(<BottomNav view="topics" setView={vi.fn()} />)
     const keys = [...container.querySelectorAll('.nav-btn__key')].map((el) => el.textContent)
-    expect(keys).toEqual(['1', '2', '3', '4', '5', '6'])
+    expect(keys).toEqual(['1', '2', '3', '4', '5', '6', '7'])
   })
 })
