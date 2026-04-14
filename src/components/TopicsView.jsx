@@ -221,7 +221,7 @@ export default function TopicsView({
   searchQuery,
   syncProps,
   onEditSubtopic,
-  dashFilter = null,
+  dashFilters = {},
 }) {
   const [page, setPage]         = useState(1)
   const [sort, setSort]         = useState({ key: null, dir: 'asc' })
@@ -266,8 +266,8 @@ export default function TopicsView({
     if (selectedCourses.length) {
       result = result.filter((t) => selectedCourses.includes(t.courseId))
     }
-    if (dashFilter?.type === 'status') {
-      result = result.filter((t) => getStatus(t.id) === dashFilter.value)
+    if (dashFilters.status) {
+      result = result.filter((t) => getStatus(t.id) === dashFilters.status)
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
@@ -278,7 +278,7 @@ export default function TopicsView({
       )
     }
     return result
-  }, [topics, selectedCourses, dashFilter, getStatus, searchQuery])
+  }, [topics, selectedCourses, dashFilters, getStatus, searchQuery])
 
   const sorted = useMemo(() => {
     if (!sort.key) return filtered

@@ -106,7 +106,7 @@ export default function StudyView({
   syncProps,
   subtopicsEnabled = false,
   onEditSubtopic,
-  dashFilter = null,
+  dashFilters = {},
 }) {
   const [ratedIds, setRatedIds]     = useState({})
   const [editTarget, setEditTarget] = useState(null)
@@ -121,29 +121,27 @@ export default function StudyView({
     if (selectedCourses.length) {
       result = result.filter((t) => selectedCourses.includes(t.courseId))
     }
-    if (dashFilter) {
-      if (dashFilter.type === 'status') {
-        result = result.filter((t) => getStatus(t.id) === dashFilter.value)
-      }
-      if (dashFilter.type === 'rating') {
-        const QUALITY_MAP = { again: 0, hard: 3, good: 4, easy: 5 }
-        result = result.filter((t) => {
-          const q = getSm2Card(t.id)?.lastQuality ?? null
-          return dashFilter.value === 'not-rated' ? q == null : q === QUALITY_MAP[dashFilter.value]
-        })
-      }
-      if (dashFilter.type === 'due') {
-        result = result.filter((t) => {
-          const card = getSm2Card(t.id)
-          if (dashFilter.value === 'none') return !card?.nextReview
-          const days = daysUntilDue(card)
-          if (dashFilter.value === 'overdue') return days < 0
-          if (dashFilter.value === 'today')   return days === 0
-          if (dashFilter.value === 'week')    return days > 0 && days <= 7
-          if (dashFilter.value === 'later')   return days > 7
-          return true
-        })
-      }
+    if (dashFilters.status) {
+      result = result.filter((t) => getStatus(t.id) === dashFilters.status)
+    }
+    if (dashFilters.rating) {
+      const QUALITY_MAP = { again: 0, hard: 3, good: 4, easy: 5 }
+      result = result.filter((t) => {
+        const q = getSm2Card(t.id)?.lastQuality ?? null
+        return dashFilters.rating === 'not-rated' ? q == null : q === QUALITY_MAP[dashFilters.rating]
+      })
+    }
+    if (dashFilters.due) {
+      result = result.filter((t) => {
+        const card = getSm2Card(t.id)
+        if (dashFilters.due === 'none') return !card?.nextReview
+        const days = daysUntilDue(card)
+        if (dashFilters.due === 'overdue') return days < 0
+        if (dashFilters.due === 'today')   return days === 0
+        if (dashFilters.due === 'week')    return days > 0 && days <= 7
+        if (dashFilters.due === 'later')   return days > 7
+        return true
+      })
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
@@ -154,7 +152,7 @@ export default function StudyView({
       )
     }
     return result
-  }, [topics, selectedCourses, dashFilter, getStatus, getSm2Card, searchQuery])
+  }, [topics, selectedCourses, dashFilters, getStatus, getSm2Card, searchQuery])
 
   // Sort
   const sorted = useMemo(() => {

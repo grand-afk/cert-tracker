@@ -2498,12 +2498,22 @@ body {
 .chart-legend-item:hover { background: var(--surface2); }
 .chart-legend-item--active { font-weight: 700; background: var(--surface2); }
 .chart-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-.dash-filter-badge {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--surface2); border: 1px solid var(--accent);
-  border-radius: var(--radius-sm, 4px); padding: 6px 12px;
-  font-size: 12px; color: var(--accent); align-self: flex-start;
+.dash-filter-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
 }
+.dash-filter-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface2); border: 1px solid var(--accent);
+  border-radius: var(--radius-sm, 4px); padding: 4px 10px;
+  font-size: 12px; color: var(--accent);
+}
+.dash-filter-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.dash-filter-remove {
+  font-size: 11px; opacity: 0.7; padding: 0 2px;
+}
+.dash-filter-remove:hover { opacity: 1; }
 .progress-tables-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));

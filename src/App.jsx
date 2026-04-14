@@ -215,7 +215,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
   const [managingCerts, setManagingCerts] = useState(false)
   const [editingSubtopicId, setEditingSubtopicId] = useState(null)
-  const [dashFilter, setDashFilter] = useState(null)
+  const [dashFilters, setDashFilters] = useState({})
 
   // ── Google Drive sync ──────────────────────────────────────────────────
   const buildExportBundle = useCallback(() => ({
@@ -440,10 +440,9 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     finally { setTopbarLoading(false) }
   }, [importData, importProgress, restoreCalendar, stampLastImported])
 
-  // Clear search when changing views
+  // Clear dash filters when leaving the topics/progress/study cluster
   useEffect(() => {
-    setSearchQuery('')
-    if (!['topics', 'progress', 'study'].includes(view)) setDashFilter(null)
+    if (!['topics', 'progress', 'study'].includes(view)) setDashFilters({})
   }, [view])
 
   // ── History-aware action wrappers ─────────────────────────────────────────
@@ -779,7 +778,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             searchQuery={searchQuery}
             syncProps={syncProps}
             onEditSubtopic={setEditingSubtopicId}
-            dashFilter={dashFilter}
+            dashFilters={dashFilters}
           />
         )}
 
@@ -792,9 +791,8 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             selectedCourses={selectedCourses}
             toggleCourse={toggleCourse}
             clearSelectedCourses={clearSelectedCourses}
-            dashFilter={dashFilter}
-            setDashFilter={setDashFilter}
-            setView={setView}
+            dashFilters={dashFilters}
+            setDashFilters={setDashFilters}
             onEditSubtopic={setEditingSubtopicId}
           />
         )}
@@ -834,7 +832,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             syncProps={syncProps}
             subtopicsEnabled={subtopicsEnabled}
             onEditSubtopic={setEditingSubtopicId}
-            dashFilter={dashFilter}
+            dashFilters={dashFilters}
           />
         )}
 
