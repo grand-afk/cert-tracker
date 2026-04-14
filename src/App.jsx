@@ -215,7 +215,16 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
   const [managingCerts, setManagingCerts] = useState(false)
   const [editingSubtopicId, setEditingSubtopicId] = useState(null)
+  const [editingSlotContext, setEditingSlotContext] = useState(null)
+  const [slotSaveCallback, setSlotSaveCallback] = useState(null)
   const [dashFilters, setDashFilters] = useState({})
+
+  // ── Slot-context drawer opener ────────────────────────────────────────────
+  const openSubtopicWithSlot = useCallback((topicId, slotCtx, saveCb) => {
+    setEditingSubtopicId(topicId)
+    setEditingSlotContext(slotCtx)
+    setSlotSaveCallback(() => saveCb)
+  }, [])
 
   // ── Google Drive sync ──────────────────────────────────────────────────
   const buildExportBundle = useCallback(() => ({
@@ -619,6 +628,8 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
     )
 
     setEditingSubtopicId(null)
+    setEditingSlotContext(null)
+    setSlotSaveCallback(null)
   }, [allItemsMap, certData, progress, renameSubtopic, updateSubtopicNotes, updateSubtopicResources,
       renameTopic, updateTopicNotes, updateTopicResources, setTopicDueDate, getStatus, setStatus,
       setTestScore, historyPush, restoreCertData, restoreProgress])
@@ -673,7 +684,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
 
       if (e.altKey) return
       if (e.key === 'Escape') {
-        if (editingSubtopicId) { setEditingSubtopicId(null); return }
+        if (editingSubtopicId) { setEditingSubtopicId(null); setEditingSlotContext(null); setSlotSaveCallback(null); return }
         clearSelectedCourses(); setSearchQuery(''); return
       }
 
@@ -794,6 +805,7 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             dashFilters={dashFilters}
             setDashFilters={setDashFilters}
             onEditSubtopic={setEditingSubtopicId}
+            getRevisionTechnique={getRevisionTechnique}
           />
         )}
 
@@ -860,6 +872,9 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
             restoreCalendar={restoreCalendar}
             topicDueDates={topicDueDates}
             onEditSubtopic={setEditingSubtopicId}
+            onEditSubtopicWithSlot={openSubtopicWithSlot}
+            selectedCourses={selectedCourses}
+            dashFilters={dashFilters}
           />
         )}
 
@@ -948,7 +963,9 @@ function CertWorkspace({ namespace, activeCert, certs, addCert, renameCert, dele
           rateCard={rateCardH}
           getTestScore={getTestScore}
           onSave={editSubtopicH}
-          onClose={() => setEditingSubtopicId(null)}
+          onClose={() => { setEditingSubtopicId(null); setEditingSlotContext(null); setSlotSaveCallback(null) }}
+          slotContext={editingSlotContext}
+          onSlotSave={slotSaveCallback}
         />
       )}
     </>
