@@ -3,3 +3,6 @@ dist/
 .DS_Store
 *.local
 vite.config.js.timestamp-*.mjs
+
+# Claude Code internal worktrees
+.claude/worktrees/
