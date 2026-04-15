@@ -108,7 +108,6 @@ export default function StudyView({
   onEditSubtopic,
   dashFilters = {},
 }) {
-  const [ratedIds, setRatedIds]     = useState({})
   const [editTarget, setEditTarget] = useState(null)
   const [page, setPage]             = useState(1)
   const [showDueOnly, setShowDueOnly] = useState(false)
@@ -206,7 +205,6 @@ export default function StudyView({
 
   function handleRate(id, quality) {
     rateCard(id, quality)
-    setRatedIds((p) => ({ ...p, [id]: quality }))
   }
 
   function toggleSort(key) {
@@ -317,7 +315,7 @@ export default function StudyView({
                 {pageItems.map((topic) => {
                   const card        = getSm2Card(topic.id)
                   const lastQuality = card?.lastQuality ?? null
-                  const rated       = ratedIds[topic.id] !== undefined
+                  const rated       = !!(card?.lastRated?.startsWith(today))
                   const isExpanded  = expandedId === topic.id
                   return [
                     <tr
@@ -362,7 +360,7 @@ export default function StudyView({
                           <RateButtons
                             onRate={(q) => handleRate(topic.id, q)}
                             card={card}
-                            lastQuality={ratedIds[topic.id] !== undefined ? ratedIds[topic.id] : lastQuality}
+                            lastQuality={lastQuality}
                           />
                           {card && (
                             <button className="clear-rating-btn" onClick={(e) => { e.stopPropagation(); clearRating(topic.id) }} title="Clear rating">✕ rating</button>

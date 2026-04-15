@@ -77,24 +77,33 @@ export default function ProgressView({
   onEditSubtopic,
   getRevisionTechnique,
 }) {
-  // ── Chart data ─────────────────────────────────────────────────────────────
+  // ── Chart data (each chart filters by all *other* active filters) ──────────
+
+  // byCourse: apply status/rating/due filters — NOT course selection
   const byCourse = useMemo(() => {
+    const base = applyFilters(allItems, dashFilters, [], getStatus, getSm2Card)
     const counts = {}
-    allItems.forEach((t) => { counts[t.courseId] = (counts[t.courseId] || 0) + 1 })
+    base.forEach((t) => { counts[t.courseId] = (counts[t.courseId] || 0) + 1 })
     return courses
       .map((c) => ({ key: c.id, label: c.name, value: counts[c.id] || 0, color: c.color || '#6b7280' }))
       .filter((s) => s.value > 0)
-  }, [allItems, courses])
+  }, [allItems, courses, dashFilters, getStatus, getSm2Card])
 
+  // byStatus: apply course + rating/due — NOT status filter
   const byStatus = useMemo(() => {
+    const { status: _s, ...rest } = dashFilters
+    const base = applyFilters(allItems, rest, selectedCourses, getStatus, getSm2Card)
     const counts = { 'not-started': 0, 'in-progress': 0, 'complete': 0 }
-    allItems.forEach((t) => { const s = getStatus(t.id); if (counts[s] !== undefined) counts[s]++ })
+    base.forEach((t) => { const s = getStatus(t.id); if (counts[s] !== undefined) counts[s]++ })
     return STATUS_META.map((m) => ({ ...m, value: counts[m.key] }))
-  }, [allItems, getStatus])
+  }, [allItems, dashFilters, selectedCourses, getStatus, getSm2Card])
 
+  // byRating: apply course + status/due — NOT rating filter
   const byRating = useMemo(() => {
+    const { rating: _r, ...rest } = dashFilters
+    const base = applyFilters(allItems, rest, selectedCourses, getStatus, getSm2Card)
     const counts = { again: 0, hard: 0, good: 0, easy: 0, 'not-rated': 0 }
-    allItems.forEach((t) => {
+    base.forEach((t) => {
       const q = getSm2Card(t.id)?.lastQuality ?? null
       if (q === 0) counts.again++
       else if (q === 3) counts.hard++
@@ -103,11 +112,14 @@ export default function ProgressView({
       else counts['not-rated']++
     })
     return RATING_META.map((m) => ({ ...m, value: counts[m.key] }))
-  }, [allItems, getSm2Card])
+  }, [allItems, dashFilters, selectedCourses, getStatus, getSm2Card])
 
+  // byDue: apply course + status/rating — NOT due filter
   const byDue = useMemo(() => {
+    const { due: _d, ...rest } = dashFilters
+    const base = applyFilters(allItems, rest, selectedCourses, getStatus, getSm2Card)
     const counts = { overdue: 0, today: 0, week: 0, later: 0, none: 0 }
-    allItems.forEach((t) => {
+    base.forEach((t) => {
       const card = getSm2Card(t.id)
       if (!card?.nextReview) { counts.none++; return }
       const days = daysUntilDue(card)
@@ -117,7 +129,7 @@ export default function ProgressView({
       else counts.later++
     })
     return DUE_META.map((m) => ({ ...m, value: counts[m.key] }))
-  }, [allItems, getSm2Card])
+  }, [allItems, dashFilters, selectedCourses, getStatus, getSm2Card])
 
   // ── Filtered items for tables ───────────────────────────────────────────────
   const filteredItems = useMemo(
