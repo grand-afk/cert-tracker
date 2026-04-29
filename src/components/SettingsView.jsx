@@ -179,6 +179,17 @@ function DriveSyncSection({ driveSync }) {
             )}
           </div>
 
+          {/* Partner Drive link — shown when partner is set and not editing */}
+          {sharedFileId && !editingPartner && (
+            <div className="settings-hint">
+              <a href={`https://drive.google.com/file/d/${sharedFileId}/view`}
+                 target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
+                Open their file in Drive ↗
+              </a>
+              {' '}(must be shared as "Anyone with link → Viewer")
+            </div>
+          )}
+
           {/* Partner input — shown when no partner set or editing */}
           {(!sharedFileId || editingPartner) ? (
             <div style={{ display: 'flex', gap: 6, width: '100%' }}>
